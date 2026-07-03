@@ -1,11 +1,7 @@
 package com.cybershield.ui.controllers;
-import com.cybershield.models.User;
-import com.cybershield.services.AuthenticationService;
 
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Scene;
-import javafx.stage.Stage;
 import com.cybershield.security.SessionManager;
+
 import javafx.fxml.FXML;
 import javafx.scene.control.Label;
 
@@ -20,7 +16,7 @@ public class DashboardController {
         if (SessionManager.isLoggedIn()) {
 
             welcomeLabel.setText(
-                    "Welcome " +
+                    "Welcome, " +
                     SessionManager.getCurrentUser().getUsername()
             );
 
@@ -29,6 +25,15 @@ public class DashboardController {
             welcomeLabel.setText("Guest");
 
         }
+
+    }
+
+    @FXML
+    private void logout() {
+
+        SessionManager.logout();
+
+        System.out.println("User Logged Out");
 
     }
 

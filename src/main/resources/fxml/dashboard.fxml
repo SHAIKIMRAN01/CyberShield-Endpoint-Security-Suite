@@ -1,37 +1,65 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.Insets?>
 <?import javafx.scene.control.*?>
 <?import javafx.scene.layout.*?>
 
 <BorderPane xmlns:fx="http://javafx.com/fxml"
-            fx:controller="com.cybershield.ui.controllers.DashboardController">
+            stylesheets="@../css/application.css"
+            fx:controller="com.cybershield.ui.controllers.DashboardController"
+            prefWidth="1200"
+            prefHeight="700">
 
-    <top>
+    <left>
 
-        <Label text="CyberShield Dashboard"
-               BorderPane.alignment="CENTER"/>
+        <VBox spacing="10"
+              prefWidth="240"
+              styleClass="sidebar">
 
-    </top>
+            <Label text="CyberShield"
+                   styleClass="title"/>
+
+            <Button text="🏠 Dashboard"/>
+
+            <Button text="🔐 Password Vault"/>
+
+            <Button text="📝 Secure Notes"/>
+
+            <Button text="🛡 Encryption Center"/>
+
+            <Button text="📂 File Security"/>
+
+            <Button text="🖼 Steganography"/>
+
+            <Button text="⌨ Privacy Tools"/>
+
+            <Button text="📊 Reports"/>
+
+            <Button text="⚙ Settings"/>
+
+            <Separator/>
+
+            <Button fx:id="logoutButton"
+                    text="🚪 Logout"
+                    onAction="#logout"/>
+
+        </VBox>
+
+    </left>
 
     <center>
 
         <VBox alignment="CENTER"
-              spacing="20">
+              spacing="25">
+
+            <Label text="CyberShield Endpoint Security Suite"
+                   styleClass="heading"/>
 
             <Label fx:id="welcomeLabel"/>
+
+            <Label text="System Status : Protected"/>
 
         </VBox>
 
     </center>
-
-    <padding>
-
-        <Insets top="20"
-                right="20"
-                bottom="20"
-                left="20"/>
-
-    </padding>
 
 </BorderPane>
