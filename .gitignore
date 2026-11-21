@@ -1,0 +1,10 @@
+# Maven build output
+target/
+
+# Local SQLite database: it holds user accounts and vault data, so keep it
+# out of git. database/.gitkeep keeps the folder itself, which the app needs
+# because SQLite won't create a missing directory.
+database/*.db
+database/*.db-journal
+database/*.db-wal
+database/*.db-shm
