@@ -42,6 +42,22 @@
             <version>${javafx.version}</version>
         </dependency>
 
+        <!-- Video and music playback in the file viewer -->
+
+        <dependency>
+            <groupId>org.openjfx</groupId>
+            <artifactId>javafx-media</artifactId>
+            <version>${javafx.version}</version>
+        </dependency>
+
+        <!-- PDF pages in the file viewer -->
+
+        <dependency>
+            <groupId>org.apache.pdfbox</groupId>
+            <artifactId>pdfbox</artifactId>
+            <version>3.0.8</version>
+        </dependency>
+
         <!-- SQLite -->
 
         <dependency>
@@ -123,6 +139,13 @@
                     <mainClass>
                         com.cybershield.app.Main
                     </mainClass>
+
+                    <options>
+                        <!-- Lets the file viewer play video and music straight from
+                             memory through JavaFX's media cache (see MediaPreview). -->
+                        <option>--add-exports</option>
+                        <option>javafx.media/com.sun.media.jfxmedia.locator=ALL-UNNAMED</option>
+                    </options>
 
                 </configuration>
 

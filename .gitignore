@@ -8,3 +8,6 @@ database/*.db
 database/*.db-journal
 database/*.db-wal
 database/*.db-shm
+
+# Scratch folder: planning documents, and unused files moved out of the build
+temp/

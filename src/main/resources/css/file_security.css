@@ -1,0 +1,206 @@
+/*
+ * File Security screen (fxml/files/file_security.fxml).
+ * Shown inside the dashboard, so every rule is scoped to .file-security,
+ * and only this screen's own labels are styled (not the tables' built-in ones).
+ */
+
+.file-security .section-title {
+
+    -fx-font-size: 22px;
+
+    -fx-font-weight: bold;
+
+    -fx-text-fill: white;
+
+}
+
+.file-security .hint {
+
+    -fx-font-size: 12px;
+
+    -fx-text-fill: #b8b8b8;
+
+}
+
+.file-security .status-label {
+
+    -fx-text-fill: #00c853;
+
+}
+
+/* application.css makes every button 200px wide; size these to their text. */
+.file-security .button {
+
+    -fx-pref-width: -1;
+
+    -fx-pref-height: 30px;
+
+    -fx-font-size: 13px;
+
+}
+
+.file-security .primary-button {
+
+    -fx-base: #2e7d32;
+
+}
+
+.file-security .danger-button {
+
+    -fx-base: #c62828;
+
+}
+
+/* The selection tray at the bottom. */
+.file-security .tray {
+
+    -fx-background-color: #2a2a2a;
+
+    -fx-background-radius: 6;
+
+    -fx-border-color: #3d3d3d;
+
+    -fx-border-radius: 6;
+
+    -fx-padding: 8;
+
+}
+
+.file-security .tray-title {
+
+    -fx-text-fill: white;
+
+    -fx-font-weight: bold;
+
+}
+
+.file-security .tray-summary {
+
+    -fx-text-fill: #b8b8b8;
+
+    -fx-font-size: 12px;
+
+}
+
+.file-security .tray-name {
+
+    -fx-font-weight: bold;
+
+}
+
+.file-security .tray-path {
+
+    -fx-text-fill: #777777;
+
+    -fx-font-size: 11px;
+
+}
+
+.file-security .tray-remove {
+
+    -fx-pref-width: 26px;
+
+    -fx-pref-height: 22px;
+
+    -fx-padding: 0;
+
+    -fx-font-size: 11px;
+
+}
+
+/* The review step: shown before anything changes. */
+.file-security .review-box {
+
+    -fx-background-color: #3a2f12;
+
+    -fx-background-radius: 6;
+
+    -fx-border-color: #8d6e00;
+
+    -fx-border-radius: 6;
+
+    -fx-padding: 10;
+
+}
+
+.file-security .review-text {
+
+    -fx-text-fill: #ffe082;
+
+}
+
+/* The viewer on the Protected items tab, and its full-screen window. */
+.file-security .viewer-split {
+
+    -fx-background-color: transparent;
+
+    -fx-padding: 0;
+
+}
+
+.file-security .preview-title {
+
+    -fx-font-size: 16px;
+
+    -fx-font-weight: bold;
+
+    -fx-text-fill: white;
+
+}
+
+.file-security .preview-pane {
+
+    -fx-background-color: #151515;
+
+    -fx-background-radius: 6;
+
+    -fx-border-color: #333333;
+
+    -fx-border-radius: 6;
+
+}
+
+.file-security .preview-message {
+
+    -fx-text-fill: #b8b8b8;
+
+    -fx-font-size: 13px;
+
+    -fx-padding: 16;
+
+}
+
+.file-security .preview-scroll,
+.file-security .preview-scroll > .viewport {
+
+    -fx-background-color: transparent;
+
+}
+
+.file-security .preview-text {
+
+    -fx-font-family: "Consolas", "Courier New", monospace;
+
+    -fx-font-size: 13px;
+
+}
+
+.file-security .viewer-controls .label {
+
+    -fx-text-fill: #e0e0e0;
+
+}
+
+.file-security .media-note {
+
+    -fx-font-size: 72px;
+
+    -fx-text-fill: #00c853;
+
+}
+
+.fullscreen-viewer {
+
+    -fx-background-color: #0d0d0d;
+
+}
