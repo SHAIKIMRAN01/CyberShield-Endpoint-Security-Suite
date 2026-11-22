@@ -2,6 +2,7 @@ package com.cybershield.ui.controllers;
 
 import com.cybershield.encryption.FileDecryptor;
 import com.cybershield.files.CloudFiles;
+import com.cybershield.ui.Ui;
 import com.cybershield.files.FileSelection;
 import com.cybershield.files.FileVaultService;
 import com.cybershield.files.ProtectedItem;
@@ -206,7 +207,19 @@ public class FileSecurityController implements LockableScreen {
     private final VaultService vaultService = new VaultService();
     private final FileSelection selection = new FileSelection();
     private final Map<Path, Boolean> selectedIsFolder = new HashMap<>();
-    private final AtomicBoolean stopRequested = new AtomicBoolean();
+    // Shared by every copy of the screen: a job outlives the screen that started it.
+    private static final AtomicBoolean stopRequested = new AtomicBoolean();
+
+    // The job that is running, so a screen opened later can show its progress again.
+    private static volatile Task<?> runningJob;
+
+    @FXML private Button checkButton;
+    @FXML private Button backupButton;
+    @FXML private Button restoreBackupButton;
+    @FXML private Button recoverButton;
+    @FXML private Label checkResult;
+    @FXML private Label backupResult;
+    @FXML private Label recoverResult;
 
     private Path currentFolder;
     private FileVaultService.ScanResult pendingScan;
@@ -244,7 +257,11 @@ public class FileSecurityController implements LockableScreen {
 
         loadProtectedItems();
 
-        if (FileVaultService.isJobRunning()) {
+        Task<?> earlier = runningJob;
+
+        if (earlier != null && earlier.isRunning()) {
+            watchEarlierJob(earlier);
+        } else if (FileVaultService.isJobRunning()) {
             status("A file job from earlier is still running. Its results appear under Protected items when it ends.");
         }
 
@@ -1767,10 +1784,217 @@ public class FileSecurityController implements LockableScreen {
     }
 
     // =====================================================
+    // TOOLS
+    // =====================================================
+
+    @FXML
+    private void checkFiles() {
+
+        if (busy) {
+            return;
+        }
+
+        Ui.message(checkResult, "", null);
+
+        runJob(new JobTask<FileVaultService.CheckResult>("Checking the protected files…") {
+
+            @Override
+            protected FileVaultService.CheckResult call() throws Exception {
+                return service.checkFiles(listener);
+            }
+
+        }, result -> {
+
+            StringBuilder text = new StringBuilder();
+
+            if (result.allGood()) {
+                text.append("All ").append(result.checked()).append(result.checked() == 1 ? " file is" : " files are").append(" complete and unchanged.");
+            } else {
+                if (!result.damaged().isEmpty()) {
+                    text.append(result.damaged().size()).append(" damaged: ").append(String.join(", ", result.damaged())).append(". ");
+                }
+                if (!result.missing().isEmpty()) {
+                    text.append(result.missing().size()).append(" missing from the store: ").append(String.join(", ", result.missing())).append(".");
+                }
+            }
+
+            if (result.strays() > 0) {
+                text.append(" ").append(result.strays()).append(result.strays() == 1 ? " file in the store isn't listed" : " files in the store aren't listed")
+                        .append(": Recover the list may bring them back.");
+            }
+
+            Ui.message(checkResult, text.toString().strip(), result.allGood() ? "good" : "bad");
+
+            status("Check finished.");
+
+        });
+
+    }
+
+    @FXML
+    private void backUp() {
+
+        if (busy) {
+            return;
+        }
+
+        DirectoryChooser chooser = new DirectoryChooser();
+
+        chooser.setTitle("Choose where to put the backup, for example a USB drive");
+
+        File folder = chooser.showDialog(window());
+
+        if (folder != null) {
+            backUpTo(folder.toPath());
+        }
+
+    }
+
+    /** Also used by the tests, in place of the folder dialog. */
+    void backUpTo(Path destination) {
+
+        Ui.message(backupResult, "", null);
+
+        runJob(new JobTask<FileVaultService.BackupResult>("Backing up…") {
+
+            @Override
+            protected FileVaultService.BackupResult call() throws Exception {
+                return service.backUp(destination, listener);
+            }
+
+        }, result -> {
+
+            Ui.message(backupResult, "Backed up " + result.files() + (result.files() == 1 ? " file" : " files") + " to "
+                    + result.folder() + ".", "good");
+
+            status("Backup finished.");
+
+        });
+
+    }
+
+    @FXML
+    private void restoreBackup() {
+
+        if (busy) {
+            return;
+        }
+
+        DirectoryChooser chooser = new DirectoryChooser();
+
+        chooser.setTitle("Choose a CyberShield backup folder");
+
+        File folder = chooser.showDialog(window());
+
+        if (folder != null) {
+            restoreBackupFrom(folder.toPath());
+        }
+
+    }
+
+    /** Also used by the tests, in place of the folder dialog. */
+    void restoreBackupFrom(Path folder) {
+
+        Ui.message(backupResult, "", null);
+
+        runJob(new JobTask<FileVaultService.BackupRestoreResult>("Restoring from the backup…") {
+
+            @Override
+            protected FileVaultService.BackupRestoreResult call() throws Exception {
+                return service.restoreBackup(folder, listener);
+            }
+
+        }, result -> {
+
+            loadProtectedItems();
+
+            Ui.message(backupResult, result.itemsAdded() == 0
+                    ? "Nothing to bring back: every item in the backup is already listed."
+                    : "Brought back " + result.itemsAdded() + (result.itemsAdded() == 1 ? " item" : " items")
+                    + (result.alreadyThere() > 0 ? "; " + result.alreadyThere() + " were already listed." : "."), "good");
+
+            status("Restore from backup finished.");
+
+        });
+
+    }
+
+    @FXML
+    private void recoverItems() {
+
+        if (busy) {
+            return;
+        }
+
+        Ui.message(recoverResult, "", null);
+
+        runJob(new JobTask<FileVaultService.RecoveryResult>("Looking for unlisted files…") {
+
+            @Override
+            protected FileVaultService.RecoveryResult call() throws Exception {
+                return service.recoverMissingItems(listener);
+            }
+
+        }, result -> {
+
+            loadProtectedItems();
+
+            Ui.message(recoverResult, result.filesAdded() == 0
+                    ? "Nothing was missing from the list."
+                    : "Listed " + result.filesAdded() + (result.filesAdded() == 1 ? " file" : " files") + " again, in "
+                    + result.itemsAdded() + " recovered " + (result.itemsAdded() == 1 ? "item" : "items") + ".", "good");
+
+            status("Recovery finished.");
+
+        });
+
+    }
+
+
+    // =====================================================
     // JOBS
     // =====================================================
 
+    /** Shows the progress of a job started before this screen opened, and refreshes when it ends. */
+    private void watchEarlierJob(Task<?> task) {
+
+        setBusy(true);
+
+        progressBar.progressProperty().bind(task.progressProperty());
+
+        progressLabel.textProperty().bind(task.messageProperty());
+
+        status("A file job you started earlier is still running.");
+
+        task.stateProperty().addListener((observable, before, state) -> {
+
+            if (state == javafx.concurrent.Worker.State.SUCCEEDED || state == javafx.concurrent.Worker.State.FAILED
+                    || state == javafx.concurrent.Worker.State.CANCELLED) {
+
+                endJob();
+
+                loadProtectedItems();
+
+                status(state == javafx.concurrent.Worker.State.SUCCEEDED
+                        ? "The file job you started earlier has finished."
+                        : "The file job you started earlier stopped.");
+
+            }
+
+        });
+
+    }
+
     private <T> void runJob(JobTask<T> task, Consumer<T> whenDone) {
+
+        runningJob = task;
+
+        task.stateProperty().addListener((observable, before, state) -> {
+            if (state != javafx.concurrent.Worker.State.RUNNING && state != javafx.concurrent.Worker.State.SCHEDULED
+                    && state != javafx.concurrent.Worker.State.READY && runningJob == task) {
+                runningJob = null;
+            }
+        });
 
         stopRequested.set(false);
 
@@ -1830,6 +2054,10 @@ public class FileSecurityController implements LockableScreen {
 
         addFilesButton.setDisable(value);
         addFolderButton.setDisable(value);
+        checkButton.setDisable(value);
+        backupButton.setDisable(value);
+        restoreBackupButton.setDisable(value);
+        recoverButton.setDisable(value);
         restoreButton.setDisable(value);
         confirmButton.setDisable(value);
 

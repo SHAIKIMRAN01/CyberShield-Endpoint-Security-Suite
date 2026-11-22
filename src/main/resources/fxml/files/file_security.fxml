@@ -14,6 +14,8 @@
 <?import javafx.scene.control.TabPane?>
 <?import javafx.scene.control.TextField?>
 <?import javafx.scene.control.TreeView?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
@@ -207,6 +209,49 @@
                 </VBox>
 
             </SplitPane>
+
+        </Tab>
+
+        <!-- TOOLS: three cards, a third of the width each -->
+        <Tab fx:id="toolsTab" text="Tools">
+
+            <GridPane hgap="16" styleClass="tools-grid">
+
+                <columnConstraints>
+                    <ColumnConstraints percentWidth="33.333"/>
+                    <ColumnConstraints percentWidth="33.333"/>
+                    <ColumnConstraints percentWidth="33.333"/>
+                </columnConstraints>
+
+                <VBox styleClass="card,tool-card" spacing="8" GridPane.columnIndex="0">
+                    <Label text="Check the files" styleClass="tool-heading"/>
+                    <Label text="Decrypts every protected file to make sure it is complete and unchanged. Nothing is written or restored."
+                           styleClass="hint" wrapText="true"/>
+                    <Region VBox.vgrow="ALWAYS"/>
+                    <Button fx:id="checkButton" text="Check now" styleClass="primary-button" onAction="#checkFiles" maxWidth="Infinity"/>
+                    <Label fx:id="checkResult" styleClass="message" wrapText="true"/>
+                </VBox>
+
+                <VBox styleClass="card,tool-card" spacing="8" GridPane.columnIndex="1">
+                    <Label text="Back up" styleClass="tool-heading"/>
+                    <Label text="Copies the encrypted files, an encrypted list of them and your vault's key file to another folder or drive. Only your master password opens the backup."
+                           styleClass="hint" wrapText="true"/>
+                    <Region VBox.vgrow="ALWAYS"/>
+                    <Button fx:id="backupButton" text="Back up to a folder…" styleClass="primary-button" onAction="#backUp" maxWidth="Infinity"/>
+                    <Button fx:id="restoreBackupButton" text="Restore from a backup…" onAction="#restoreBackup" maxWidth="Infinity"/>
+                    <Label fx:id="backupResult" styleClass="message" wrapText="true"/>
+                </VBox>
+
+                <VBox styleClass="card,tool-card" spacing="8" GridPane.columnIndex="2">
+                    <Label text="Recover the list" styleClass="tool-heading"/>
+                    <Label text="If protected items went missing from the list, for example after the database was replaced, this finds their encrypted files in the store and lists them again."
+                           styleClass="hint" wrapText="true"/>
+                    <Region VBox.vgrow="ALWAYS"/>
+                    <Button fx:id="recoverButton" text="Find missing items" onAction="#recoverItems" maxWidth="Infinity"/>
+                    <Label fx:id="recoverResult" styleClass="message" wrapText="true"/>
+                </VBox>
+
+            </GridPane>
 
         </Tab>
 

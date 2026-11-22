@@ -1520,6 +1520,465 @@ public class FileVaultService {
     }
 
     // =====================================================
+    // TOOLS: CHECK, RECOVER, BACK UP, RESTORE A BACKUP
+    // =====================================================
+
+    /** @param damaged names of files that failed decryption; missing ones the database lists but the store lacks */
+    public record CheckResult(int checked, List<String> damaged, List<String> missing, int strays) {
+
+        public boolean allGood() {
+            return damaged.isEmpty() && missing.isEmpty();
+        }
+
+    }
+
+    public record RecoveryResult(int found, int itemsAdded, int filesAdded) {
+    }
+
+    public record BackupResult(Path folder, int files) {
+    }
+
+    public record BackupRestoreResult(int itemsAdded, int filesCopied, int alreadyThere) {
+    }
+
+    private static final String MANIFEST = "manifest.csb";
+
+    private static final java.util.regex.Pattern STORE_NAME = java.util.regex.Pattern.compile("[0-9a-f]{32}");
+
+    /** Decrypts every file of the open vault to check it, without writing anything. */
+    public CheckResult checkFiles(JobListener listener) throws SQLException {
+
+        if (!JOB_RUNNING.compareAndSet(false, true)) {
+            throw new IllegalStateException("Another file job is still running.");
+        }
+
+        try {
+
+            List<ProtectedItem> items = listItems();
+
+            List<String> damaged = new ArrayList<>();
+
+            List<String> missing = new ArrayList<>();
+
+            int total = items.stream().mapToInt(ProtectedItem::storedFiles).sum();
+
+            int checked = 0;
+
+            for (ProtectedItem item : items) {
+
+                for (String fileId : dao.fileIds(item.id())) {
+
+                    if (listener.isCancelled()) {
+                        throw new CancellationException();
+                    }
+
+                    checked++;
+
+                    listener.message("Checking " + checked + " of " + total + " files…");
+
+                    listener.progress(checked, Math.max(1, total));
+
+                    Path stored = storeDir.resolve(fileId);
+
+                    if (!Files.exists(stored)) {
+                        missing.add(item.name() + " (" + fileId.substring(0, 8) + ")");
+                        continue;
+                    }
+
+                    try {
+
+                        FileDecryptor.decrypt(stored, OutputStream.nullOutputStream(), encryption, FileEncryptionService.Progress.NONE);
+
+                    } catch (IOException | RuntimeException e) {
+
+                        if (e instanceof IllegalStateException locked) {
+                            throw locked;
+                        }
+
+                        damaged.add(item.name() + " (" + fileId.substring(0, 8) + ")");
+
+                    }
+
+                }
+
+            }
+
+            int strays = strays(dao.allFileIds()).size();
+
+            ActivityLog.recordPlain(ActivityLog.Action.VAULT_CHECKED, checked + " files: " + damaged.size() + " damaged, "
+                    + missing.size() + " missing");
+
+            return new CheckResult(checked, List.copyOf(damaged), List.copyOf(missing), strays);
+
+        } finally {
+
+            JOB_RUNNING.set(false);
+
+        }
+
+    }
+
+    /** Store files that no account lists. */
+    private List<Path> strays(java.util.Set<String> known) {
+
+        List<Path> found = new ArrayList<>();
+
+        if (!Files.isDirectory(storeDir)) {
+            return found;
+        }
+
+        try (DirectoryStream<Path> files = Files.newDirectoryStream(storeDir)) {
+
+            for (Path file : files) {
+
+                String name = file.getFileName().toString();
+
+                if (Files.isRegularFile(file) && STORE_NAME.matcher(name).matches() && !known.contains(name)) {
+                    found.add(file);
+                }
+
+            }
+
+        } catch (IOException e) {
+
+            AppLogger.error("Couldn't list the file store: " + e.getMessage());
+
+        }
+
+        return found;
+
+    }
+
+    /**
+     * Rebuilds missing list entries from the store: every stray file the open vault's key
+     * opens is put back under its item, read from the file's own encrypted details. Empty
+     * sub-folders of a recovered folder can't be known and don't come back.
+     */
+    public RecoveryResult recoverMissingItems(JobListener listener) throws SQLException {
+
+        if (!JOB_RUNNING.compareAndSet(false, true)) {
+            throw new IllegalStateException("Another file job is still running.");
+        }
+
+        try {
+
+            Vault vault = VaultSession.current();
+
+            List<Path> strays = strays(dao.allFileIds());
+
+            java.util.Map<String, List<Object[]>> byItem = new java.util.LinkedHashMap<>();
+
+            int scanned = 0;
+
+            for (Path file : strays) {
+
+                if (listener.isCancelled()) {
+                    throw new CancellationException();
+                }
+
+                listener.message("Looking at " + (++scanned) + " of " + strays.size() + " unlisted files…");
+
+                listener.progress(scanned, Math.max(1, strays.size()));
+
+                try {
+
+                    FileMetadata metadata = FileDecryptor.readMetadata(file, encryption);
+
+                    byItem.computeIfAbsent(metadata.itemId(), id -> new ArrayList<>()).add(new Object[] {file.getFileName().toString(), metadata});
+
+                } catch (IOException | RuntimeException notThisVault) {
+
+                    if (notThisVault instanceof IllegalStateException locked) {
+                        throw locked;
+                    }
+
+                    // Another account's file, or a damaged one: leave it alone.
+
+                }
+
+            }
+
+            int itemsAdded = 0;
+
+            int filesAdded = 0;
+
+            for (java.util.Map.Entry<String, List<Object[]>> group : byItem.entrySet()) {
+
+                String itemId = group.getKey();
+
+                List<Object[]> files = group.getValue();
+
+                if (!dao.itemExists(itemId)) {
+                    dao.insertItem(itemId, vault.userId(), vault.id(), encryptInfo(recoveredInfo(files)));
+                    itemsAdded++;
+                }
+
+                for (Object[] file : files) {
+                    dao.insertFile((String) file[0], itemId);
+                    filesAdded++;
+                }
+
+            }
+
+            if (filesAdded > 0) {
+                ActivityLog.recordPlain(ActivityLog.Action.STORE_RECOVERED, filesAdded + " files in " + byItem.size() + " items");
+            }
+
+            return new RecoveryResult(strays.size(), itemsAdded, filesAdded);
+
+        } finally {
+
+            JOB_RUNNING.set(false);
+
+        }
+
+    }
+
+    /** An item's details worked out from its files' details. */
+    private static ProtectedItem.Info recoveredInfo(List<Object[]> files) {
+
+        long bytes = 0;
+
+        java.util.TreeSet<String> directories = new java.util.TreeSet<>();
+
+        boolean nested = false;
+
+        FileMetadata first = (FileMetadata) files.get(0)[1];
+
+        for (Object[] file : files) {
+
+            FileMetadata metadata = (FileMetadata) file[1];
+
+            bytes += metadata.size();
+
+            Path relative = Path.of(metadata.relativePath());
+
+            nested |= relative.getNameCount() > 1;
+
+            for (Path parent = relative.getParent(); parent != null; parent = parent.getParent()) {
+                directories.add(parent.toString());
+            }
+
+        }
+
+        if (files.size() == 1 && !nested) {
+            return new ProtectedItem.Info(ProtectedItem.Type.FILE, first.originalPath(), 1, bytes, List.of());
+        }
+
+        String original = first.originalPath();
+
+        String relative = first.relativePath();
+
+        String root = original.endsWith(relative) ? original.substring(0, original.length() - relative.length()) : original;
+
+        while (root.endsWith("\\") || root.endsWith("/")) {
+            root = root.substring(0, root.length() - 1);
+        }
+
+        return new ProtectedItem.Info(ProtectedItem.Type.FOLDER, root, files.size(), bytes, List.copyOf(directories));
+
+    }
+
+    /**
+     * Copies the open vault's encrypted files to a new folder inside destination, with an
+     * encrypted list of its items and a copy of the vault's key file. Nothing is decrypted:
+     * the backup is as private as the store, and the master password opens it.
+     */
+    public BackupResult backUp(Path destination, JobListener listener) throws IOException, SQLException {
+
+        if (!JOB_RUNNING.compareAndSet(false, true)) {
+            throw new IllegalStateException("Another file job is still running.");
+        }
+
+        try {
+
+            Vault vault = VaultSession.current();
+
+            String stamp = java.time.LocalDateTime.now().format(java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HHmm"));
+
+            Path folder = Files.createDirectories(freeFolderName(destination.resolve("CyberShield backup " + stamp)));
+
+            Path filesFolder = Files.createDirectories(folder.resolve("files"));
+
+            StringBuilder manifest = new StringBuilder("CyberShield backup 1\n");
+
+            List<String> fileIds = new ArrayList<>();
+
+            for (FileVaultDAO.ItemRow row : dao.items(vault.id())) {
+
+                manifest.append("item\t").append(row.id()).append('\t').append(row.createdAt()).append('\t').append(row.info()).append('\n');
+
+                for (String fileId : dao.fileIds(row.id())) {
+                    manifest.append("file\t").append(row.id()).append('\t').append(fileId).append('\n');
+                    fileIds.add(fileId);
+                }
+
+            }
+
+            int copied = 0;
+
+            for (String fileId : fileIds) {
+
+                if (listener.isCancelled()) {
+                    throw new CancellationException();
+                }
+
+                listener.message("Copying " + (copied + 1) + " of " + fileIds.size() + " encrypted files…");
+
+                listener.progress(copied, Math.max(1, fileIds.size()));
+
+                Path stored = storeDir.resolve(fileId);
+
+                if (Files.exists(stored)) {
+                    Files.copy(stored, filesFolder.resolve(fileId), StandardCopyOption.REPLACE_EXISTING);
+                    copied++;
+                }
+
+            }
+
+            Files.write(folder.resolve(MANIFEST), encryption.encryptBytes(manifest.toString().getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+
+            VaultKeyFile.write(folder, vault);
+
+            ActivityLog.record(ActivityLog.Action.STORE_BACKED_UP, copied + " files to " + folder);
+
+            return new BackupResult(folder, copied);
+
+        } finally {
+
+            JOB_RUNNING.set(false);
+
+        }
+
+    }
+
+    /** Brings back the items of a backup that aren't in the list any more. Items still there are left alone. */
+    public BackupRestoreResult restoreBackup(Path folder, JobListener listener) throws IOException, SQLException {
+
+        if (!JOB_RUNNING.compareAndSet(false, true)) {
+            throw new IllegalStateException("Another file job is still running.");
+        }
+
+        try {
+
+            Vault vault = VaultSession.current();
+
+            Path manifestFile = folder.resolve(MANIFEST);
+
+            if (!Files.exists(manifestFile)) {
+                throw new IOException("That folder isn't a CyberShield backup: it has no " + MANIFEST + ".");
+            }
+
+            String manifest;
+
+            try {
+                manifest = new String(encryption.decryptBytes(Files.readAllBytes(manifestFile)), java.nio.charset.StandardCharsets.UTF_8);
+            } catch (RuntimeException otherVault) {
+                throw new IOException("This backup belongs to another vault: your vault key doesn't open it.");
+            }
+
+            prepareStore();
+
+            java.util.Map<String, String[]> items = new java.util.LinkedHashMap<>();
+
+            java.util.Map<String, List<String>> files = new java.util.LinkedHashMap<>();
+
+            for (String line : manifest.split("\n")) {
+
+                String[] parts = line.split("\t");
+
+                if (parts.length == 4 && parts[0].equals("item")) {
+                    items.put(parts[1], parts);
+                } else if (parts.length == 3 && parts[0].equals("file")) {
+                    files.computeIfAbsent(parts[1], id -> new ArrayList<>()).add(parts[2]);
+                }
+
+            }
+
+            int itemsAdded = 0;
+
+            int copied = 0;
+
+            int alreadyThere = 0;
+
+            int done = 0;
+
+            for (String[] item : items.values()) {
+
+                if (listener.isCancelled()) {
+                    throw new CancellationException();
+                }
+
+                listener.message("Restoring item " + (++done) + " of " + items.size() + "…");
+
+                listener.progress(done, Math.max(1, items.size()));
+
+                if (dao.itemExists(item[1])) {
+                    alreadyThere++;
+                    continue;
+                }
+
+                List<String> itemFiles = files.getOrDefault(item[1], List.of());
+
+                for (String fileId : itemFiles) {
+
+                    Path from = folder.resolve("files").resolve(fileId);
+
+                    Path to = storeDir.resolve(fileId);
+
+                    if (Files.exists(from) && !Files.exists(to)) {
+                        Files.copy(from, to);
+                        copied++;
+                    }
+
+                }
+
+                dao.insertItem(item[1], vault.userId(), vault.id(), item[3], item[2]);
+
+                for (String fileId : itemFiles) {
+                    if (Files.exists(storeDir.resolve(fileId))) {
+                        dao.insertFile(fileId, item[1]);
+                    }
+                }
+
+                itemsAdded++;
+
+            }
+
+            if (itemsAdded > 0) {
+                ActivityLog.record(ActivityLog.Action.STORE_RESTORED, itemsAdded + " items from " + folder);
+            }
+
+            return new BackupRestoreResult(itemsAdded, copied, alreadyThere);
+
+        } finally {
+
+            JOB_RUNNING.set(false);
+
+        }
+
+    }
+
+    /** "CyberShield backup 2026-11-22 1405", then "... (2)", and so on. */
+    private static Path freeFolderName(Path wanted) {
+
+        if (!Files.exists(wanted)) {
+            return wanted;
+        }
+
+        for (int n = 2; ; n++) {
+
+            Path candidate = wanted.resolveSibling(wanted.getFileName() + " (" + n + ")");
+
+            if (!Files.exists(candidate)) {
+                return candidate;
+            }
+
+        }
+
+    }
+
+    // =====================================================
     // HOUSEKEEPING
     // =====================================================
 

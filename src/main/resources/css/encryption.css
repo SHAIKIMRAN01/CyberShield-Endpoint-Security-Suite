@@ -1,0 +1,64 @@
+/* Encryption Center (fxml/encryption/encryption.fxml). Colours come from theme.css. */
+
+.encryption {
+    -fx-padding: 24 28 24 28;
+}
+
+.tool-tab {
+    -fx-background-color: transparent;
+    -fx-background-radius: 8;
+    -fx-alignment: center-left;
+    -fx-padding: 12 14 12 14;
+    -fx-border-color: transparent;
+    -fx-border-radius: 8;
+}
+
+.tool-tab:hover {
+    -fx-background-color: -cs-sand;
+}
+
+.tool-tab.active {
+    -fx-background-color: -cs-card;
+    -fx-border-width: 1 1 1 4;
+    -fx-border-color: -cs-line -cs-line -cs-line -cs-caramel;
+}
+
+.tool-tab .tab-title {
+    -fx-font-weight: bold;
+    -fx-text-fill: -cs-brown-800;
+}
+
+.tool-tab .tab-text {
+    -fx-font-size: 12px;
+    -fx-text-fill: -cs-muted;
+}
+
+.tool-panel {
+    -fx-padding: 22 26 22 26;
+}
+
+.encryption .mono {
+    -fx-font-family: "Consolas", "Courier New", monospace;
+    -fx-font-size: 12px;
+}
+
+.encryption .strength-bar {
+    -fx-pref-height: 8px;
+}
+
+.encryption .strength-bar > .track,
+.encryption .strength-bar > .bar {
+    -fx-background-insets: 0;
+}
+
+.encryption .strength-bar > .bar {
+    -fx-padding: 0.3em;
+}
+
+.check-yes {
+    -fx-text-fill: -cs-good;
+}
+
+.check-no {
+    -fx-text-fill: -cs-muted;
+}

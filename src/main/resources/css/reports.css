@@ -1,0 +1,35 @@
+/* Reports (fxml/reports/reports.fxml). Colours come from theme.css. */
+
+.reports {
+    -fx-padding: 22 26 22 26;
+}
+
+.reports .report-side {
+    -fx-padding: 16;
+}
+
+.reports .tab-body {
+    -fx-padding: 14 2 2 2;
+}
+
+.reports .figure {
+    -fx-padding: 12 14 12 14;
+}
+
+.reports .figure-title {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -cs-muted;
+}
+
+.reports .figure-number {
+    -fx-font-size: 26px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -cs-brown-800;
+}
+
+.reports .confirm-box {
+    -fx-background-color: -cs-bad-bg;
+    -fx-background-radius: 8;
+    -fx-padding: 8 10 8 12;
+}

@@ -59,7 +59,7 @@
 
             <Button fx:id="filesButton" text="File Security" styleClass="nav-button" onAction="#openFileSecurity"/>
 
-            <Button fx:id="encryptionButton" text="Encryption Center" styleClass="nav-button,soon" onAction="#openEncryptionCenter"/>
+            <Button fx:id="encryptionButton" text="Encryption Center" styleClass="nav-button" onAction="#openEncryptionCenter"/>
 
             <Label text="TOOLS" styleClass="nav-group"/>
 
@@ -67,7 +67,7 @@
 
             <Button fx:id="privacyButton" text="Privacy Tools" styleClass="nav-button,soon" onAction="#openPrivacyTools"/>
 
-            <Button fx:id="reportsButton" text="Reports" styleClass="nav-button,soon" onAction="#openReports"/>
+            <Button fx:id="reportsButton" text="Reports" styleClass="nav-button" onAction="#openReports"/>
 
             <Label text="ACCOUNT" styleClass="nav-group"/>
 

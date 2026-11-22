@@ -58,6 +58,54 @@ public class FileVaultDAO {
 
     }
 
+    /** For items brought back from a backup or recovered: keeps their original date when known. */
+    public void insertItem(String id, int userId, int vaultId, String info, String createdAt) throws SQLException {
+
+        if (createdAt == null) {
+            insertItem(id, userId, vaultId, info);
+            return;
+        }
+
+        update("INSERT INTO protected_items (id, user_id, vault_id, info, created_at) VALUES (?, ?, ?, ?, ?)",
+                id, userId, vaultId, info, createdAt);
+
+    }
+
+    public boolean itemExists(String id) throws SQLException {
+
+        try (
+                Connection connection = DatabaseManager.getConnection();
+                PreparedStatement statement = prepare(connection, "SELECT 1 FROM protected_items WHERE id = ?", id);
+                ResultSet rs = statement.executeQuery()
+        ) {
+
+            return rs.next();
+
+        }
+
+    }
+
+    /** Every stored file id of every account: the store is shared, so a file is a stray only if nobody lists it. */
+    public java.util.Set<String> allFileIds() throws SQLException {
+
+        java.util.Set<String> ids = new java.util.HashSet<>();
+
+        try (
+                Connection connection = DatabaseManager.getConnection();
+                PreparedStatement statement = connection.prepareStatement("SELECT id FROM protected_files");
+                ResultSet rs = statement.executeQuery()
+        ) {
+
+            while (rs.next()) {
+                ids.add(rs.getString(1));
+            }
+
+        }
+
+        return ids;
+
+    }
+
     public void insertFile(String id, String itemId) throws SQLException {
 
         update("INSERT INTO protected_files (id, item_id) VALUES (?, ?)", id, itemId);

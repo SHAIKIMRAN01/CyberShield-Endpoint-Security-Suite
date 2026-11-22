@@ -222,12 +222,11 @@ public class DashboardController {
     }
 
     @FXML
-    private void openEncryptionCenter() {
+    public void openEncryptionCenter() {
 
         select(encryptionButton, "Encryption Center");
 
-        showComingSoon(Ui.ICON_LOCK, "Encryption Center", 3,
-                "Encrypt text or files with a password you share, so they can be opened on another computer. Separate from your vault.");
+        showView("/fxml/encryption/encryption.fxml");
 
     }
 
@@ -256,8 +255,7 @@ public class DashboardController {
 
         select(reportsButton, "Reports");
 
-        showComingSoon(Ui.ICON_CHART, "Reports", 3,
-                "A security summary you can save as PDF, without any passwords or note text in it.");
+        openVaultScreen("/fxml/reports/reports.fxml", this::openReports);
 
     }
 

@@ -113,6 +113,10 @@ public final class DatabaseInitializer {
         addColumn(statement, "password_entries", "favourite", "INTEGER DEFAULT 0");
         addColumn(statement, "password_entries", "fields_encrypted", "INTEGER DEFAULT 0");
 
+        addColumn(statement, "reports", "user_id", "INTEGER");
+
+        statement.execute("CREATE INDEX IF NOT EXISTS idx_reports_user ON reports(user_id)");
+
         statement.execute("CREATE INDEX IF NOT EXISTS idx_password_vault ON password_entries(vault_id)");
 
         statement.execute("CREATE INDEX IF NOT EXISTS idx_notes_vault ON secure_notes(vault_id)");

@@ -190,3 +190,26 @@
     -fx-background-color: -cs-brown-950;
 
 }
+
+/* The Tools tab: three cards side by side. */
+.file-security .tools-grid {
+
+    -fx-padding: 14 2 6 2;
+
+}
+
+.file-security .tool-card {
+
+    -fx-padding: 16;
+
+}
+
+.file-security .tool-heading {
+
+    -fx-font-size: 15px;
+
+    -fx-font-weight: bold;
+
+    -fx-text-fill: -cs-brown-800;
+
+}

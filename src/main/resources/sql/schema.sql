@@ -234,6 +234,9 @@ CREATE TABLE IF NOT EXISTS reports
 (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
 
+    -- The account that made the report.
+    user_id INTEGER,
+
     report_name TEXT,
 
     generated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

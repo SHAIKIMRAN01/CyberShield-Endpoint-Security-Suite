@@ -2,8 +2,11 @@ package com.cybershield.ui;
 
 import com.cybershield.TestSupport;
 import com.cybershield.files.FileVaultService;
+import com.cybershield.notes.Note;
+import com.cybershield.notes.NoteService;
 import com.cybershield.password.PasswordEntry;
 import com.cybershield.password.PasswordService;
+import com.cybershield.reports.ReportService;
 import com.cybershield.security.SessionManager;
 import com.cybershield.services.AuthenticationService;
 import com.cybershield.ui.controllers.DashboardController;
@@ -13,6 +16,7 @@ import javafx.application.Platform;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.ListView;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
@@ -173,15 +177,52 @@ class ScreensTest {
             snapshot(tab[1], scene);
         }
 
-        // Home with everything filled in, and a module that isn't built yet
+        // Home with everything filled in
         run(dashboard.controller()::openDashboard);
         snapshot("13-home", scene);
 
+        // Secure Notes, with a note open
+        NoteService notes = new NoteService();
+        notes.save(new Note(0, "Trip plan", "Train at 08:10, hotel near the station." + System.lineSeparator()
+                + "Pack the charger and the passports.", null, null));
+        notes.save(new Note(0, "Cabin Wi-Fi", "Network: Cabin-5G", null, null));
         run(() -> ((Button) scene.lookup("#notesButton")).fire());
-        snapshot("14-coming-soon", scene);
+        assertNotNull(scene.lookup("#noteList"), "Secure Notes opens behind the unlocked vault");
+        run(() -> ((ListView<?>) scene.lookup("#noteList")).getSelectionModel().select(1));
+        snapshot("14-secure-notes", scene);
+
+        // Encryption Center
+        run(dashboard.controller()::openEncryptionCenter);
+        assertNotNull(scene.lookup("#strengthTab"));
+        snapshot("15-encryption", scene);
+
+        // File Security's tools
+        System.setProperty("user.home", home.toString());
+        try {
+            run(dashboard.controller()::openFileSecurity);
+        } finally {
+            System.setProperty("user.home", realHome);
+        }
+        Thread.sleep(400);
+        run(() -> ((TabPane) scene.lookup(".tab-pane")).getSelectionModel().select(2));
+        assertNotNull(scene.lookup("#backupButton"));
+        snapshot("16-file-tools", scene);
+
+        // Reports, with one saved report
+        new ReportService(Files::deleteIfExists).create(tempDir.resolve("reports").resolve("CyberShield security report.pdf"));
+        run(() -> ((Button) scene.lookup("#reportsButton")).fire());
+        assertNotNull(scene.lookup("#reportTable"), "Reports opens behind the unlocked vault");
+        snapshot("17-reports", scene);
+        run(() -> ((TabPane) scene.lookup("#tabs")).getSelectionModel().select(1));
+        run(() -> ((javafx.scene.control.TableView<?>) scene.lookup("#reportTable")).getSelectionModel().select(0));
+        snapshot("18-reports-saved", scene);
+
+        // A module that isn't built yet
+        run(() -> ((Button) scene.lookup("#stegoButton")).fire());
+        snapshot("19-coming-soon", scene);
 
         // The take-over screen, shown to accounts whose items are in the old shared vault
-        snapshot("15-vault-takeover", onFx(() -> {
+        snapshot("20-vault-takeover", onFx(() -> {
             Parent takeover = Ui.load("/fxml/vault/vault_takeover.fxml").root();
             takeover.getStylesheets().add(0, Ui.class.getResource("/css/theme.css").toExternalForm());
             return new Scene(takeover, WIDTH - 236, HEIGHT - 90);
