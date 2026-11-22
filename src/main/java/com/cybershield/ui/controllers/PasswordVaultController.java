@@ -154,7 +154,7 @@ public class PasswordVaultController implements LockableScreen {
 
             entries = new ArrayList<>();
 
-            status("The saved logins couldn't be read. See the console for details.", "bad");
+            status("The saved logins couldn't be read. Details are in CyberShield's log file.", "bad");
 
         }
 
@@ -396,7 +396,7 @@ public class PasswordVaultController implements LockableScreen {
             loadPasswords();
             status("Saved " + website + ".", "good");
         } else {
-            status("The login couldn't be saved. See the console for details.", "bad");
+            status("The login couldn't be saved. Details are in CyberShield's log file.", "bad");
         }
 
     }

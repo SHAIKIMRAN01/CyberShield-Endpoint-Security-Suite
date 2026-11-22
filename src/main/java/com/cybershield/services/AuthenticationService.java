@@ -109,7 +109,7 @@ public class AuthenticationService {
             return Result.error("The account couldn't be saved. Try again.");
         }
 
-        AppLogger.success("Account created: " + name);
+        AppLogger.info("Account created.");
 
         return Result.success("Account created. Sign in to continue.");
 
@@ -172,7 +172,7 @@ public class AuthenticationService {
             // Sign-ins and activity are kept for 30 days.
             ActivityLog.purgeOld();
 
-            AppLogger.info("Signed in: " + user.getUsername());
+            AppLogger.info("Signed in: account " + user.getId() + ".");
 
             return new LoginResult(LoginStatus.SUCCESS, user, 0);
 
@@ -233,7 +233,7 @@ public class AuthenticationService {
             return Result.error("The new password couldn't be saved.");
         }
 
-        AppLogger.success("Account password changed: " + user.getUsername());
+        AppLogger.info("Account password changed: account " + user.getId() + ".");
 
         ActivityLog.record(ActivityLog.Action.ACCOUNT_PASSWORD_CHANGED);
 

@@ -17,10 +17,12 @@ public class Launcher extends Application {
     @Override
     public void start(Stage stage) {
 
-        AppLogger.info("----------------------------------------");
-        AppLogger.info(AppConfig.APP_NAME);
-        AppLogger.info("Version : " + AppConfig.VERSION);
-        AppLogger.info("----------------------------------------");
+        AppLogger.info(AppConfig.APP_NAME + " " + AppConfig.VERSION + " starting (Java " + System.getProperty("java.version")
+                + ", " + System.getProperty("os.name") + ").");
+
+        // An installed app has no console: anything unexpected is kept in the log file.
+        Thread.setDefaultUncaughtExceptionHandler((thread, error) ->
+                AppLogger.error("Unexpected error in " + thread.getName(), error));
 
         try {
 
@@ -69,7 +71,7 @@ public class Launcher extends Application {
 
         }
 
-        AppLogger.success("JavaFX Started Successfully.");
+        AppLogger.info("Started.");
 
     }
 

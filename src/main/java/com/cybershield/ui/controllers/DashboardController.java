@@ -512,7 +512,7 @@ public class DashboardController {
 
             AppLogger.error(e.getMessage());
 
-            replaceContent(errorView("Your vault couldn't be read. See the console for details."), null);
+            replaceContent(errorView("Your vault couldn't be read. Details are in CyberShield's log file."), null);
 
             return;
 
@@ -658,11 +658,9 @@ public class DashboardController {
 
         } catch (RuntimeException e) {
 
-            AppLogger.error("Could not open " + fxml + ": " + e.getMessage());
+            AppLogger.error("Could not open " + fxml, e);
 
-            e.printStackTrace();
-
-            replaceContent(errorView("Could not open this screen. Check the console for details."), null);
+            replaceContent(errorView("Could not open this screen. Details are in CyberShield's log file."), null);
 
             return null;
 
@@ -757,9 +755,7 @@ public class DashboardController {
 
         } catch (RuntimeException e) {
 
-            AppLogger.error("Could not return to the login screen: " + e.getMessage());
-
-            e.printStackTrace();
+            AppLogger.error("Could not return to the login screen", e);
 
         }
 

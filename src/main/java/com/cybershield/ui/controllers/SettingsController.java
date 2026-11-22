@@ -592,7 +592,7 @@ public class SettingsController {
 
             AppLogger.error("Couldn't save the settings: " + e.getMessage());
 
-            Ui.message(securityMessage, "The settings couldn't be saved. See the console for details.", "bad");
+            Ui.message(securityMessage, "The settings couldn't be saved. Details are in CyberShield's log file.", "bad");
 
         }
 
@@ -662,7 +662,7 @@ public class SettingsController {
 
             changePasswordButton.setDisable(false);
 
-            Ui.message(accountMessage, "The password couldn't be changed. See the console for details.", "bad");
+            Ui.message(accountMessage, "The password couldn't be changed. Details are in CyberShield's log file.", "bad");
 
         });
 
@@ -749,7 +749,7 @@ public class SettingsController {
                 case WEAK_PASSWORD -> Ui.message(masterMessage,
                         "The new master password is too weak: use at least 12 characters with upper and lower case letters, a number and a symbol.", "bad");
 
-                default -> Ui.message(masterMessage, "The master password couldn't be changed. See the console for details.", "bad");
+                default -> Ui.message(masterMessage, "The master password couldn't be changed. Details are in CyberShield's log file.", "bad");
 
             }
 
@@ -757,7 +757,7 @@ public class SettingsController {
 
             changeMasterButton.setDisable(false);
 
-            Ui.message(masterMessage, "The master password couldn't be changed. See the console for details.", "bad");
+            Ui.message(masterMessage, "The master password couldn't be changed. Details are in CyberShield's log file.", "bad");
 
         });
 
@@ -971,7 +971,7 @@ public class SettingsController {
 
                 case "NO_VAULT" -> Ui.message(clearMessage, "Clearing the history needs the master password: set up your vault first.", "bad");
 
-                default -> Ui.message(clearMessage, "The history couldn't be cleared. See the console for details.", "bad");
+                default -> Ui.message(clearMessage, "The history couldn't be cleared. Details are in CyberShield's log file.", "bad");
 
             }
 

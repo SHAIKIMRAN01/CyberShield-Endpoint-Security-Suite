@@ -54,7 +54,7 @@ public final class DatabaseInitializer {
 
             addVaultColumns(statement);
 
-            AppLogger.success("Database initialized successfully.");
+            AppLogger.info("Database initialized successfully.");
 
         } catch (SQLException | IOException e) {
 

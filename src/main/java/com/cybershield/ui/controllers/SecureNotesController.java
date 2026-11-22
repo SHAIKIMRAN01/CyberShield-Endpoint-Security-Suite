@@ -150,7 +150,7 @@ public class SecureNotesController implements LockableScreen {
 
             AppLogger.error("Couldn't read the notes: " + e.getMessage());
 
-            savedLabel.setText("The notes couldn't be read. See the console for details.");
+            savedLabel.setText("The notes couldn't be read. Details are in CyberShield's log file.");
 
         }
 

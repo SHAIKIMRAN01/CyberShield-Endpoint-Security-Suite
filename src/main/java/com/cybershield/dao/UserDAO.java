@@ -1,5 +1,6 @@
 package com.cybershield.dao;
 
+import com.cybershield.logger.AppLogger;
 import com.cybershield.database.DatabaseManager;
 import com.cybershield.models.User;
 
@@ -47,7 +48,7 @@ public class UserDAO {
 
         } catch (SQLException e) {
 
-            e.printStackTrace();
+            AppLogger.error("Couldn't save the account", e);
             return false;
 
         }
@@ -131,7 +132,7 @@ public class UserDAO {
 
         } catch (SQLException e) {
 
-            e.printStackTrace();
+            AppLogger.error("Couldn't read an account", e);
 
         }
 
@@ -154,7 +155,7 @@ public class UserDAO {
 
         } catch (SQLException e) {
 
-            e.printStackTrace();
+            AppLogger.error("Couldn't change an account", e);
 
         }
 

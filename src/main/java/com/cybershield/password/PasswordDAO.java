@@ -1,5 +1,6 @@
 package com.cybershield.password;
 
+import com.cybershield.logger.AppLogger;
 import com.cybershield.database.DatabaseManager;
 
 import java.sql.Connection;
@@ -42,7 +43,7 @@ public class PasswordDAO {
 
         } catch (SQLException e) {
 
-            e.printStackTrace();
+            AppLogger.error("Couldn't save a login", e);
 
         }
 
@@ -89,7 +90,7 @@ public class PasswordDAO {
 
         } catch (SQLException e) {
 
-            e.printStackTrace();
+            AppLogger.error("Couldn't read the saved logins", e);
 
         }
 
@@ -144,7 +145,7 @@ public class PasswordDAO {
 
         } catch (SQLException e) {
 
-            e.printStackTrace();
+            AppLogger.error("Couldn't change a login", e);
 
         }
 
@@ -186,7 +187,7 @@ public class PasswordDAO {
 
         } catch (SQLException e) {
 
-            e.printStackTrace();
+            AppLogger.error("Couldn't delete a login", e);
 
         }
 

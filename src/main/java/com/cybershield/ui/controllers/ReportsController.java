@@ -241,7 +241,7 @@ public class ReportsController implements LockableScreen {
 
             AppLogger.error("Couldn't make the report summary: " + e.getMessage());
 
-            Ui.message(createMessage, "The summary couldn't be read. See the console for details.", "bad");
+            Ui.message(createMessage, "The summary couldn't be read. Details are in CyberShield's log file.", "bad");
 
         }
 

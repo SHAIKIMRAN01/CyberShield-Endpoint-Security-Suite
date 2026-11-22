@@ -117,7 +117,7 @@ public class VaultController {
                 case OK -> done();
                 case WEAK_PASSWORD -> Ui.message(statusLabel, "That master password is too weak. See the rules above.", "bad");
                 case NOT_ALLOWED -> Ui.message(statusLabel, "This account already has a vault.", "bad");
-                default -> Ui.message(statusLabel, "The vault couldn't be created. See the console for details.", "bad");
+                default -> Ui.message(statusLabel, "The vault couldn't be created. Details are in CyberShield's log file.", "bad");
             }
 
         });
@@ -172,7 +172,7 @@ public class VaultController {
                 passwordField.requestFocus();
             }
             case NOT_ALLOWED -> Ui.message(statusLabel, "This vault can't be opened from this account.", "bad");
-            default -> Ui.message(statusLabel, "The vault couldn't be opened. See the console for details.", "bad");
+            default -> Ui.message(statusLabel, "The vault couldn't be opened. Details are in CyberShield's log file.", "bad");
         }
 
     }
@@ -212,7 +212,7 @@ public class VaultController {
 
             actionButton.setDisable(false);
 
-            Ui.message(statusLabel, "Something went wrong. See the console for details.", "bad");
+            Ui.message(statusLabel, "Something went wrong. Details are in CyberShield's log file.", "bad");
 
         });
 

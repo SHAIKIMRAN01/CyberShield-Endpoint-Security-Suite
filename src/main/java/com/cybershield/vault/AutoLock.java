@@ -67,7 +67,7 @@ public final class AutoLock {
             try {
                 return Math.max(1, Long.parseLong(seconds.trim())) * 1000;
             } catch (NumberFormatException e) {
-                AppLogger.error("Ignoring " + SECONDS_PROPERTY + "=" + seconds);
+                AppLogger.warn("Ignoring " + SECONDS_PROPERTY + "=" + seconds);
             }
 
         }

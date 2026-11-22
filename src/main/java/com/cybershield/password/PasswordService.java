@@ -122,7 +122,7 @@ public class PasswordService {
             int converted = dao.encryptPlainFields(vault.id(), encryptionService::encrypt);
 
             if (converted > 0) {
-                AppLogger.success("Encrypted the website, username and notes of " + converted + " older saved logins.");
+                AppLogger.info("Encrypted the website, username and notes of " + converted + " older saved logins.");
                 ActivityLog.recordPlain(ActivityLog.Action.LOGINS_IMPORTED, converted + (converted == 1 ? " saved login" : " saved logins"));
             }
 

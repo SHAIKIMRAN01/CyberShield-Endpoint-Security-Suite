@@ -91,7 +91,7 @@ public class LoginController {
 
             signInButton.setDisable(false);
 
-            Ui.message(messageLabel, "Signing in failed. See the console for details.", "bad");
+            Ui.message(messageLabel, "Signing in failed. Details are in CyberShield's log file.", "bad");
 
         });
 
@@ -126,7 +126,7 @@ public class LoginController {
 
             case ERROR -> {
                 signInButton.setDisable(false);
-                Ui.message(messageLabel, "Couldn't sign in because the database had a problem. See the console.", "bad");
+                Ui.message(messageLabel, "Couldn't sign in because the database had a problem. Details are in CyberShield's log file.", "bad");
             }
 
         }

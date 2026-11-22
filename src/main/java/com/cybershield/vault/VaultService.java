@@ -158,7 +158,7 @@ public class VaultService {
 
                     connection.commit();
 
-                    AppLogger.success("Vault created" + (encrypted > 0 ? ", with " + encrypted + " older entries encrypted." : "."));
+                    AppLogger.info("Vault created" + (encrypted > 0 ? ", with " + encrypted + " older entries encrypted." : "."));
 
                 } catch (SQLException | RuntimeException e) {
 
@@ -303,7 +303,7 @@ public class VaultService {
 
             ActivityLog.recordPlain(ActivityLog.Action.VAULT_TAKEN_OVER, moved + (moved == 1 ? " saved item" : " saved items"));
 
-            AppLogger.success("Shared vault moved into account " + userId + " with " + moved + " saved items"
+            AppLogger.info("Shared vault moved into account " + userId + " with " + moved + " saved items"
                     + (sharedRemoved ? "; the shared vault is gone." : "; other accounts still have items in it."));
 
             return Result.OK;
@@ -352,7 +352,7 @@ public class VaultService {
                 VaultSession.unlock(updated);
             }
 
-            AppLogger.success("Master password changed for account " + userId + ".");
+            AppLogger.info("Master password changed for account " + userId + ".");
 
             ActivityLog.record(ActivityLog.Action.MASTER_PASSWORD_CHANGED);
 

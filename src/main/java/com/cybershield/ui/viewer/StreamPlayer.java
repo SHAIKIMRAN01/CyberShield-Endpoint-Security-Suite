@@ -156,7 +156,7 @@ final class StreamPlayer implements AutoCloseable {
 
                 } catch (Throwable e) {
 
-                    AppLogger.error("FFmpeg can't be loaded, so the viewer uses JavaFX's player: " + e);
+                    AppLogger.warn("FFmpeg can't be loaded, so the viewer uses JavaFX's player: " + e);
 
                     available = false;
 
@@ -340,7 +340,7 @@ final class StreamPlayer implements AutoCloseable {
 
         } catch (Exception | LinkageError e) {
 
-            AppLogger.error("No sound output for " + sampleRate + " Hz, " + channels + " channels: " + e.getMessage());
+            AppLogger.warn("No sound output for " + sampleRate + " Hz, " + channels + " channels: " + e.getMessage());
 
             return null;
 

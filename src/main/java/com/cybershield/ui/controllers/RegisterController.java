@@ -94,7 +94,7 @@ public class RegisterController {
 
             createButton.setDisable(false);
 
-            Ui.message(messageLabel, "The account couldn't be created. See the console for details.", "bad");
+            Ui.message(messageLabel, "The account couldn't be created. Details are in CyberShield's log file.", "bad");
 
         });
 
