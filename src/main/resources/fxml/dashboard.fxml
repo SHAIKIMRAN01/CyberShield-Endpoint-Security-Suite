@@ -3,7 +3,7 @@
 <!-- The main window: brown sidebar, header bar, the open screen, and a status bar. -->
 
 <?import java.net.URL?>
-<?import javafx.scene.Group?>
+<?import com.cybershield.ui.LogoView?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.layout.BorderPane?>
@@ -11,7 +11,6 @@
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
-<?import javafx.scene.shape.SVGPath?>
 
 <BorderPane xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml"
@@ -27,23 +26,21 @@
     <!-- SIDEBAR -->
     <left>
 
-        <VBox styleClass="sidebar" prefWidth="236" minWidth="236">
+        <VBox fx:id="sidebar" styleClass="sidebar" prefWidth="236" minWidth="236" maxWidth="236">
 
-            <HBox spacing="10" alignment="CENTER_LEFT">
+            <HBox fx:id="brandRow" spacing="10" alignment="CENTER_LEFT">
 
-                <Group>
-                    <Group scaleX="1.25" scaleY="1.25">
-                        <SVGPath styleClass="brand-mark"
-                                 content="M12 1.5 L21 5 V11.2 C21 16.6 17.3 21 12 22.5 C6.7 21 3 16.6 3 11.2 V5 Z"/>
-                        <SVGPath style="-fx-fill: #2E1F16;"
-                                 content="M12 7.2 A2.6 2.6 0 0 1 13.4 12 L14.2 16.4 H9.8 L10.6 12 A2.6 2.6 0 0 1 12 7.2 Z"/>
-                    </Group>
-                </Group>
+                <LogoView size="40"/>
 
-                <VBox spacing="0">
+                <VBox fx:id="brandText" spacing="0">
                     <Label text="CyberShield" styleClass="brand-name"/>
                     <Label text="Endpoint Security Suite" styleClass="brand-tagline"/>
                 </VBox>
+
+                <Region fx:id="brandGap" HBox.hgrow="ALWAYS"/>
+
+                <!-- Closes the sidebar; the ☰ button in the header brings it back. -->
+                <Button fx:id="closeSidebarButton" styleClass="sidebar-close" onAction="#closeSidebar" focusTraversable="false"/>
 
             </HBox>
 
@@ -88,6 +85,9 @@
 
             <HBox styleClass="header-bar" alignment="CENTER_LEFT">
 
+                <!-- ☰: shrinks the sidebar to its icons and back, or shows it again once closed (Ctrl+B). -->
+                <Button fx:id="menuButton" styleClass="menu-button" onAction="#toggleSidebar"/>
+
                 <Label fx:id="screenTitle" text="Home" styleClass="screen-title"/>
 
                 <Region HBox.hgrow="ALWAYS"/>
@@ -112,10 +112,6 @@
             <Label fx:id="statusVault" styleClass="status-strong"/>
 
             <Label fx:id="statusUser"/>
-
-            <Region HBox.hgrow="ALWAYS"/>
-
-            <Label text="AES-256-GCM · PBKDF2-SHA512 · data stays on this computer"/>
 
         </HBox>
 

@@ -217,12 +217,30 @@ class ScreensTest {
         run(() -> ((javafx.scene.control.TableView<?>) scene.lookup("#reportTable")).getSelectionModel().select(0));
         snapshot("18-reports-saved", scene);
 
+        // A PDF for every sign-in: the one in progress is listed first
+        run(() -> ((TabPane) scene.lookup("#tabs")).getSelectionModel().select(2));
+        Thread.sleep(1500);
+        run(() -> ((javafx.scene.control.TableView<?>) scene.lookup("#sessionTable")).getSelectionModel().select(0));
+        assertTrue(onFx(() -> ((javafx.scene.control.TableView<?>) scene.lookup("#sessionTable")).getItems().size()) >= 1,
+                "the sign-in in progress is listed");
+        snapshot("19-sign-in-reports", scene);
+
         // A module that isn't built yet
         run(() -> ((Button) scene.lookup("#stegoButton")).fire());
-        snapshot("19-coming-soon", scene);
+        snapshot("20-coming-soon", scene);
+
+        // The sidebar shrunk to its icons, then closed (the ☰ button brings it back)
+        run(() -> dashboard.controller().showSidebar(DashboardController.SidebarMode.RAIL, false));
+        run(dashboard.controller()::openDashboard);
+        snapshot("22-sidebar-icons", scene);
+        run(() -> dashboard.controller().showSidebar(DashboardController.SidebarMode.CLOSED, false));
+        snapshot("23-sidebar-closed", scene);
+        run(() -> ((Button) scene.lookup("#menuButton")).fire());
+        Thread.sleep(400);
+        assertEquals(DashboardController.SidebarMode.OPEN, dashboard.controller().sidebarMode(), "☰ brings the sidebar back");
 
         // The take-over screen, shown to accounts whose items are in the old shared vault
-        snapshot("20-vault-takeover", onFx(() -> {
+        snapshot("21-vault-takeover", onFx(() -> {
             Parent takeover = Ui.load("/fxml/vault/vault_takeover.fxml").root();
             takeover.getStylesheets().add(0, Ui.class.getResource("/css/theme.css").toExternalForm());
             return new Scene(takeover, WIDTH - 236, HEIGHT - 90);

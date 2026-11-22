@@ -2,13 +2,12 @@
 
 <!-- The brown third on the left of the sign-in and registration screens. -->
 
-<?import javafx.scene.Group?>
+<?import com.cybershield.ui.LogoView?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.layout.HBox?>
 <?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.VBox?>
 <?import javafx.scene.shape.Circle?>
-<?import javafx.scene.shape.SVGPath?>
 
 <VBox xmlns="http://javafx.com/javafx/21"
       xmlns:fx="http://javafx.com/fxml"
@@ -18,14 +17,8 @@
 
     <Region minHeight="40" VBox.vgrow="SOMETIMES"/>
 
-    <Group>
-        <Group scaleX="2.4" scaleY="2.4">
-            <SVGPath styleClass="brand-mark"
-                     content="M12 1.5 L21 5 V11.2 C21 16.6 17.3 21 12 22.5 C6.7 21 3 16.6 3 11.2 V5 Z"/>
-            <SVGPath style="-fx-fill: #2E1F16;"
-                     content="M12 7.2 A2.6 2.6 0 0 1 13.4 12 L14.2 16.4 H9.8 L10.6 12 A2.6 2.6 0 0 1 12 7.2 Z"/>
-        </Group>
-    </Group>
+    <!-- The wolf guarding its treasure chest. -->
+    <LogoView size="104"/>
 
     <Region minHeight="8"/>
 

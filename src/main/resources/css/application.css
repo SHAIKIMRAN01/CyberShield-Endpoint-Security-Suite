@@ -73,6 +73,46 @@
     -fx-text-fill: #E7C9B4;
 }
 
+/* Shrunk to its icons: names show as tooltips. */
+.sidebar.rail {
+    -fx-padding: 22 10 18 10;
+}
+
+.sidebar.rail .nav-button {
+    -fx-alignment: center;
+    -fx-padding: 9 0 9 0;
+}
+
+.sidebar-close {
+    -fx-background-color: transparent;
+    -fx-background-radius: 6;
+    -fx-padding: 5;
+    -fx-cursor: hand;
+}
+
+.sidebar-close:hover {
+    -fx-background-color: -cs-brown-800;
+}
+
+.sidebar-close .nav-icon {
+    -fx-fill: -cs-on-brown-muted;
+}
+
+.menu-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 7;
+    -fx-padding: 6;
+    -fx-cursor: hand;
+}
+
+.menu-button:hover {
+    -fx-background-color: -cs-sand;
+}
+
+.menu-button .menu-icon {
+    -fx-fill: -cs-brown-800;
+}
+
 /* ------------------------------------------------------------- header and status bar */
 
 .header-bar {

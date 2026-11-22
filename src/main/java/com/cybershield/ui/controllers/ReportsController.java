@@ -597,6 +597,7 @@ public class ReportsController implements LockableScreen {
         Stage window = new Stage();
         window.initOwner(sessionTable.getScene().getWindow());
         window.setTitle("Sign-in report · " + DisplayFormat.timestamp(session.signedInAt()));
+        window.getIcons().setAll(com.cybershield.ui.Logo.windowIcons());
         window.setScene(scene);
         window.setOnHidden(event -> {
             preview.dispose();

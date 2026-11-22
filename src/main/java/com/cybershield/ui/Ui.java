@@ -59,6 +59,15 @@ public final class Ui {
             "M3 5.5 H21 V7.5 H3 Z M3 11 H21 V13 H3 Z M3 16.5 H21 V18.5 H3 Z "
                     + "M7.5 3.5 H10.5 V9.5 H7.5 Z M14 9 H17 V15 H14 Z M5.5 14.5 H8.5 V20.5 H5.5 Z";
 
+    // Three bars: the usual sign for a menu or sidebar.
+    public static final String ICON_MENU =
+            "M4.2 4.8 H19.8 A1.3 1.3 0 0 1 19.8 7.4 H4.2 A1.3 1.3 0 0 1 4.2 4.8 Z "
+            + "M4.2 10.7 H19.8 A1.3 1.3 0 0 1 19.8 13.3 H4.2 A1.3 1.3 0 0 1 4.2 10.7 Z "
+            + "M4.2 16.6 H19.8 A1.3 1.3 0 0 1 19.8 19.2 H4.2 A1.3 1.3 0 0 1 4.2 16.6 Z";
+
+    public static final String ICON_CLOSE =
+            "M6.4 5 L12 10.6 L17.6 5 L19 6.4 L13.4 12 L19 17.6 L17.6 19 L12 13.4 L6.4 19 L5 17.6 L10.6 12 L5 6.4 Z";
+
     public static final String ICON_SIGN_OUT =
             "M11 3 H4 V21 H11 V18.5 H6.5 V5.5 H11 Z M15 7 L20.5 12 L15 17 V13.5 H9 V10.5 H15 Z";
 

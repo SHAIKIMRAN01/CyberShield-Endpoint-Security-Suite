@@ -1525,6 +1525,8 @@ public class FileSecurityController implements LockableScreen {
 
         window.setTitle(previewTitle.getText() + " - CyberShield");
 
+        window.getIcons().setAll(com.cybershield.ui.Logo.windowIcons());
+
         Button close = new Button("Close (Esc)");
         close.setOnAction(event -> window.close());
 

@@ -10,6 +10,22 @@ import com.cybershield.vault.AutoLock;
 import com.cybershield.vault.VaultService;
 
 import javafx.fxml.FXML;
+import javafx.animation.Interpolator;
+import javafx.animation.KeyFrame;
+import javafx.animation.KeyValue;
+import javafx.animation.Timeline;
+import javafx.beans.property.DoubleProperty;
+import javafx.beans.property.SimpleDoubleProperty;
+import javafx.scene.control.ContentDisplay;
+import javafx.scene.control.Tooltip;
+import javafx.scene.input.KeyCode;
+import javafx.scene.input.KeyCodeCombination;
+import javafx.scene.input.KeyCombination;
+import javafx.scene.layout.HBox;
+import javafx.scene.layout.Region;
+import javafx.scene.shape.Rectangle;
+import javafx.util.Duration;
+import java.util.ArrayList;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
 import javafx.scene.Scene;
@@ -80,6 +96,35 @@ public class DashboardController {
     @FXML
     private Button signOutButton;
 
+    @FXML
+    private VBox sidebar;
+
+    @FXML
+    private HBox brandRow;
+
+    @FXML
+    private VBox brandText;
+
+    @FXML
+    private Region brandGap;
+
+    @FXML
+    private Button closeSidebarButton;
+
+    @FXML
+    private Button menuButton;
+
+    /** Open with names, shrunk to its icons, or closed. Remembered while the app runs. */
+    public enum SidebarMode { OPEN, RAIL, CLOSED }
+
+    private static final double OPEN_WIDTH = 236;
+
+    private static final double RAIL_WIDTH = 70;
+
+    private static SidebarMode sidebarMode = SidebarMode.OPEN;
+
+    private Timeline sidebarMotion;
+
     private final VaultService vaultService =
             new VaultService();
 
@@ -110,6 +155,8 @@ public class DashboardController {
         setIcon(settingsButton, Ui.ICON_SLIDERS);
         setIcon(signOutButton, Ui.ICON_SIGN_OUT);
 
+        setUpSidebar();
+
         User user = SessionManager.getCurrentUser();
 
         String name = user == null ? "Guest" : user.getUsername();
@@ -139,6 +186,138 @@ public class DashboardController {
         button.setGraphic(Ui.icon(path, 17, "nav-icon"));
 
         button.setGraphicTextGap(11);
+
+    }
+
+    // =====================================================
+    // SIDEBAR: OPEN, SHRUNK TO ICONS, OR CLOSED
+    // =====================================================
+
+    private void setUpSidebar() {
+
+        menuButton.setGraphic(Ui.icon(Ui.ICON_MENU, 20, "menu-icon"));
+
+        closeSidebarButton.setGraphic(Ui.icon(Ui.ICON_CLOSE, 13, "nav-icon"));
+        closeSidebarButton.setTooltip(new Tooltip("Close the sidebar"));
+
+        // Nothing spills out while the sidebar slides.
+        Rectangle clip = new Rectangle();
+        clip.widthProperty().bind(sidebar.widthProperty());
+        clip.heightProperty().bind(sidebar.heightProperty());
+        sidebar.setClip(clip);
+
+        sidebar.sceneProperty().addListener((observable, before, scene) -> {
+            if (scene != null) {
+                scene.getAccelerators().put(new KeyCodeCombination(KeyCode.B, KeyCombination.SHORTCUT_DOWN), this::toggleSidebar);
+            }
+        });
+
+        showSidebar(sidebarMode, false);
+
+    }
+
+    /** ☰: shrinks the open sidebar to its icons, widens it again, or brings it back once closed. */
+    @FXML
+    public void toggleSidebar() {
+
+        showSidebar(sidebarMode == SidebarMode.OPEN ? SidebarMode.RAIL : SidebarMode.OPEN, true);
+
+    }
+
+    @FXML
+    public void closeSidebar() {
+
+        showSidebar(SidebarMode.CLOSED, true);
+
+    }
+
+    public SidebarMode sidebarMode() {
+        return sidebarMode;
+    }
+
+    /** Also used by the tests, without the animation. */
+    public void showSidebar(SidebarMode mode, boolean animate) {
+
+        sidebarMode = mode;
+
+        boolean names = mode == SidebarMode.OPEN;
+
+        List<Button> buttons = new ArrayList<>(navButtons);
+        buttons.add(signOutButton);
+
+        for (Button button : buttons) {
+            button.setContentDisplay(names ? ContentDisplay.LEFT : ContentDisplay.GRAPHIC_ONLY);
+            button.setTooltip(names ? null : new Tooltip(button.getText()));
+        }
+
+        for (Node group : sidebar.lookupAll(".nav-group")) {
+            group.setVisible(names);
+            group.setManaged(names);
+        }
+
+        for (Node part : List.of(brandText, brandGap, closeSidebarButton)) {
+            part.setVisible(names);
+            part.setManaged(names);
+        }
+
+        brandRow.setAlignment(names ? Pos.CENTER_LEFT : Pos.CENTER);
+
+        sidebar.getStyleClass().remove("rail");
+
+        if (mode == SidebarMode.RAIL) {
+            sidebar.getStyleClass().add("rail");
+        }
+
+        menuButton.setTooltip(new Tooltip(switch (mode) {
+            case OPEN -> "Shrink the sidebar to its icons (Ctrl+B)";
+            case RAIL -> "Widen the sidebar (Ctrl+B)";
+            case CLOSED -> "Show the sidebar (Ctrl+B)";
+        }));
+
+        double target = switch (mode) {
+            case OPEN -> OPEN_WIDTH;
+            case RAIL -> RAIL_WIDTH;
+            case CLOSED -> 0;
+        };
+
+        if (sidebarMotion != null) {
+            sidebarMotion.stop();
+        }
+
+        if (mode != SidebarMode.CLOSED) {
+            sidebar.setVisible(true);
+            sidebar.setManaged(true);
+        }
+
+        if (!animate) {
+            setSidebarWidth(target);
+            sidebar.setVisible(mode != SidebarMode.CLOSED);
+            sidebar.setManaged(mode != SidebarMode.CLOSED);
+            return;
+        }
+
+        DoubleProperty width = new SimpleDoubleProperty(sidebar.getWidth() > 0 ? sidebar.getWidth() : sidebar.getPrefWidth());
+
+        width.addListener((observable, before, now) -> setSidebarWidth(now.doubleValue()));
+
+        sidebarMotion = new Timeline(new KeyFrame(Duration.millis(190), new KeyValue(width, target, Interpolator.EASE_BOTH)));
+
+        sidebarMotion.setOnFinished(event -> {
+            if (sidebarMode == SidebarMode.CLOSED) {
+                sidebar.setVisible(false);
+                sidebar.setManaged(false);
+            }
+        });
+
+        sidebarMotion.play();
+
+    }
+
+    private void setSidebarWidth(double width) {
+
+        sidebar.setMinWidth(width);
+        sidebar.setPrefWidth(width);
+        sidebar.setMaxWidth(width);
 
     }
 

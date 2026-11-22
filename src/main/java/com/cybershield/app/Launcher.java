@@ -46,16 +46,25 @@ public class Launcher extends Application {
 
         }
 
-        Scene scene = new Scene(Ui.load("/fxml/login.fxml").root());
-
         stage.setTitle(AppConfig.APP_NAME);
 
-        stage.setScene(scene);
+        stage.getIcons().setAll(com.cybershield.ui.Logo.windowIcons());
 
         stage.setMinWidth(LoginController.MIN_WIDTH);
         stage.setMinHeight(LoginController.MIN_HEIGHT);
 
-        stage.show();
+        // The key opens the treasure chest, then the sign-in screen appears (-Dcybershield.noIntro=true skips it).
+        if (Boolean.getBoolean("cybershield.noIntro")) {
+
+            stage.setScene(new Scene(Ui.load("/fxml/login.fxml").root()));
+
+            stage.show();
+
+        } else {
+
+            com.cybershield.ui.OpeningAnimation.playIn(stage, () -> new Scene(Ui.load("/fxml/login.fxml").root()));
+
+        }
 
         AppLogger.success("JavaFX Started Successfully.");
 
