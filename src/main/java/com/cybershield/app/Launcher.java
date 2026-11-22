@@ -3,37 +3,54 @@ package com.cybershield.app;
 import com.cybershield.config.AppConfig;
 import com.cybershield.database.DatabaseInitializer;
 import com.cybershield.logger.AppLogger;
+import com.cybershield.ui.Ui;
+import com.cybershield.ui.controllers.LoginController;
 
 import javafx.application.Application;
-import javafx.fxml.FXMLLoader;
+import javafx.application.Platform;
 import javafx.scene.Scene;
+import javafx.scene.control.Alert;
 import javafx.stage.Stage;
 
 public class Launcher extends Application {
 
     @Override
-    public void start(Stage stage) throws Exception {
+    public void start(Stage stage) {
 
         AppLogger.info("----------------------------------------");
         AppLogger.info(AppConfig.APP_NAME);
         AppLogger.info("Version : " + AppConfig.VERSION);
         AppLogger.info("----------------------------------------");
 
-        DatabaseInitializer.initialize();
+        try {
 
-        FXMLLoader loader =
-                new FXMLLoader(
-                        getClass().getResource("/fxml/login.fxml")
-                );
+            DatabaseInitializer.initialize();
 
-        Scene scene =
-                new Scene(loader.load());
+        } catch (IllegalStateException e) {
+
+            AppLogger.error(e.getMessage());
+
+            Alert alert = new Alert(Alert.AlertType.ERROR,
+                    e.getMessage() + "\n\nCyberShield can't start without its database.");
+
+            alert.setHeaderText("The database couldn't be opened");
+
+            alert.showAndWait();
+
+            Platform.exit();
+
+            return;
+
+        }
+
+        Scene scene = new Scene(Ui.load("/fxml/login.fxml").root());
 
         stage.setTitle(AppConfig.APP_NAME);
 
         stage.setScene(scene);
 
-        stage.setResizable(false);
+        stage.setMinWidth(LoginController.MIN_WIDTH);
+        stage.setMinHeight(LoginController.MIN_HEIGHT);
 
         stage.show();
 

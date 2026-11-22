@@ -19,9 +19,9 @@ public class FileVaultDAO {
     public record ItemRow(String id, String info, String createdAt, int fileCount) {
     }
 
-    public void insertItem(String id, int userId, String info) throws SQLException {
+    public void insertItem(String id, int userId, int vaultId, String info) throws SQLException {
 
-        update("INSERT INTO protected_items (id, user_id, info) VALUES (?, ?, ?)", id, userId, info);
+        update("INSERT INTO protected_items (id, user_id, vault_id, info) VALUES (?, ?, ?, ?)", id, userId, vaultId, info);
 
     }
 
@@ -96,8 +96,35 @@ public class FileVaultDAO {
 
     }
 
-    /** Newest first, each with the number of encrypted files it has in the store. */
-    public List<ItemRow> items() throws SQLException {
+    /** How many items and stored files a vault has. Reading the counts needs no key. */
+    public record Counts(int items, int files) {
+    }
+
+    public Counts counts(int vaultId) throws SQLException {
+
+        String sql = """
+                SELECT COUNT(*),
+                       (SELECT COUNT(*) FROM protected_files f
+                        JOIN protected_items i ON i.id = f.item_id
+                        WHERE i.vault_id = ?)
+                FROM protected_items
+                WHERE vault_id = ?
+                """;
+
+        try (
+                Connection connection = DatabaseManager.getConnection();
+                PreparedStatement statement = prepare(connection, sql, vaultId, vaultId);
+                ResultSet rs = statement.executeQuery()
+        ) {
+
+            return rs.next() ? new Counts(rs.getInt(1), rs.getInt(2)) : new Counts(0, 0);
+
+        }
+
+    }
+
+    /** One vault's items, newest first, each with the number of encrypted files it has in the store. */
+    public List<ItemRow> items(int vaultId) throws SQLException {
 
         String sql = """
                 SELECT i.id,
@@ -105,6 +132,7 @@ public class FileVaultDAO {
                        i.created_at,
                        (SELECT COUNT(*) FROM protected_files f WHERE f.item_id = i.id) AS file_count
                 FROM protected_items i
+                WHERE i.vault_id = ?
                 ORDER BY i.created_at DESC, i.rowid DESC
                 """;
 
@@ -112,7 +140,7 @@ public class FileVaultDAO {
 
         try (
                 Connection connection = DatabaseManager.getConnection();
-                PreparedStatement statement = connection.prepareStatement(sql);
+                PreparedStatement statement = prepare(connection, sql, vaultId);
                 ResultSet rs = statement.executeQuery()
         ) {
 
@@ -130,6 +158,18 @@ public class FileVaultDAO {
         }
 
         return rows;
+
+    }
+
+    private static PreparedStatement prepare(Connection connection, String sql, Object... parameters) throws SQLException {
+
+        PreparedStatement statement = connection.prepareStatement(sql);
+
+        for (int i = 0; i < parameters.length; i++) {
+            statement.setObject(i + 1, parameters[i]);
+        }
+
+        return statement;
 
     }
 

@@ -31,8 +31,13 @@ public final class CryptoConstants {
     public static final String KDF_ALGORITHM =
             "PBKDF2WithHmacSHA512";
 
+    /** Rounds for every vault key wrapped from now on (current OWASP advice for PBKDF2-HMAC-SHA512). */
     public static final int PBKDF2_ITERATIONS =
-            100000;
+            210_000;
+
+    /** Rounds used by the shared vault from before accounts had their own vaults. */
+    public static final int LEGACY_PBKDF2_ITERATIONS =
+            100_000;
 
     public static final int SALT_LENGTH =
             16;

@@ -1,43 +1,158 @@
-.root{
+/*
+ * The main window (fxml/dashboard.fxml): brown sidebar, header bar, content
+ * area and status bar. Colours come from theme.css.
+ */
 
-    -fx-font-family: "Segoe UI";
+/* ------------------------------------------------------------- sidebar */
 
-    -fx-background-color:#1f1f1f;
-
+.sidebar {
+    -fx-background-color: -cs-brown-900;
+    -fx-padding: 22 14 18 14;
+    -fx-spacing: 4;
 }
 
-.sidebar{
-
-    -fx-padding:20;
-
-    -fx-background-color:#2c2c2c;
-
+.sidebar .brand-name {
+    -fx-font-size: 20px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -cs-on-brown;
 }
 
-.button{
-
-    -fx-pref-width:200;
-
-    -fx-pref-height:40;
-
-    -fx-font-size:14;
-
+.sidebar .brand-tagline {
+    -fx-font-size: 11px;
+    -fx-text-fill: -cs-on-brown-muted;
 }
 
-.title{
-
-    -fx-font-size:24;
-
-    -fx-font-weight:bold;
-
-    -fx-text-fill:white;
-
+.sidebar .nav-group {
+    -fx-font-size: 11px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #A89078;
+    -fx-padding: 14 10 4 10;
 }
 
-.heading{
+.nav-button {
+    -fx-background-color: transparent;
+    -fx-background-radius: 7;
+    -fx-text-fill: -cs-on-brown;
+    -fx-font-size: 13px;
+    -fx-alignment: center-left;
+    -fx-padding: 8 12 8 12;
+    -fx-max-width: infinity;
+    -fx-cursor: hand;
+}
 
-    -fx-font-size:28;
+.nav-button:hover {
+    -fx-background-color: -cs-brown-800;
+}
 
-    -fx-font-weight:bold;
+.nav-button:focused {
+    -fx-background-color: -cs-brown-800;
+    -fx-background-insets: 0;
+}
 
+.nav-button.active {
+    -fx-background-color: -cs-brown-700;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-border-color: transparent transparent transparent -cs-caramel;
+    -fx-border-width: 0 0 0 3;
+}
+
+.nav-button.soon {
+    -fx-text-fill: -cs-on-brown-muted;
+}
+
+.nav-button .nav-icon {
+    -fx-fill: -cs-on-brown-muted;
+}
+
+.nav-button.active .nav-icon {
+    -fx-fill: -cs-caramel;
+}
+
+.sidebar .sign-out {
+    -fx-text-fill: #E7C9B4;
+}
+
+/* ------------------------------------------------------------- header and status bar */
+
+.header-bar {
+    -fx-background-color: -cs-card;
+    -fx-border-color: transparent transparent -cs-line transparent;
+    -fx-padding: 14 24 14 24;
+    -fx-spacing: 12;
+}
+
+.header-bar .screen-title {
+    -fx-font-size: 20px;
+}
+
+.header-bar .user-name {
+    -fx-text-fill: -cs-brown-800;
+    -fx-font-weight: bold;
+}
+
+.status-bar {
+    -fx-background-color: -cs-sand;
+    -fx-border-color: -cs-line transparent transparent transparent;
+    -fx-padding: 6 24 6 24;
+    -fx-spacing: 18;
+}
+
+.status-bar .label {
+    -fx-text-fill: -cs-muted;
+    -fx-font-size: 12px;
+}
+
+.status-bar .status-strong {
+    -fx-text-fill: -cs-brown-800;
+    -fx-font-weight: bold;
+}
+
+.content-area {
+    -fx-background-color: -cs-paper;
+}
+
+/* ------------------------------------------------------------- home screen */
+
+.home {
+    -fx-padding: 28 28 28 28;
+    -fx-spacing: 22;
+}
+
+.home .greeting {
+    -fx-font-size: 24px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -cs-brown-800;
+}
+
+.home-card {
+    -fx-spacing: 8;
+}
+
+.home-card .card-icon {
+    -fx-fill: -cs-caramel;
+}
+
+.home-card .card-title {
+    -fx-font-size: 14px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -cs-brown-700;
+}
+
+.vault-banner {
+    -fx-spacing: 14;
+    -fx-alignment: center-left;
+}
+
+.vault-banner.locked {
+    -fx-background-color: -cs-warn-bg;
+}
+
+.vault-banner.unlocked {
+    -fx-background-color: -cs-good-bg;
+}
+
+.coming-soon {
+    -fx-spacing: 10;
+    -fx-alignment: center;
 }

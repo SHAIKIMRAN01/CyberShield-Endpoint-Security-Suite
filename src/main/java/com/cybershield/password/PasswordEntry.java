@@ -4,6 +4,8 @@ public class PasswordEntry {
 
     private int id;
     private int userId;
+    // The vault whose key encrypted this entry. 0 when not set yet.
+    private int vaultId;
     private String website;
     private String username;
     private String password;
@@ -37,6 +39,14 @@ public class PasswordEntry {
 
     public int getUserId() {
         return userId;
+    }
+
+    public int getVaultId() {
+        return vaultId;
+    }
+
+    public void setVaultId(int vaultId) {
+        this.vaultId = vaultId;
     }
 
     public void setUserId(int userId) {

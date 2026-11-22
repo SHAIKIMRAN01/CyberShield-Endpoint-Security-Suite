@@ -33,10 +33,8 @@
     <!-- HEADER -->
     <HBox alignment="CENTER_LEFT" spacing="12">
 
-        <Label text="File Security" styleClass="section-title"/>
-
-        <Label text="Encrypt files and folders with your master vault key and hide them."
-               styleClass="hint"/>
+        <Label text="Encrypt files and folders with your vault key and hide them from this PC."
+               styleClass="subtitle"/>
 
         <Region HBox.hgrow="ALWAYS"/>
 
@@ -153,7 +151,7 @@
              Files are decrypted into memory only, never onto the disk. -->
         <Tab fx:id="protectedTab" text="Protected items">
 
-            <SplitPane dividerPositions="0.3" styleClass="viewer-split">
+            <SplitPane dividerPositions="0.3333" styleClass="viewer-split">
 
                 <VBox spacing="8" minWidth="190">
 

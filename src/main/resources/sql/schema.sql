@@ -22,22 +22,48 @@ CREATE TABLE IF NOT EXISTS users
 );
 
 ----------------------------------------------------
--- VAULT
+-- VAULTS: one per account.
+-- The vault key encrypts that account's passwords, notes
+-- and protected files. It is stored only wrapped (encrypted)
+-- with a key derived from the master password (PBKDF2), so
+-- changing the master password rewraps this one value.
+-- vault_salt names the vault and is written into the header
+-- of every protected file.
+--
+-- Databases from before accounts had their own vaults also
+-- have a one-row table called vault. That shared vault is
+-- moved into an account the first time it is unlocked.
 ----------------------------------------------------
 
-CREATE TABLE IF NOT EXISTS vault
+CREATE TABLE IF NOT EXISTS user_vaults
 (
-    id INTEGER PRIMARY KEY CHECK(id = 1),
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
 
-    salt BLOB NOT NULL,
+    user_id INTEGER NOT NULL UNIQUE,
+
+    vault_salt BLOB NOT NULL,
+
+    kdf_salt BLOB NOT NULL,
+
+    kdf_iterations INTEGER NOT NULL,
+
+    wrapped_key BLOB NOT NULL,
 
     verification_data TEXT NOT NULL,
 
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    password_changed_at TIMESTAMP,
+
+    FOREIGN KEY(user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE
 );
 
 ----------------------------------------------------
 -- PASSWORD VAULT
+-- vault_id is NULL only for entries saved before accounts
+-- had their own vaults (they belong to the shared vault).
 ----------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS password_entries
@@ -45,6 +71,8 @@ CREATE TABLE IF NOT EXISTS password_entries
     id INTEGER PRIMARY KEY AUTOINCREMENT,
 
     user_id INTEGER NOT NULL,
+
+    vault_id INTEGER,
 
     website TEXT NOT NULL,
 
@@ -73,6 +101,8 @@ CREATE TABLE IF NOT EXISTS secure_notes
 
     user_id INTEGER NOT NULL,
 
+    vault_id INTEGER,
+
     title TEXT NOT NULL,
 
     content TEXT NOT NULL,
@@ -88,6 +118,9 @@ CREATE TABLE IF NOT EXISTS secure_notes
 
 ----------------------------------------------------
 -- LOGIN HISTORY
+-- One row per sign-in attempt. status is SUCCESS, FAILED,
+-- or LOCKED (refused while failed attempts make it wait).
+-- logout_time is filled in when that sign-in ends.
 ----------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS login_history
@@ -113,6 +146,9 @@ CREATE TABLE IF NOT EXISTS login_history
 
 ----------------------------------------------------
 -- SETTINGS
+-- settings is the original single-row table and only
+-- supplies defaults now. Each account's own choices are
+-- kept in user_settings.
 ----------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS settings
@@ -126,6 +162,21 @@ CREATE TABLE IF NOT EXISTS settings
     clipboard_clear_seconds INTEGER DEFAULT 30,
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS user_settings
+(
+    user_id INTEGER PRIMARY KEY,
+
+    auto_lock_minutes INTEGER NOT NULL DEFAULT 5,
+
+    clipboard_clear_seconds INTEGER NOT NULL DEFAULT 30,
+
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY(user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE
 );
 
 ----------------------------------------------------
@@ -160,6 +211,8 @@ CREATE TABLE IF NOT EXISTS protected_items
 
     user_id INTEGER NOT NULL,
 
+    vault_id INTEGER,
+
     info TEXT NOT NULL,
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -182,6 +235,8 @@ CREATE TABLE IF NOT EXISTS protected_files
 
 ----------------------------------------------------
 -- INDEXES
+-- The vault_id indexes are made in DatabaseInitializer,
+-- after older databases have been given that column.
 ----------------------------------------------------
 
 CREATE INDEX IF NOT EXISTS idx_users_username
@@ -197,7 +252,7 @@ CREATE INDEX IF NOT EXISTS idx_notes_user
 ON secure_notes(user_id);
 
 CREATE INDEX IF NOT EXISTS idx_login_history_user
-ON login_history(user_id);
+ON login_history(user_id, login_time);
 
 CREATE INDEX IF NOT EXISTS idx_protected_files_item
 ON protected_files(item_id);

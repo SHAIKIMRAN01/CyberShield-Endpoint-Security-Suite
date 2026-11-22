@@ -1,10 +1,10 @@
 package com.cybershield.ui.controllers;
 
 import com.cybershield.encryption.FileDecryptor;
+import com.cybershield.files.CloudFiles;
 import com.cybershield.files.FileSelection;
 import com.cybershield.files.FileVaultService;
 import com.cybershield.files.ProtectedItem;
-import com.cybershield.security.SessionManager;
 import com.cybershield.ui.viewer.FilePreview;
 import com.cybershield.ui.viewer.PreviewKind;
 import com.cybershield.ui.viewer.Previews;
@@ -621,7 +621,8 @@ public class FileSecurityController implements LockableScreen {
 
     }
 
-    private void addToSelection(List<Path> paths) {
+    /** Adds picked paths to the tray: called by drag and drop, the Add dialogs and the file list (and the tests). */
+    void addToSelection(List<Path> paths) {
 
         int added = 0;
 
@@ -801,6 +802,23 @@ public class FileSecurityController implements LockableScreen {
                     .append(", for example ").append(scan.skipped().get(0));
         }
 
+        // OneDrive syncs deletions: protected files leave OneDrive everywhere, not just this PC.
+        CloudFiles.Summary cloud = scan.cloud();
+
+        if (cloud.any()) {
+
+            text.append("\nOneDrive: ").append(count(cloud.files(), "file")).append(cloud.files() == 1 ? " is" : " are")
+                    .append(" kept in OneDrive. Protecting removes ").append(cloud.files() == 1 ? "it" : "them")
+                    .append(" from OneDrive on all your devices and online; the encrypted copy stays only on this PC.");
+
+            if (cloud.onlineOnly() > 0) {
+                text.append(" ").append(count(cloud.onlineOnly(), "file")).append(cloud.onlineOnly() == 1 ? " is" : " are")
+                        .append(" online-only and will be downloaded first (")
+                        .append(DisplayFormat.size(cloud.onlineOnlyBytes())).append(").");
+            }
+
+        }
+
         boolean room = scan.enoughSpace();
 
         if (!room) {
@@ -849,13 +867,11 @@ public class FileSecurityController implements LockableScreen {
 
         hideReview();
 
-        int userId = SessionManager.getCurrentUser().getId();
-
         runJob(new JobTask<FileVaultService.ProtectResult>("Encrypting…") {
 
             @Override
             protected FileVaultService.ProtectResult call() {
-                return service.protect(scan, userId, listener);
+                return service.protect(scan, listener);
             }
 
         }, this::finishProtect);
@@ -1505,6 +1521,7 @@ public class FileSecurityController implements LockableScreen {
         BorderPane root = new BorderPane(copy.view());
         root.setBottom(bar);
         root.getStyleClass().addAll("file-security", "fullscreen-viewer");
+        root.getStylesheets().add(getClass().getResource("/css/theme.css").toExternalForm());
         root.getStylesheets().add(getClass().getResource("/css/file_security.css").toExternalForm());
 
         Scene scene = new Scene(root, 1000, 700);

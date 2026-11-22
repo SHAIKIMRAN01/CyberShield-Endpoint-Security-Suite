@@ -1,0 +1,72 @@
+/* Settings screen (fxml/settings/settings.fxml). Colours come from theme.css. */
+
+.settings {
+    -fx-padding: 24 28 24 28;
+}
+
+.settings-tab {
+    -fx-background-color: transparent;
+    -fx-background-radius: 8;
+    -fx-alignment: center-left;
+    -fx-padding: 12 14 12 14;
+    -fx-border-color: transparent;
+    -fx-border-radius: 8;
+}
+
+.settings-tab:hover {
+    -fx-background-color: -cs-sand;
+}
+
+.settings-tab.active {
+    -fx-background-color: -cs-card;
+    -fx-border-color: -cs-line;
+    -fx-border-width: 1 1 1 4;
+    -fx-border-color: -cs-line -cs-line -cs-line -cs-caramel;
+}
+
+.settings-tab .tab-title {
+    -fx-font-weight: bold;
+    -fx-text-fill: -cs-brown-800;
+}
+
+.settings-tab .tab-text {
+    -fx-font-size: 12px;
+    -fx-text-fill: -cs-muted;
+}
+
+.settings-panel {
+    -fx-padding: 22 26 22 26;
+}
+
+.settings-panel .password-field {
+    -fx-max-width: 420;
+}
+
+.strength-bar {
+    -fx-pref-height: 8px;
+    -fx-max-width: 340;
+}
+
+.strength-bar > .track,
+.strength-bar > .bar {
+    -fx-background-insets: 0;
+}
+
+.strength-bar > .bar {
+    -fx-padding: 0.3em;
+}
+
+.result-good {
+    -fx-text-fill: -cs-good;
+    -fx-font-weight: bold;
+}
+
+.result-bad {
+    -fx-text-fill: -cs-bad;
+    -fx-font-weight: bold;
+}
+
+.result-warn {
+    -fx-text-fill: -cs-warn;
+    -fx-font-weight: bold;
+}

@@ -1,10 +1,15 @@
 package com.cybershield.database;
 
+import com.cybershield.config.DatabaseConfig;
 import com.cybershield.logger.AppLogger;
 
 import java.io.BufferedReader;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -16,9 +21,27 @@ public final class DatabaseInitializer {
     private DatabaseInitializer() {
     }
 
+    /**
+     * Creates the database, or brings an older one up to date. Safe to run on every start.
+     *
+     * @throws IllegalStateException if the database can't be opened or prepared
+     */
     public static void initialize() {
 
         AppLogger.info("Initializing Database...");
+
+        Path file = DatabaseConfig.databasePath();
+
+        try {
+
+            // SQLite won't create a missing folder.
+            Files.createDirectories(file.getParent());
+
+        } catch (IOException e) {
+
+            throw new IllegalStateException("Couldn't create the database folder " + file.getParent() + ".", e);
+
+        }
 
         try (
                 Connection connection = DatabaseManager.getConnection();
@@ -27,37 +50,88 @@ public final class DatabaseInitializer {
 
             upgradeLegacyVaultTable(statement);
 
-            InputStream inputStream =
-                    DatabaseInitializer.class.getResourceAsStream("/sql/schema.sql");
+            runSchema(statement);
 
-            if (inputStream == null) {
-                throw new RuntimeException("schema.sql not found.");
-            }
-
- String sql = new BufferedReader(
-        new InputStreamReader(inputStream))
-        .lines()
-        .collect(Collectors.joining("\n"));
-
-String[] statements = sql.split(";");
-
-for (String s : statements) {
-
-    if (!s.trim().isEmpty()) {
-
-        statement.execute(s);
-
-    }
-
-}
+            addVaultColumns(statement);
 
             AppLogger.success("Database initialized successfully.");
 
-        } catch (Exception e) {
+        } catch (SQLException | IOException e) {
 
-            AppLogger.error(e.getMessage());
+            throw new IllegalStateException("The database couldn't be prepared: " + e.getMessage(), e);
 
         }
+
+    }
+
+    private static void runSchema(Statement statement) throws IOException, SQLException {
+
+        String sql;
+
+        try (InputStream in = DatabaseInitializer.class.getResourceAsStream("/sql/schema.sql")) {
+
+            if (in == null) {
+                throw new IOException("schema.sql not found.");
+            }
+
+            sql = new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8))
+                    .lines()
+                    .collect(Collectors.joining("\n"));
+
+        }
+
+        for (String part : sql.split(";")) {
+
+            if (!part.isBlank()) {
+                statement.execute(part);
+            }
+
+        }
+
+    }
+
+    /**
+     * Each account now has its own vault, and every saved item records the vault
+     * that encrypted it. Rows from older databases keep vault_id NULL: they were
+     * encrypted with the shared vault, and move to an account when it is unlocked.
+     */
+    private static void addVaultColumns(Statement statement) throws SQLException {
+
+        for (String table : new String[] {"password_entries", "secure_notes", "protected_items"}) {
+
+            if (!hasColumn(statement, table, "vault_id")) {
+
+                statement.execute("ALTER TABLE " + table + " ADD COLUMN vault_id INTEGER");
+
+                AppLogger.info("Added vault_id to " + table + ".");
+
+            }
+
+        }
+
+        statement.execute("CREATE INDEX IF NOT EXISTS idx_password_vault ON password_entries(vault_id)");
+
+        statement.execute("CREATE INDEX IF NOT EXISTS idx_notes_vault ON secure_notes(vault_id)");
+
+        statement.execute("CREATE INDEX IF NOT EXISTS idx_protected_items_vault ON protected_items(vault_id)");
+
+    }
+
+    private static boolean hasColumn(Statement statement, String table, String column) throws SQLException {
+
+        try (ResultSet rs = statement.executeQuery("PRAGMA table_info(" + table + ")")) {
+
+            while (rs.next()) {
+
+                if (column.equalsIgnoreCase(rs.getString("name"))) {
+                    return true;
+                }
+
+            }
+
+        }
+
+        return false;
 
     }
 
@@ -83,21 +157,7 @@ for (String s : statements) {
             return;
         }
 
-        boolean hasSaltColumn = false;
-
-        try (ResultSet rs = statement.executeQuery("PRAGMA table_info(vault)")) {
-
-            while (rs.next()) {
-
-                if ("salt".equalsIgnoreCase(rs.getString("name"))) {
-                    hasSaltColumn = true;
-                }
-
-            }
-
-        }
-
-        if (hasSaltColumn) {
+        if (hasColumn(statement, "vault", "salt")) {
             return;
         }
 

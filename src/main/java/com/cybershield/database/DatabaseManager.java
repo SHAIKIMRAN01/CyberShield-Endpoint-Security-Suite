@@ -13,8 +13,7 @@ public final class DatabaseManager {
 
     public static Connection getConnection() throws SQLException {
 
-        return DriverManager.getConnection(
-                DatabaseConfig.DATABASE_URL);
+        return DriverManager.getConnection(DatabaseConfig.databaseUrl());
 
     }
 

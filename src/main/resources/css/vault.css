@@ -1,43 +1,48 @@
-.root{
+/* Vault set-up, unlock and take-over screens (fxml/vault). Colours come from theme.css. */
 
-    -fx-background-color:#202124;
-
+.vault-screen {
+    -fx-padding: 36 32 32 32;
 }
 
-.title{
-
-    -fx-font-size:24;
-
-    -fx-font-weight:bold;
-
-    -fx-text-fill:white;
-
+.vault-card {
+    -fx-padding: 0;
+    -fx-effect: dropshadow(gaussian, rgba(60, 40, 25, 0.08), 16, 0.2, 0, 3);
 }
 
-.heading{
-
-    -fx-font-size:18;
-
-    -fx-text-fill:#00c853;
-
+.vault-side {
+    -fx-background-color: -cs-sand;
+    -fx-background-radius: 10 0 0 10;
+    -fx-padding: 28 24 28 24;
 }
 
-.password-field{
-
-    -fx-pref-width:320;
-
+.vault-side .side-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -cs-brown-800;
 }
 
-.button{
-
-    -fx-pref-width:180;
-
-    -fx-pref-height:40;
-
+.vault-side .side-point {
+    -fx-text-fill: -cs-muted;
+    -fx-font-size: 12.5px;
 }
 
-.label{
+.vault-icon {
+    -fx-fill: -cs-caramel;
+}
 
-    -fx-text-fill:white;
+.vault-form {
+    -fx-padding: 28 32 28 32;
+}
 
+.strength-bar {
+    -fx-pref-height: 8px;
+}
+
+.strength-bar > .track,
+.strength-bar > .bar {
+    -fx-background-insets: 0;
+}
+
+.strength-bar > .bar {
+    -fx-padding: 0.3em;
 }

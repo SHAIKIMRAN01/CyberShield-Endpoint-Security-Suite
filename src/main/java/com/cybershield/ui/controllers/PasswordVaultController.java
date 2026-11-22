@@ -1,6 +1,7 @@
 package com.cybershield.ui.controllers;
 
 import com.cybershield.password.PasswordEntry;
+import com.cybershield.dao.SettingsDAO;
 import com.cybershield.password.PasswordService;
 import com.cybershield.utils.DisplayFormat;
 import com.cybershield.vault.VaultService;
@@ -102,8 +103,8 @@ public class PasswordVaultController implements LockableScreen {
     // Set by the dashboard so it can show the unlock screen after locking.
     private Runnable onLocked = () -> { };
 
-    private static final Duration CLIPBOARD_CLEAR_DELAY =
-            Duration.seconds(30);
+    private final SettingsDAO settings =
+            new SettingsDAO();
 
         @FXML
     public void initialize() {
@@ -602,10 +603,12 @@ public class PasswordVaultController implements LockableScreen {
 
         clipboard.setContent(content);
 
-        scheduleClipboardClear(passwordField.getText());
+        int clearSeconds = settings.clipboardClearSeconds();
+
+        scheduleClipboardClear(passwordField.getText(), clearSeconds);
 
         statusLabel.setText(
-                "Password copied. The clipboard clears in 30 seconds."
+                "Password copied. The clipboard clears in " + clearSeconds + " seconds."
         );
 
     }
@@ -737,12 +740,12 @@ public class PasswordVaultController implements LockableScreen {
     // AUTO CLEAR CLIPBOARD
     // =====================================================
 
-    private void scheduleClipboardClear(String copiedText) {
+    private void scheduleClipboardClear(String copiedText, int seconds) {
 
         // Runs on the JavaFX thread, so no extra thread or runLater is needed.
         // It keeps running if the user locks the vault or leaves this screen.
         PauseTransition delay =
-                new PauseTransition(CLIPBOARD_CLEAR_DELAY);
+                new PauseTransition(Duration.seconds(seconds));
 
         delay.setOnFinished(event -> {
 

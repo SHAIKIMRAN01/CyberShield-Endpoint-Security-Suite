@@ -5,53 +5,41 @@ import javax.crypto.SecretKeyFactory;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 
-import java.security.NoSuchAlgorithmException;
-import java.security.spec.InvalidKeySpecException;
+import java.security.GeneralSecurityException;
 
-public class KeyDerivation {
+/** Turns a password into an AES-256 key with PBKDF2-HMAC-SHA512. */
+public final class KeyDerivation {
 
     private KeyDerivation() {
     }
 
-    public static SecretKey deriveKey(
-            String password,
-            byte[] salt
-    ) {
+    /**
+     * @param iterations PBKDF2 rounds: {@link CryptoConstants#PBKDF2_ITERATIONS} for current vaults,
+     *                   or whatever a stored vault records
+     */
+    public static SecretKey deriveKey(String password, byte[] salt, int iterations) {
+
+        if (iterations < 1) {
+            throw new IllegalArgumentException("PBKDF2 needs at least one round.");
+        }
+
+        PBEKeySpec spec = new PBEKeySpec(password.toCharArray(), salt, iterations, CryptoConstants.AES_KEY_SIZE);
 
         try {
 
-            PBEKeySpec spec =
-                    new PBEKeySpec(
+            SecretKeyFactory factory = SecretKeyFactory.getInstance(CryptoConstants.KDF_ALGORITHM);
 
-                            password.toCharArray(),
+            byte[] keyBytes = factory.generateSecret(spec).getEncoded();
 
-                            salt,
+            return new SecretKeySpec(keyBytes, CryptoConstants.AES_ALGORITHM);
 
-                            CryptoConstants.PBKDF2_ITERATIONS,
+        } catch (GeneralSecurityException e) {
 
-                            CryptoConstants.AES_KEY_SIZE
+            throw new IllegalStateException("PBKDF2 isn't available: " + e.getMessage(), e);
 
-                    );
+        } finally {
 
-            SecretKeyFactory factory =
-                    SecretKeyFactory.getInstance(
-                            CryptoConstants.KDF_ALGORITHM
-                    );
-
-            byte[] keyBytes =
-                    factory.generateSecret(spec).getEncoded();
-
-            return new SecretKeySpec(
-                    keyBytes,
-                    CryptoConstants.AES_ALGORITHM
-            );
-
-        }
-
-        catch (NoSuchAlgorithmException |
-               InvalidKeySpecException e) {
-
-            throw new RuntimeException(e);
+            spec.clearPassword();
 
         }
 

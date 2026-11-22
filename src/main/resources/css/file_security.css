@@ -1,7 +1,7 @@
 /*
- * File Security screen (fxml/files/file_security.fxml).
- * Shown inside the dashboard, so every rule is scoped to .file-security,
- * and only this screen's own labels are styled (not the tables' built-in ones).
+ * File Security screen (fxml/files/file_security.fxml) and its full-screen viewer.
+ * Colours come from theme.css. Every rule is scoped to .file-security, and only
+ * this screen's own labels are styled (not the tables' built-in ones).
  */
 
 .file-security .section-title {
@@ -10,7 +10,7 @@
 
     -fx-font-weight: bold;
 
-    -fx-text-fill: white;
+    -fx-text-fill: -cs-brown-800;
 
 }
 
@@ -18,20 +18,17 @@
 
     -fx-font-size: 12px;
 
-    -fx-text-fill: #b8b8b8;
+    -fx-text-fill: -cs-muted;
 
 }
 
 .file-security .status-label {
 
-    -fx-text-fill: #00c853;
+    -fx-text-fill: -cs-good;
 
 }
 
-/* application.css makes every button 200px wide; size these to their text. */
 .file-security .button {
-
-    -fx-pref-width: -1;
 
     -fx-pref-height: 30px;
 
@@ -39,28 +36,16 @@
 
 }
 
-.file-security .primary-button {
-
-    -fx-base: #2e7d32;
-
-}
-
-.file-security .danger-button {
-
-    -fx-base: #c62828;
-
-}
-
 /* The selection tray at the bottom. */
 .file-security .tray {
 
-    -fx-background-color: #2a2a2a;
+    -fx-background-color: -cs-sand;
 
-    -fx-background-radius: 6;
+    -fx-background-radius: 8;
 
-    -fx-border-color: #3d3d3d;
+    -fx-border-color: -cs-line;
 
-    -fx-border-radius: 6;
+    -fx-border-radius: 8;
 
     -fx-padding: 8;
 
@@ -68,7 +53,7 @@
 
 .file-security .tray-title {
 
-    -fx-text-fill: white;
+    -fx-text-fill: -cs-brown-800;
 
     -fx-font-weight: bold;
 
@@ -76,7 +61,7 @@
 
 .file-security .tray-summary {
 
-    -fx-text-fill: #b8b8b8;
+    -fx-text-fill: -cs-muted;
 
     -fx-font-size: 12px;
 
@@ -90,7 +75,7 @@
 
 .file-security .tray-path {
 
-    -fx-text-fill: #777777;
+    -fx-text-fill: -cs-muted;
 
     -fx-font-size: 11px;
 
@@ -111,13 +96,13 @@
 /* The review step: shown before anything changes. */
 .file-security .review-box {
 
-    -fx-background-color: #3a2f12;
+    -fx-background-color: -cs-warn-bg;
 
-    -fx-background-radius: 6;
+    -fx-background-radius: 8;
 
-    -fx-border-color: #8d6e00;
+    -fx-border-color: #D9B46A;
 
-    -fx-border-radius: 6;
+    -fx-border-radius: 8;
 
     -fx-padding: 10;
 
@@ -125,7 +110,7 @@
 
 .file-security .review-text {
 
-    -fx-text-fill: #ffe082;
+    -fx-text-fill: -cs-ink;
 
 }
 
@@ -144,25 +129,26 @@
 
     -fx-font-weight: bold;
 
-    -fx-text-fill: white;
+    -fx-text-fill: -cs-brown-800;
 
 }
 
+/* A dark brown stage, so photos, pages and video stand out. */
 .file-security .preview-pane {
 
-    -fx-background-color: #151515;
+    -fx-background-color: -cs-brown-950;
 
-    -fx-background-radius: 6;
+    -fx-background-radius: 8;
 
-    -fx-border-color: #333333;
+    -fx-border-color: -cs-brown-800;
 
-    -fx-border-radius: 6;
+    -fx-border-radius: 8;
 
 }
 
 .file-security .preview-message {
 
-    -fx-text-fill: #b8b8b8;
+    -fx-text-fill: -cs-on-brown-muted;
 
     -fx-font-size: 13px;
 
@@ -187,7 +173,7 @@
 
 .file-security .viewer-controls .label {
 
-    -fx-text-fill: #e0e0e0;
+    -fx-text-fill: -cs-ink;
 
 }
 
@@ -195,12 +181,12 @@
 
     -fx-font-size: 72px;
 
-    -fx-text-fill: #00c853;
+    -fx-text-fill: -cs-caramel;
 
 }
 
 .fullscreen-viewer {
 
-    -fx-background-color: #0d0d0d;
+    -fx-background-color: -cs-brown-950;
 
 }

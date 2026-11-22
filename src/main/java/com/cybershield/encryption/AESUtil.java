@@ -4,6 +4,7 @@ import javax.crypto.Cipher;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.GCMParameterSpec;
 
+import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
 
 import java.util.Arrays;
@@ -29,7 +30,7 @@ public final class AESUtil {
         return Base64
                 .getEncoder()
                 .encodeToString(
-                        encryptBytes(plainText.getBytes(), key)
+                        encryptBytes(plainText.getBytes(StandardCharsets.UTF_8), key)
                 );
 
     }
@@ -43,7 +44,8 @@ public final class AESUtil {
                 decryptBytes(
                         Base64.getDecoder().decode(cipherText),
                         key
-                )
+                ),
+                StandardCharsets.UTF_8
         );
 
     }

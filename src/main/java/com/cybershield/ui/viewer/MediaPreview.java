@@ -14,6 +14,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Priority;
 import javafx.scene.layout.StackPane;
 import javafx.scene.media.Media;
+import javafx.scene.media.MediaException;
 import javafx.scene.media.MediaPlayer;
 import javafx.scene.media.MediaView;
 import javafx.util.Duration;
@@ -54,6 +55,9 @@ public final class MediaPreview implements FilePreview {
     private final MediaPlayer player;
 
     private final boolean video;
+
+    // MP4 and M4A files usually carry AAC sound, which some Windows PCs can't decode for JavaFX.
+    private final boolean mayUseAac;
 
     private final StackPane view = new StackPane();
 
@@ -98,7 +102,7 @@ public final class MediaPreview implements FilePreview {
 
             MediaPlayer player = new MediaPlayer(new Media(address.toString()));
 
-            return new MediaPreview(buffer, entry, player, PreviewKind.isVideo(extension));
+            return new MediaPreview(buffer, entry, player, PreviewKind.isVideo(extension), usesAac(extension));
 
         } catch (RuntimeException e) {
 
@@ -108,12 +112,13 @@ public final class MediaPreview implements FilePreview {
 
     }
 
-    private MediaPreview(ByteBuffer buffer, Object cacheEntry, MediaPlayer player, boolean video) {
+    private MediaPreview(ByteBuffer buffer, Object cacheEntry, MediaPlayer player, boolean video, boolean mayUseAac) {
 
         this.buffer = buffer;
         this.cacheEntry = cacheEntry;
         this.player = player;
         this.video = video;
+        this.mayUseAac = mayUseAac;
 
         view.setMinSize(0, 0);
         view.getChildren().add(mediaViewFor(view));
@@ -148,6 +153,34 @@ public final class MediaPreview implements FilePreview {
         }
 
         buffer.clear();
+
+    }
+
+    /** Extensions whose files normally carry AAC sound. */
+    static boolean usesAac(String extension) {
+
+        return switch (extension == null ? "" : extension.toLowerCase(java.util.Locale.ROOT)) {
+            case "mp4", "m4v", "m4a", "aac" -> true;
+            default -> false;
+        };
+
+    }
+
+    /**
+     * What to tell the user when playback fails. On some Windows PCs JavaFX can't decode
+     * AAC sound (its DirectShow decoder fails), which stops most MP4 videos and M4A songs,
+     * even though the picture would decode. Saying so beats a bare error code.
+     */
+    static String problem(MediaException error, boolean mayUseAac) {
+
+        String message = error == null ? "" : String.valueOf(error.getMessage());
+
+        if (mayUseAac && message.contains("MEDIA_INVALID")) {
+            return "Can't play it here: this PC can't decode the AAC sound that most MP4 videos and M4A songs use. "
+                    + "Use Export a copy to play it in another app.";
+        }
+
+        return "Can't play: " + (message.isBlank() ? "unknown error" : message);
 
     }
 
@@ -300,7 +333,7 @@ public final class MediaPreview implements FilePreview {
             player.currentTimeProperty().addListener(timeListener);
             player.totalDurationProperty().addListener(timeListener);
 
-            player.setOnError(() -> time.setText("Can't play: " + player.getError().getMessage()));
+            player.setOnError(() -> time.setText(problem(player.getError(), mayUseAac)));
 
             nodes = List.of(playPause, timeline, time, mute);
 

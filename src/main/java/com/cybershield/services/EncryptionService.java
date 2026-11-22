@@ -1,16 +1,20 @@
 package com.cybershield.services;
 
 import com.cybershield.encryption.AESUtil;
-import com.cybershield.encryption.KeyDerivation;
 
 import javax.crypto.SecretKey;
 
+/**
+ * Holds the open vault's key while the vault is unlocked, and encrypts with it.
+ * VaultService puts the key here on unlock and removes it on lock.
+ */
 public final class EncryptionService {
 
     private static final EncryptionService INSTANCE =
             new EncryptionService();
 
-    private SecretKey secretKey;
+    // Read once per call, so locking at the same moment can't pass a null key on.
+    private volatile SecretKey secretKey;
 
     private EncryptionService() {
 
@@ -22,14 +26,10 @@ public final class EncryptionService {
 
     }
 
-    public void initialize(String masterPassword,
-                           byte[] salt) {
+    /** Starts using this vault key. */
+    public void useKey(SecretKey key) {
 
-        secretKey =
-                KeyDerivation.deriveKey(
-                        masterPassword,
-                        salt
-                );
+        secretKey = key;
 
     }
 
@@ -39,6 +39,7 @@ public final class EncryptionService {
 
     }
 
+    /** Forgets the key. */
     public void clear() {
 
         secretKey = null;
@@ -47,56 +48,31 @@ public final class EncryptionService {
 
     public String encrypt(String plainText) {
 
-        if (!isInitialized()) {
-
-            throw new IllegalStateException(
-                    "Vault is locked."
-            );
-
-        }
-
-        return AESUtil.encrypt(
-                plainText,
-                secretKey
-        );
+        return AESUtil.encrypt(plainText, key());
 
     }
 
     public String decrypt(String cipherText) {
 
-        if (!isInitialized()) {
-
-            throw new IllegalStateException(
-                    "Vault is locked."
-            );
-
-        }
-
-        return AESUtil.decrypt(
-                cipherText,
-                secretKey
-        );
+        return AESUtil.decrypt(cipherText, key());
 
     }
 
     /** Encrypts raw bytes with the vault key. Output: IV + ciphertext + tag. */
     public byte[] encryptBytes(byte[] plain) {
 
-        // Read the key once, so locking at the same moment can't pass a null key on.
-        SecretKey key = secretKey;
-
-        if (key == null) {
-
-            throw new IllegalStateException("Vault is locked.");
-
-        }
-
-        return AESUtil.encryptBytes(plain, key);
+        return AESUtil.encryptBytes(plain, key());
 
     }
 
     public byte[] decryptBytes(byte[] data) {
 
+        return AESUtil.decryptBytes(data, key());
+
+    }
+
+    private SecretKey key() {
+
         SecretKey key = secretKey;
 
         if (key == null) {
@@ -105,7 +81,7 @@ public final class EncryptionService {
 
         }
 
-        return AESUtil.decryptBytes(data, key);
+        return key;
 
     }
 

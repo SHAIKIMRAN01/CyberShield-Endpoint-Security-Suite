@@ -7,7 +7,8 @@ import com.cybershield.encryption.FileMetadata;
 import com.cybershield.logger.AppLogger;
 import com.cybershield.services.EncryptionService;
 import com.cybershield.vault.Vault;
-import com.cybershield.vault.VaultDAO;
+import com.cybershield.vault.VaultKeyFile;
+import com.cybershield.vault.VaultSession;
 
 import java.io.IOException;
 import java.io.OutputStream;
@@ -88,7 +89,9 @@ public class FileVaultService {
     }
 
     /** What a selection contains, what will be skipped, and whether there is room for it. */
-    public record ScanResult(List<ScanItem> items, List<String> skipped, long bytesNeeded, long bytesFree) {
+    /** @param cloud the files that OneDrive keeps: protecting them takes them out of OneDrive too */
+    public record ScanResult(List<ScanItem> items, List<String> skipped, long bytesNeeded, long bytesFree,
+                             CloudFiles.Summary cloud) {
 
         public int fileCount() {
             return items.stream().mapToInt(item -> item.files().size()).sum();
@@ -142,8 +145,6 @@ public class FileVaultService {
     private final Path storeDir;
 
     private final FileVaultDAO dao = new FileVaultDAO();
-
-    private final VaultDAO vaultDAO = new VaultDAO();
 
     private final EncryptionService encryption = EncryptionService.getInstance();
 
@@ -304,9 +305,7 @@ public class FileVaultService {
 
             folders.add(canonical(storeDir));
 
-            String databaseFile = DatabaseConfig.DATABASE_URL.replaceFirst("^jdbc:sqlite:", "");
-
-            Path databaseFolder = Path.of(databaseFile).toAbsolutePath().getParent();
+            Path databaseFolder = DatabaseConfig.databasePath().getParent();
 
             if (databaseFolder != null) {
                 folders.add(canonical(databaseFolder));
@@ -444,7 +443,8 @@ public class FileVaultService {
 
         }
 
-        return new ScanResult(List.copyOf(items), List.copyOf(skipped), needed + largestOnStoreDrive, free);
+        return new ScanResult(List.copyOf(items), List.copyOf(skipped), needed + largestOnStoreDrive, free,
+                CloudFiles.summarize(items));
 
     }
 
@@ -584,8 +584,8 @@ public class FileVaultService {
     // PROTECTING
     // =====================================================
 
-    /** Encrypts and hides everything in the scan. The vault must be unlocked. */
-    public ProtectResult protect(ScanResult scan, int userId, JobListener listener) {
+    /** Encrypts and hides everything in the scan, into the open vault. The vault must be unlocked. */
+    public ProtectResult protect(ScanResult scan, JobListener listener) {
 
         if (!JOB_RUNNING.compareAndSet(false, true)) {
             throw new IllegalStateException("Another file job is still running.");
@@ -601,9 +601,11 @@ public class FileVaultService {
 
         try {
 
+            Vault vault = VaultSession.current();
+
             Path store = prepareStore();
 
-            byte[] salt = vaultSalt();
+            byte[] salt = vault.vaultSalt();
 
             long total = Math.max(1, scan.totalBytes() * 2); // read once to encrypt, once to check
 
@@ -621,7 +623,7 @@ public class FileVaultService {
                 ProtectedItem.Info info = new ProtectedItem.Info(
                         item.type(), item.root().toString(), item.files().size(), item.totalBytes(), item.directories());
 
-                dao.insertItem(itemId, userId, encryptInfo(info));
+                dao.insertItem(itemId, vault.userId(), vault.id(), encryptInfo(info));
 
                 int itemFiles = 0;
 
@@ -967,14 +969,14 @@ public class FileVaultService {
     // LISTING AND RESTORING
     // =====================================================
 
-    /** Newest first. Items that can't be read with the current vault key are left out. */
+    /** The open vault's items, newest first. Items that can't be read with its key are left out. */
     public List<ProtectedItem> listItems() throws SQLException {
 
         List<ProtectedItem> items = new ArrayList<>();
 
         int unreadable = 0;
 
-        for (FileVaultDAO.ItemRow row : dao.items()) {
+        for (FileVaultDAO.ItemRow row : dao.items(VaultSession.current().id())) {
 
             try {
 
@@ -1521,21 +1523,22 @@ public class FileVaultService {
             // Not Windows; the folder is still encrypted content under random names.
         }
 
+        // A copy of the vault's wrapped key sits with its files, so the master password can
+        // still open them if the database is lost. VaultService keeps it current afterwards.
+        if (VaultSession.isUnlocked()) {
+
+            Vault vault = VaultSession.current();
+
+            if (!Files.exists(VaultKeyFile.pathFor(storeDir, vault))) {
+                VaultKeyFile.write(storeDir, vault);
+            }
+
+        }
+
         return storeDir;
 
     }
 
-    private byte[] vaultSalt() {
-
-        Vault vault = vaultDAO.getVault();
-
-        if (vault == null || vault.getSalt() == null) {
-            throw new IllegalStateException("The vault hasn't been set up.");
-        }
-
-        return vault.getSalt();
-
-    }
 
     private String encryptInfo(ProtectedItem.Info info) {
 

@@ -2,57 +2,121 @@ package com.cybershield.ui.controllers;
 
 import com.cybershield.files.FileVaultService;
 import com.cybershield.logger.AppLogger;
+import com.cybershield.models.User;
 import com.cybershield.security.SessionManager;
+import com.cybershield.services.AuthenticationService;
+import com.cybershield.ui.Ui;
 import com.cybershield.vault.AutoLock;
 import com.cybershield.vault.VaultService;
 
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
+import javafx.geometry.Pos;
 import javafx.scene.Node;
-import javafx.scene.Parent;
 import javafx.scene.Scene;
+import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
+import java.util.List;
 import java.util.function.BooleanSupplier;
 
+/** The main window: sidebar navigation, header, the open screen, status bar, and auto-lock. */
 public class DashboardController {
+
+    public static final double MIN_WIDTH = 1100;
+
+    public static final double MIN_HEIGHT = 680;
 
     // Encrypting or restoring files counts as activity, so auto-lock waits for it.
     private static final BooleanSupplier FILE_JOBS = FileVaultService::isJobRunning;
 
     @FXML
-    private Label welcomeLabel;
+    private Label screenTitle;
+
+    @FXML
+    private Label vaultChip;
+
+    @FXML
+    private Label userLabel;
+
+    @FXML
+    private Label statusVault;
+
+    @FXML
+    private Label statusUser;
 
     @FXML
     private StackPane contentPane;
 
+    @FXML
+    private Button homeButton;
+
+    @FXML
+    private Button passwordButton;
+
+    @FXML
+    private Button notesButton;
+
+    @FXML
+    private Button filesButton;
+
+    @FXML
+    private Button encryptionButton;
+
+    @FXML
+    private Button stegoButton;
+
+    @FXML
+    private Button privacyButton;
+
+    @FXML
+    private Button reportsButton;
+
+    @FXML
+    private Button settingsButton;
+
+    @FXML
+    private Button signOutButton;
+
     private final VaultService vaultService =
             new VaultService();
+
+    private final AuthenticationService auth =
+            new AuthenticationService();
 
     // The controller of the screen in the content area, and how to reopen it.
     private Object currentScreen;
 
     private Runnable currentReopen;
 
+    private List<Button> navButtons;
+
     @FXML
     public void initialize() {
 
-        if (SessionManager.isLoggedIn()) {
+        navButtons = List.of(homeButton, passwordButton, notesButton, filesButton, encryptionButton,
+                stegoButton, privacyButton, reportsButton, settingsButton);
 
-            welcomeLabel.setText(
-                    "Welcome, "
-                            + SessionManager
-                            .getCurrentUser()
-                            .getUsername()
-            );
+        setIcon(homeButton, Ui.ICON_HOME);
+        setIcon(passwordButton, Ui.ICON_KEY);
+        setIcon(notesButton, Ui.ICON_NOTE);
+        setIcon(filesButton, Ui.ICON_FOLDER);
+        setIcon(encryptionButton, Ui.ICON_LOCK);
+        setIcon(stegoButton, Ui.ICON_IMAGE);
+        setIcon(privacyButton, Ui.ICON_EYE);
+        setIcon(reportsButton, Ui.ICON_CHART);
+        setIcon(settingsButton, Ui.ICON_SLIDERS);
+        setIcon(signOutButton, Ui.ICON_SIGN_OUT);
 
-        } else {
+        User user = SessionManager.getCurrentUser();
 
-            welcomeLabel.setText("Guest");
+        String name = user == null ? "Guest" : user.getUsername();
 
-        }
+        userLabel.setText(name);
+
+        statusUser.setText("Signed in as " + name);
 
         AutoLock autoLock = AutoLock.getInstance();
 
@@ -62,73 +126,265 @@ public class DashboardController {
 
         contentPane.sceneProperty().addListener((observable, oldScene, scene) -> autoLock.watch(scene));
 
-        loadDashboard();
+        autoLock.secondsLeftProperty().addListener((observable, old, left) -> showVaultState(left.intValue()));
+
+        showVaultState(autoLock.secondsLeftProperty().get());
+
+        openDashboard();
 
     }
 
-    private void loadDashboard() {
+    private static void setIcon(Button button, String path) {
 
-        Label label = new Label();
+        button.setGraphic(Ui.icon(path, 17, "nav-icon"));
 
-        label.setText(
-                "CyberShield Dashboard\n\nSelect a module from the left."
-        );
-
-        replaceContent(label, null);
+        button.setGraphicTextGap(11);
 
     }
 
-    /** After the vault locked itself, swap an open vault screen for the unlock screen. */
-    private void onAutoLocked() {
+    // =====================================================
+    // NAVIGATION
+    // =====================================================
 
-        if (currentScreen instanceof LockableScreen && currentReopen != null) {
+    @FXML
+    public void openDashboard() {
 
-            currentReopen.run();
+        select(homeButton, "Home");
 
-        }
+        Ui.Loaded<HomeController> home = Ui.load("/fxml/home.fxml");
+
+        home.controller().setDashboard(this);
+
+        replaceContent(home.root(), home.controller());
 
     }
 
     @FXML
-    private void openPasswordVault() {
+    public void openPasswordVault() {
+
+        select(passwordButton, "Password Vault");
 
         openVaultScreen("/fxml/password/password_vault.fxml", this::openPasswordVault);
 
     }
 
     @FXML
-    private void openFileSecurity() {
+    public void openFileSecurity() {
+
+        select(filesButton, "File Security");
 
         openVaultScreen("/fxml/files/file_security.fxml", this::openFileSecurity);
 
     }
 
+    @FXML
+    public void openSettings() {
+
+        select(settingsButton, "Settings");
+
+        Ui.Loaded<SettingsController> settings = Ui.load("/fxml/settings/settings.fxml");
+
+        replaceContent(settings.root(), settings.controller());
+
+    }
+
+    /** From the home screen's banner: unlock (or set up) the vault, then come back home. */
+    public void unlockThenHome() {
+
+        select(homeButton, "Unlock vault");
+
+        openVaultScreen(null, this::openDashboard);
+
+    }
+
+    /** From the home screen's banner. */
+    public void lockNow() {
+
+        disposeCurrentScreen();
+
+        vaultService.lockVault();
+
+        showVaultState(-1);
+
+        AppLogger.info("Vault locked from the home screen.");
+
+        openDashboard();
+
+    }
+
+    @FXML
+    private void openSecureNotes() {
+
+        select(notesButton, "Secure Notes");
+
+        showComingSoon(Ui.ICON_NOTE, "Secure Notes", 2,
+                "Private notes encrypted with your vault key, with search and autosave. They disappear from the screen when the vault locks.");
+
+    }
+
+    @FXML
+    private void openEncryptionCenter() {
+
+        select(encryptionButton, "Encryption Center");
+
+        showComingSoon(Ui.ICON_LOCK, "Encryption Center", 3,
+                "Encrypt text or files with a password you share, so they can be opened on another computer. Separate from your vault.");
+
+    }
+
+    @FXML
+    private void openSteganography() {
+
+        select(stegoButton, "Steganography");
+
+        showComingSoon(Ui.ICON_IMAGE, "Steganography", 4,
+                "Hide a short message or a small file inside an ordinary picture, and get it back with a password.");
+
+    }
+
+    @FXML
+    private void openPrivacyTools() {
+
+        select(privacyButton, "Privacy Tools");
+
+        showComingSoon(Ui.ICON_EYE, "Privacy Tools", 4,
+                "A secure file shredder, clipboard clearing, photo metadata removal and a Windows traces cleaner.");
+
+    }
+
+    @FXML
+    private void openReports() {
+
+        select(reportsButton, "Reports");
+
+        showComingSoon(Ui.ICON_CHART, "Reports", 3,
+                "A security summary you can save as PDF, without any passwords or note text in it.");
+
+    }
+
+    private void select(Button active, String title) {
+
+        showVaultState(AutoLock.getInstance().secondsLeftProperty().get());
+
+        for (Button button : navButtons) {
+            button.getStyleClass().remove("active");
+        }
+
+        if (active != null) {
+            active.getStyleClass().add("active");
+        }
+
+        screenTitle.setText(title);
+
+    }
+
+    private void showComingSoon(String icon, String name, int phase, String description) {
+
+        VBox box = new VBox();
+
+        box.getStyleClass().addAll("card", "coming-soon");
+
+        box.setMaxWidth(460);
+        box.setMaxHeight(VBox.USE_PREF_SIZE);
+
+        Label title = new Label(name + " is on its way");
+        title.getStyleClass().add("section-heading");
+
+        Label when = new Label("Planned for phase " + phase + " of the roadmap.");
+        when.getStyleClass().addAll("chip", "plain");
+
+        Label text = new Label(description);
+        text.getStyleClass().add("hint");
+        text.setWrapText(true);
+        text.setAlignment(Pos.CENTER);
+        text.setStyle("-fx-text-alignment: center;");
+
+        box.getChildren().addAll(Ui.icon(icon, 44, "card-icon"), title, when, text);
+
+        StackPane holder = new StackPane(box);
+
+        holder.setStyle("-fx-padding: 40;");
+
+        StackPane.setAlignment(box, Pos.TOP_CENTER);
+
+        replaceContent(holder, null);
+
+    }
+
+    // =====================================================
+    // VAULT SCREENS
+    // =====================================================
+
+    /** After the vault locked itself, swap an open vault screen for the unlock screen. */
+    private void onAutoLocked() {
+
+        showVaultState(-1);
+
+        if (currentScreen instanceof LockableScreen && currentReopen != null) {
+
+            currentReopen.run();
+
+        } else if (currentScreen instanceof HomeController home) {
+
+            home.refresh();
+
+        }
+
+    }
+
     /**
-     * Opens a screen that needs the vault. Asks for a new master password first
-     * if there is no vault yet, or for the master password if it is locked.
+     * Opens a screen that needs the vault, after asking for what the account still
+     * needs: a new master password, taking over the shared vault, or unlocking.
      *
+     * @param fxml   the screen, or null to only unlock and then run reopen
      * @param reopen opens the same screen again: used after unlocking, and after
      *               locking (which then shows the unlock screen)
      */
     private void openVaultScreen(String fxml, Runnable reopen) {
 
-        if (!vaultService.vaultExists()) {
+        VaultService.Status status;
 
-            showVaultPrompt("/fxml/vault/vault_setup.fxml", reopen);
+        try {
 
-        } else if (!vaultService.isUnlocked()) {
+            status = vaultService.status(SessionManager.currentUserId());
 
-            showVaultPrompt("/fxml/vault/vault_unlock.fxml", reopen);
+        } catch (IllegalStateException e) {
 
-        } else {
+            AppLogger.error(e.getMessage());
 
-            Object controller = showView(fxml);
+            replaceContent(errorView("Your vault couldn't be read. See the console for details."), null);
 
-            if (controller instanceof LockableScreen screen) {
+            return;
 
-                screen.setOnLocked(reopen);
+        }
 
-                currentReopen = reopen;
+        switch (status) {
+
+            case NEEDS_SETUP -> showVaultPrompt("/fxml/vault/vault_setup.fxml", reopen);
+
+            case CAN_TAKE_OVER_SHARED -> showVaultPrompt("/fxml/vault/vault_takeover.fxml", reopen);
+
+            case LOCKED -> showVaultPrompt("/fxml/vault/vault_unlock.fxml", reopen);
+
+            case UNLOCKED -> {
+
+                if (fxml == null) {
+                    reopen.run();
+                    return;
+                }
+
+                Object controller = showView(fxml);
+
+                if (controller instanceof LockableScreen screen) {
+
+                    screen.setOnLocked(() -> {
+                        showVaultState(-1);
+                        reopen.run();
+                    });
+
+                    currentReopen = reopen;
+
+                }
 
             }
 
@@ -142,8 +398,45 @@ public class DashboardController {
 
         if (controller instanceof VaultController vault) {
 
-            vault.setOnUnlocked(afterUnlock);
+            vault.setOnUnlocked(() -> {
+                showVaultState(AutoLock.getInstance().secondsLeftProperty().get());
+                afterUnlock.run();
+            });
 
+            // From the take-over screen: start a new, empty vault instead.
+            vault.setOnStartNewVault(() -> {
+
+                Object setup = showView("/fxml/vault/vault_setup.fxml");
+
+                if (setup instanceof VaultController newVault) {
+                    newVault.warnAboutSharedVault();
+                    newVault.setOnUnlocked(() -> {
+                        showVaultState(AutoLock.getInstance().secondsLeftProperty().get());
+                        afterUnlock.run();
+                    });
+                }
+
+            });
+
+        }
+
+    }
+
+    private void showVaultState(int secondsLeft) {
+
+        boolean open = vaultService.isUnlocked();
+
+        vaultChip.setText(open ? "Vault unlocked" : "Vault locked");
+
+        vaultChip.getStyleClass().removeAll("good", "warn");
+        vaultChip.getStyleClass().add(open ? "good" : "warn");
+
+        if (!open) {
+            statusVault.setText("Vault locked");
+        } else if (secondsLeft > 0) {
+            statusVault.setText("Vault unlocked · locks in " + (secondsLeft / 60) + ":" + String.format("%02d", secondsLeft % 60));
+        } else {
+            statusVault.setText("Vault unlocked");
         }
 
     }
@@ -156,28 +449,37 @@ public class DashboardController {
 
         try {
 
-            FXMLLoader loader =
-                    new FXMLLoader(getClass().getResource(fxml));
+            Ui.Loaded<T> view = Ui.load(fxml);
 
-            Parent view = loader.load();
+            replaceContent(view.root(), view.controller());
 
-            T controller = loader.getController();
+            return view.controller();
 
-            replaceContent(view, controller);
-
-            return controller;
-
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
 
             AppLogger.error("Could not open " + fxml + ": " + e.getMessage());
 
             e.printStackTrace();
 
-            replaceContent(new Label("Could not open this screen. Check the console for details."), null);
+            replaceContent(errorView("Could not open this screen. Check the console for details."), null);
 
             return null;
 
         }
+
+    }
+
+    private static Node errorView(String text) {
+
+        Label label = new Label(text);
+
+        label.getStyleClass().addAll("message", "bad");
+
+        StackPane holder = new StackPane(label);
+
+        holder.setStyle("-fx-padding: 40;");
+
+        return holder;
 
     }
 
@@ -204,6 +506,10 @@ public class DashboardController {
 
     }
 
+    // =====================================================
+    // SIGN OUT
+    // =====================================================
+
     @FXML
     private void logout() {
 
@@ -213,26 +519,33 @@ public class DashboardController {
 
         vaultService.lockVault();
 
-        SessionManager.logout();
+        auth.logout();
 
         try {
 
-            Parent login = FXMLLoader.load(
-                    getClass().getResource("/fxml/login.fxml")
-            );
+            Scene scene = contentPane.getScene();
 
-            Stage stage =
-                    (Stage) contentPane.getScene().getWindow();
+            if (scene.getWindow() instanceof Stage stage) {
 
-            stage.setScene(new Scene(login));
+                stage.setMinWidth(LoginController.MIN_WIDTH);
+                stage.setMinHeight(LoginController.MIN_HEIGHT);
 
-            stage.sizeToScene();
+                stage.setScene(new Scene(Ui.load("/fxml/login.fxml").root()));
 
-            stage.centerOnScreen();
+                if (!stage.isMaximized()) {
+                    stage.sizeToScene();
+                    stage.centerOnScreen();
+                }
+
+            } else {
+
+                scene.setRoot(Ui.load("/fxml/login.fxml").root());
+
+            }
 
             AppLogger.info("User logged out.");
 
-        } catch (Exception e) {
+        } catch (RuntimeException e) {
 
             AppLogger.error("Could not return to the login screen: " + e.getMessage());
 
@@ -241,54 +554,5 @@ public class DashboardController {
         }
 
     }
-
-    @FXML
-    private void openDashboard() {
-
-        loadDashboard();
-
-    }
-
-@FXML
-private void openSecureNotes() {
-
-    System.out.println("Secure Notes");
-
-}
-
-@FXML
-private void openEncryptionCenter() {
-
-    System.out.println("Encryption Center");
-
-}
-
-@FXML
-private void openSteganography() {
-
-    System.out.println("Steganography");
-
-}
-
-@FXML
-private void openPrivacyTools() {
-
-    System.out.println("Privacy Tools");
-
-}
-
-@FXML
-private void openReports() {
-
-    System.out.println("Reports");
-
-}
-
-@FXML
-private void openSettings() {
-
-    System.out.println("Settings");
-
-}
 
 }

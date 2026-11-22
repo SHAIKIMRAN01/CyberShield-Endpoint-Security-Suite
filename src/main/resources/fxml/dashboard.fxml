@@ -1,102 +1,123 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.Insets?>
+<!-- The main window: brown sidebar, header bar, the open screen, and a status bar. -->
+
+<?import java.net.URL?>
+<?import javafx.scene.Group?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
-<?import javafx.scene.control.Separator?>
 <?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
 <?import javafx.scene.layout.StackPane?>
 <?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.SVGPath?>
 
 <BorderPane xmlns="http://javafx.com/javafx/21"
             xmlns:fx="http://javafx.com/fxml"
             fx:controller="com.cybershield.ui.controllers.DashboardController"
-            stylesheets="@../css/application.css"
             prefWidth="1200"
-            prefHeight="700">
+            prefHeight="740">
 
-    <!-- LEFT SIDEBAR -->
+    <stylesheets>
+        <URL value="@../css/theme.css"/>
+        <URL value="@../css/application.css"/>
+    </stylesheets>
+
+    <!-- SIDEBAR -->
     <left>
 
-        <VBox spacing="10"
-              prefWidth="250"
-              styleClass="sidebar">
+        <VBox styleClass="sidebar" prefWidth="236" minWidth="236">
 
-            <padding>
-                <Insets top="20" right="20" bottom="20" left="20"/>
-            </padding>
+            <HBox spacing="10" alignment="CENTER_LEFT">
 
-            <Label text="CyberShield"
-                   styleClass="title"/>
+                <Group>
+                    <Group scaleX="1.25" scaleY="1.25">
+                        <SVGPath styleClass="brand-mark"
+                                 content="M12 1.5 L21 5 V11.2 C21 16.6 17.3 21 12 22.5 C6.7 21 3 16.6 3 11.2 V5 Z"/>
+                        <SVGPath style="-fx-fill: #2E1F16;"
+                                 content="M12 7.2 A2.6 2.6 0 0 1 13.4 12 L14.2 16.4 H9.8 L10.6 12 A2.6 2.6 0 0 1 12 7.2 Z"/>
+                    </Group>
+                </Group>
 
-            <Separator/>
+                <VBox spacing="0">
+                    <Label text="CyberShield" styleClass="brand-name"/>
+                    <Label text="Endpoint Security Suite" styleClass="brand-tagline"/>
+                </VBox>
 
-            <Button text="🏠 Dashboard"
-                    onAction="#openDashboard"/>
+            </HBox>
 
-            <Button text="🔐 Password Vault"
-                    onAction="#openPasswordVault"/>
+            <Label text="OVERVIEW" styleClass="nav-group"/>
 
-            <Button text="📝 Secure Notes"
-                    onAction="#openSecureNotes"/>
+            <Button fx:id="homeButton" text="Home" styleClass="nav-button" onAction="#openDashboard"/>
 
-            <Button text="🛡 Encryption Center"
-                    onAction="#openEncryptionCenter"/>
+            <Label text="PROTECT" styleClass="nav-group"/>
 
-            <Button text="📂 File Security"
-                    onAction="#openFileSecurity"/>
+            <Button fx:id="passwordButton" text="Password Vault" styleClass="nav-button" onAction="#openPasswordVault"/>
 
-            <Button text="🖼 Steganography"
-                    onAction="#openSteganography"/>
+            <Button fx:id="notesButton" text="Secure Notes" styleClass="nav-button,soon" onAction="#openSecureNotes"/>
 
-            <Button text="⌨ Privacy Tools"
-                    onAction="#openPrivacyTools"/>
+            <Button fx:id="filesButton" text="File Security" styleClass="nav-button" onAction="#openFileSecurity"/>
 
-            <Button text="📊 Reports"
-                    onAction="#openReports"/>
+            <Button fx:id="encryptionButton" text="Encryption Center" styleClass="nav-button,soon" onAction="#openEncryptionCenter"/>
 
-            <Button text="⚙ Settings"
-                    onAction="#openSettings"/>
+            <Label text="TOOLS" styleClass="nav-group"/>
 
-            <Separator/>
+            <Button fx:id="stegoButton" text="Steganography" styleClass="nav-button,soon" onAction="#openSteganography"/>
 
-            <Button text="🚪 Logout"
-                    onAction="#logout"/>
+            <Button fx:id="privacyButton" text="Privacy Tools" styleClass="nav-button,soon" onAction="#openPrivacyTools"/>
+
+            <Button fx:id="reportsButton" text="Reports" styleClass="nav-button,soon" onAction="#openReports"/>
+
+            <Label text="ACCOUNT" styleClass="nav-group"/>
+
+            <Button fx:id="settingsButton" text="Settings" styleClass="nav-button" onAction="#openSettings"/>
+
+            <Region VBox.vgrow="ALWAYS"/>
+
+            <Button fx:id="signOutButton" text="Sign out" styleClass="nav-button,sign-out" onAction="#logout"/>
 
         </VBox>
 
     </left>
 
-    <!-- TOP HEADER -->
-    <top>
-
-        <VBox spacing="5">
-
-            <padding>
-                <Insets top="15" right="20" bottom="15" left="20"/>
-            </padding>
-
-            <Label text="CyberShield Endpoint Security Suite"
-                   styleClass="heading"/>
-
-            <Label fx:id="welcomeLabel"/>
-
-        </VBox>
-
-    </top>
-
-    <!-- MAIN CONTENT -->
+    <!-- HEADER, SCREEN -->
     <center>
 
-        <StackPane fx:id="contentPane"/>
+        <VBox>
+
+            <HBox styleClass="header-bar" alignment="CENTER_LEFT">
+
+                <Label fx:id="screenTitle" text="Home" styleClass="screen-title"/>
+
+                <Region HBox.hgrow="ALWAYS"/>
+
+                <Label fx:id="vaultChip" styleClass="chip,warn" text="Vault locked"/>
+
+                <Label fx:id="userLabel" styleClass="user-name"/>
+
+            </HBox>
+
+            <StackPane fx:id="contentPane" styleClass="content-area" VBox.vgrow="ALWAYS"/>
+
+        </VBox>
 
     </center>
 
     <!-- STATUS BAR -->
     <bottom>
 
-        <Label text="Status : Protected"
-               style="-fx-padding:10;"/>
+        <HBox styleClass="status-bar" alignment="CENTER_LEFT">
+
+            <Label fx:id="statusVault" styleClass="status-strong"/>
+
+            <Label fx:id="statusUser"/>
+
+            <Region HBox.hgrow="ALWAYS"/>
+
+            <Label text="AES-256-GCM · PBKDF2-SHA512 · data stays on this computer"/>
+
+        </HBox>
 
     </bottom>
 

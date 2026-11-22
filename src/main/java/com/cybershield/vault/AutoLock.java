@@ -95,6 +95,15 @@ public final class AutoLock {
 
     }
 
+    /** Uses a new timeout from now on, for example after Settings changed it. The countdown starts again. */
+    public void setTimeoutMillis(long timeoutMillis) {
+
+        this.timeoutMillis = timeoutMillis;
+
+        touch();
+
+    }
+
     public void stop() {
 
         if (timer != null) {

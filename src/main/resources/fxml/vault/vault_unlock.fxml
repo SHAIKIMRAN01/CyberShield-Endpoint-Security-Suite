@@ -1,47 +1,74 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.geometry.Insets?>
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.*?>
+<!-- Unlock the vault with its master password. Rule of thirds: an explanation in the left third, the form in the other two. -->
 
-<BorderPane xmlns="http://javafx.com/javafx/21"
-            xmlns:fx="http://javafx.com/fxml"
-            fx:controller="com.cybershield.ui.controllers.VaultController"
-            stylesheets="@../../css/vault.css"
-            prefWidth="500"
-            prefHeight="300">
+<?import javafx.scene.Group?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.scene.shape.SVGPath?>
 
-    <center>
+<StackPane xmlns="http://javafx.com/javafx/21"
+           xmlns:fx="http://javafx.com/fxml"
+           fx:controller="com.cybershield.ui.controllers.VaultController"
+           stylesheets="@../../css/vault.css"
+           styleClass="vault-screen">
 
-        <VBox alignment="CENTER"
-              spacing="18">
+    <GridPane styleClass="card,vault-card" maxWidth="800" maxHeight="-Infinity" StackPane.alignment="TOP_CENTER">
 
-            <padding>
-                <Insets top="30"
-                        right="40"
-                        bottom="30"
-                        left="40"/>
-            </padding>
+        <columnConstraints>
+            <ColumnConstraints percentWidth="33.333"/>
+            <ColumnConstraints percentWidth="66.667"/>
+        </columnConstraints>
 
-            <Label text="CyberShield Endpoint Security"
-                   styleClass="title"/>
+        <VBox styleClass="vault-side" spacing="12" GridPane.columnIndex="0">
 
-            <Label text="Unlock Vault"
-                   styleClass="heading"/>
+            <Group>
+                <Group scaleX="1.8" scaleY="1.8">
+                    <SVGPath styleClass="vault-icon" fillRule="EVEN_ODD"
+                             content="M6.5 10 V7.5 A5.5 5.5 0 0 1 17.5 7.5 V10 H19.5 V21.5 H4.5 V10 Z M9 10 H15 V7.5 A3 3 0 0 0 9 7.5 Z"/>
+                </Group>
+            </Group>
 
-            <PasswordField
-                    fx:id="passwordField"
-                    promptText="Master Password"
-                    maxWidth="440"
-                    onAction="#unlockVault"/>
+            <Region minHeight="4"/>
 
-            <Button text="Unlock Vault"
-                    onAction="#unlockVault"/>
+            <Label text="Locked" styleClass="side-title"/>
 
-            <Label fx:id="statusLabel"/>
+            <Label text="Your passwords and files are encrypted while the vault is locked." styleClass="side-point" wrapText="true"/>
+            <Label text="It locks itself again after a few idle minutes." styleClass="side-point" wrapText="true"/>
 
         </VBox>
 
-    </center>
+        <VBox styleClass="vault-form" spacing="8" GridPane.columnIndex="1">
 
-</BorderPane>
+            <Label text="Unlock your vault" styleClass="screen-title"/>
+
+            <Label text="Enter your master password to open your saved passwords and protected files."
+                   styleClass="subtitle" wrapText="true"/>
+
+            <Region minHeight="6"/>
+
+            <Label text="Master password" styleClass="field-label"/>
+
+            <PasswordField fx:id="passwordField" promptText="Master password"/>
+
+            <Label fx:id="statusLabel" styleClass="message" wrapText="true" visible="false" managed="false"/>
+
+            <Region minHeight="4"/>
+
+            <HBox spacing="14" alignment="CENTER_LEFT">
+                <Button fx:id="actionButton" text="Unlock" defaultButton="true" onAction="#unlockVault"/>
+            </HBox>
+
+        </VBox>
+
+    </GridPane>
+
+</StackPane>

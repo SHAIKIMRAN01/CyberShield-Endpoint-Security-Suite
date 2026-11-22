@@ -1,0 +1,392 @@
+/*
+ * CyberShield theme: warm off-white with brown, used by every window.
+ *
+ * Colour weights follow 60-30-10: off-white paper for most of the screen,
+ * brown for structure (sidebar, headings, primary buttons) and one caramel
+ * accent for focus and highlights. Layouts split space in thirds (rule of
+ * thirds): list and form screens use a 1:2 split, cards come three to a row.
+ *
+ * Text contrast on the paper colour: ink 15:1, muted 6:1 (WCAG AA and better).
+ */
+
+.root {
+
+    /* palette */
+    -cs-paper: #FAF6F0;
+    -cs-card: #FFFDF9;
+    -cs-sand: #F2E9DD;
+    -cs-sand-dark: #E6D9C8;
+    -cs-line: #DDD0BE;
+    -cs-brown-950: #24170F;
+    -cs-brown-900: #2E1F16;
+    -cs-brown-800: #3D2A1E;
+    -cs-brown-700: #5A3B27;
+    -cs-brown-600: #6F4A31;
+    -cs-brown-500: #8A6145;
+    -cs-brown-200: #D8C3AE;
+    -cs-caramel: #B06A2F;
+    -cs-ink: #2B1D15;
+    -cs-muted: #6B5849;
+    -cs-on-brown: #F6EEE4;
+    -cs-on-brown-muted: #CDB8A3;
+    -cs-good: #2E6A3A;
+    -cs-good-bg: #E5F0E2;
+    -cs-bad: #A13A28;
+    -cs-bad-bg: #F7E1DA;
+    -cs-warn: #865800;
+    -cs-warn-bg: #F7EBD0;
+
+    /* Modena's own colours, so built-in controls match */
+    -fx-base: #EEE4D7;
+    -fx-background: -cs-paper;
+    -fx-control-inner-background: -cs-card;
+    -fx-control-inner-background-alt: #F8F2EA;
+    -fx-accent: -cs-brown-600;
+    -fx-default-button: -cs-brown-700;
+    -fx-focus-color: -cs-caramel;
+    -fx-faint-focus-color: #B06A2F33;
+    -fx-dark-text-color: -cs-ink;
+    -fx-mid-text-color: #4A372A;
+    -fx-light-text-color: #FFFFFF;
+    -fx-selection-bar-non-focused: -cs-sand-dark;
+
+    -fx-font-family: "Segoe UI";
+    -fx-font-size: 13px;
+    -fx-background-color: -cs-paper;
+
+}
+
+/* ------------------------------------------------------------- text */
+
+.label {
+    -fx-text-fill: -cs-ink;
+}
+
+.screen-title {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -cs-brown-800;
+}
+
+.section-heading {
+    -fx-font-size: 15px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -cs-brown-800;
+}
+
+.subtitle,
+.hint,
+.field-label {
+    -fx-text-fill: -cs-muted;
+}
+
+.hint {
+    -fx-font-size: 12px;
+}
+
+.field-label {
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.big-number {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+    -fx-text-fill: -cs-brown-800;
+}
+
+/* status messages under forms */
+.message {
+    -fx-text-fill: -cs-muted;
+    -fx-wrap-text: true;
+}
+
+.message.good {
+    -fx-text-fill: -cs-good;
+}
+
+.message.bad {
+    -fx-text-fill: -cs-bad;
+}
+
+.message.warn {
+    -fx-text-fill: -cs-warn;
+}
+
+/* ------------------------------------------------------------- buttons */
+
+.button {
+    -fx-background-radius: 6;
+    -fx-padding: 6 14 6 14;
+    -fx-cursor: hand;
+}
+
+.primary-button,
+.button:default {
+    -fx-background-color: -cs-brown-700;
+    -fx-text-fill: white;
+    -fx-font-weight: bold;
+    -fx-background-insets: 0;
+}
+
+.primary-button:hover,
+.button:default:hover {
+    -fx-background-color: -cs-brown-600;
+}
+
+.primary-button:pressed,
+.button:default:pressed {
+    -fx-background-color: -cs-brown-800;
+}
+
+.primary-button:disabled,
+.button:default:disabled {
+    -fx-opacity: 0.45;
+}
+
+.danger-button {
+    -fx-background-color: -cs-bad;
+    -fx-text-fill: white;
+    -fx-background-insets: 0;
+}
+
+.danger-button:hover {
+    -fx-background-color: #B8462F;
+}
+
+.link-button {
+    -fx-background-color: transparent;
+    -fx-text-fill: -cs-caramel;
+    -fx-padding: 2 0 2 0;
+    -fx-underline: false;
+}
+
+.link-button:hover {
+    -fx-underline: true;
+}
+
+/* ------------------------------------------------------------- inputs */
+
+.text-field,
+.password-field,
+.text-area,
+.combo-box,
+.spinner {
+    -fx-background-radius: 6;
+}
+
+.text-field,
+.password-field {
+    -fx-padding: 7 9 7 9;
+}
+
+.text-area .content {
+    -fx-background-color: -cs-card;
+}
+
+/* ------------------------------------------------------------- cards and panels */
+
+.card {
+    -fx-background-color: -cs-card;
+    -fx-background-radius: 10;
+    -fx-border-color: -cs-line;
+    -fx-border-radius: 10;
+    -fx-padding: 18;
+}
+
+.panel {
+    -fx-background-color: -cs-sand;
+    -fx-background-radius: 10;
+    -fx-padding: 18;
+}
+
+/* The brown third beside a form (sign-in, vault screens) */
+.brand-panel {
+    -fx-background-color: -cs-brown-900;
+    -fx-padding: 36;
+}
+
+.brand-panel .label {
+    -fx-text-fill: -cs-on-brown;
+}
+
+.brand-panel .brand-name {
+    -fx-font-size: 28px;
+    -fx-font-weight: bold;
+}
+
+.brand-panel .brand-tagline {
+    -fx-text-fill: -cs-on-brown-muted;
+    -fx-font-size: 14px;
+}
+
+.brand-panel .brand-point {
+    -fx-text-fill: -cs-on-brown;
+    -fx-font-size: 13px;
+}
+
+.brand-mark,
+.card-icon {
+    -fx-fill: -cs-caramel;
+}
+
+.chip {
+    -fx-background-radius: 999;
+    -fx-padding: 3 10 3 10;
+    -fx-font-size: 12px;
+    -fx-font-weight: bold;
+}
+
+.chip.good {
+    -fx-background-color: -cs-good-bg;
+    -fx-text-fill: -cs-good;
+}
+
+.chip.bad {
+    -fx-background-color: -cs-bad-bg;
+    -fx-text-fill: -cs-bad;
+}
+
+.chip.warn {
+    -fx-background-color: -cs-warn-bg;
+    -fx-text-fill: -cs-warn;
+}
+
+.chip.plain {
+    -fx-background-color: -cs-sand;
+    -fx-text-fill: -cs-brown-700;
+}
+
+/* ------------------------------------------------------------- tables and lists */
+
+.table-view,
+.list-view,
+.tree-view {
+    -fx-background-color: -cs-line, -cs-card;
+    -fx-background-insets: 0, 1;
+    -fx-background-radius: 8;
+    -fx-padding: 1;
+}
+
+.table-view .column-header-background {
+    -fx-background-color: -cs-sand;
+    -fx-background-radius: 8 8 0 0;
+}
+
+.table-view .column-header,
+.table-view .filler {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent -cs-line transparent transparent;
+    -fx-size: 32px;
+}
+
+.table-view .column-header .label {
+    -fx-text-fill: -cs-brown-700;
+    -fx-font-weight: bold;
+    -fx-alignment: center-left;
+    -fx-padding: 0 0 0 4;
+}
+
+.table-row-cell {
+    -fx-cell-size: 30px;
+}
+
+.table-view .placeholder .label,
+.list-view .placeholder .label {
+    -fx-text-fill: -cs-muted;
+}
+
+/* ------------------------------------------------------------- tabs */
+
+.tab-pane > .tab-header-area > .headers-region > .tab {
+    -fx-background-color: transparent;
+    -fx-padding: 6 14 6 14;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab:selected {
+    -fx-background-color: -cs-card;
+    -fx-border-color: -cs-line -cs-line transparent -cs-line;
+    -fx-border-radius: 8 8 0 0;
+    -fx-background-radius: 8 8 0 0;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab .tab-label {
+    -fx-text-fill: -cs-muted;
+    -fx-font-weight: bold;
+}
+
+.tab-pane > .tab-header-area > .headers-region > .tab:selected .tab-label {
+    -fx-text-fill: -cs-brown-800;
+}
+
+.tab-pane > .tab-header-area > .tab-header-background {
+    -fx-background-color: transparent;
+    -fx-border-color: transparent transparent -cs-line transparent;
+}
+
+.tab-pane:focused > .tab-header-area > .headers-region > .tab:selected .focus-indicator {
+    -fx-border-color: transparent;
+}
+
+/* ------------------------------------------------------------- scroll bars */
+
+.scroll-bar {
+    -fx-background-color: transparent;
+}
+
+.scroll-bar .thumb {
+    -fx-background-color: -cs-brown-200;
+    -fx-background-radius: 6;
+}
+
+.scroll-bar .thumb:hover {
+    -fx-background-color: -cs-brown-500;
+}
+
+.scroll-bar .increment-button,
+.scroll-bar .decrement-button {
+    -fx-background-color: transparent;
+    -fx-padding: 2;
+}
+
+.scroll-bar .increment-arrow,
+.scroll-bar .decrement-arrow {
+    -fx-background-color: -cs-brown-500;
+}
+
+.split-pane {
+    -fx-background-color: transparent;
+    -fx-padding: 0;
+}
+
+.split-pane > .split-pane-divider {
+    -fx-background-color: transparent;
+    -fx-padding: 0 4 0 4;
+}
+
+.progress-bar > .bar {
+    -fx-background-color: -cs-brown-600;
+    -fx-background-radius: 4;
+    -fx-background-insets: 2;
+}
+
+.progress-bar > .track {
+    -fx-background-color: -cs-sand-dark;
+    -fx-background-radius: 4;
+}
+
+.separator *.line {
+    -fx-border-color: -cs-line transparent transparent transparent;
+}
+
+.separator:vertical *.line {
+    -fx-border-color: transparent transparent transparent -cs-line;
+}
+
+/* A scroll pane that only scrolls: no frame or background of its own. */
+.plain-scroll,
+.plain-scroll > .viewport {
+    -fx-background-color: transparent;
+    -fx-background-insets: 0;
+    -fx-padding: 0;
+}

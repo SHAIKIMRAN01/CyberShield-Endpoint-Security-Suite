@@ -1,10 +1,17 @@
 package com.cybershield.password;
 
 import com.cybershield.services.EncryptionService;
+import com.cybershield.vault.Vault;
+import com.cybershield.vault.VaultSession;
 
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Saved logins of the open vault. Passwords are encrypted with the vault key
+ * before they reach the database. Every method needs the vault unlocked, and
+ * works only on that vault's entries.
+ */
 public class PasswordService {
 
     private final PasswordDAO dao =
@@ -15,32 +22,9 @@ public class PasswordService {
 
     public boolean savePassword(PasswordEntry entry) {
 
-        if (!encryptionService.isInitialized()) {
+        Vault vault = VaultSession.current();
 
-            throw new IllegalStateException(
-                    "Vault is locked."
-            );
-
-        }
-
-        PasswordEntry encryptedEntry =
-                new PasswordEntry();
-
-        encryptedEntry.setUserId(entry.getUserId());
-
-        encryptedEntry.setWebsite(entry.getWebsite());
-
-        encryptedEntry.setUsername(entry.getUsername());
-
-        encryptedEntry.setPassword(
-
-                encryptionService.encrypt(
-                        entry.getPassword()
-                )
-
-        );
-
-        encryptedEntry.setNotes(entry.getNotes());
+        PasswordEntry encryptedEntry = encryptedCopy(entry, vault);
 
         return dao.save(encryptedEntry);
 
@@ -48,13 +32,12 @@ public class PasswordService {
 
     public List<PasswordEntry> getAllPasswords() {
 
-        List<PasswordEntry> encryptedList =
-                dao.getAllPasswords();
+        Vault vault = VaultSession.current();
 
         List<PasswordEntry> decryptedList =
                 new ArrayList<>();
 
-        for (PasswordEntry entry : encryptedList) {
+        for (PasswordEntry entry : dao.getPasswords(vault.id())) {
 
             PasswordEntry decrypted =
                     new PasswordEntry();
@@ -62,6 +45,8 @@ public class PasswordService {
             decrypted.setId(entry.getId());
 
             decrypted.setUserId(entry.getUserId());
+
+            decrypted.setVaultId(entry.getVaultId());
 
             decrypted.setWebsite(entry.getWebsite());
 
@@ -89,22 +74,33 @@ public class PasswordService {
 
     public boolean updatePassword(PasswordEntry entry) {
 
-        if (!encryptionService.isInitialized()) {
-
-            throw new IllegalStateException(
-                    "Vault is locked."
-            );
-
-        }
+        Vault vault = VaultSession.current();
 
         // Encrypt into a copy so the caller's entry keeps its plain-text
         // password, the same way savePassword works.
-        PasswordEntry encryptedEntry =
-                new PasswordEntry();
+        PasswordEntry encryptedEntry = encryptedCopy(entry, vault);
 
         encryptedEntry.setId(entry.getId());
 
-        encryptedEntry.setUserId(entry.getUserId());
+        return dao.update(encryptedEntry);
+
+    }
+
+    public boolean deletePassword(int id) {
+
+        return dao.delete(id, VaultSession.current().id());
+
+    }
+
+    private PasswordEntry encryptedCopy(PasswordEntry entry, Vault vault) {
+
+        PasswordEntry encryptedEntry =
+                new PasswordEntry();
+
+        // The entry always belongs to the open vault and its account, whatever the caller set.
+        encryptedEntry.setUserId(vault.userId());
+
+        encryptedEntry.setVaultId(vault.id());
 
         encryptedEntry.setWebsite(entry.getWebsite());
 
@@ -120,13 +116,7 @@ public class PasswordService {
 
         encryptedEntry.setNotes(entry.getNotes());
 
-        return dao.update(encryptedEntry);
-
-    }
-
-    public boolean deletePassword(int id) {
-
-        return dao.delete(id);
+        return encryptedEntry;
 
     }
 
