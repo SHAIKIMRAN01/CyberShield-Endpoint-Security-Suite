@@ -213,12 +213,11 @@ public class DashboardController {
     }
 
     @FXML
-    private void openSecureNotes() {
+    public void openSecureNotes() {
 
         select(notesButton, "Secure Notes");
 
-        showComingSoon(Ui.ICON_NOTE, "Secure Notes", 2,
-                "Private notes encrypted with your vault key, with search and autosave. They disappear from the screen when the vault locks.");
+        openVaultScreen("/fxml/notes/secure_notes.fxml", this::openSecureNotes);
 
     }
 

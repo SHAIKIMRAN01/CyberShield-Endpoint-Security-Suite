@@ -55,7 +55,7 @@
 
             <Button fx:id="passwordButton" text="Password Vault" styleClass="nav-button" onAction="#openPasswordVault"/>
 
-            <Button fx:id="notesButton" text="Secure Notes" styleClass="nav-button,soon" onAction="#openSecureNotes"/>
+            <Button fx:id="notesButton" text="Secure Notes" styleClass="nav-button" onAction="#openSecureNotes"/>
 
             <Button fx:id="filesButton" text="File Security" styleClass="nav-button" onAction="#openFileSecurity"/>
 

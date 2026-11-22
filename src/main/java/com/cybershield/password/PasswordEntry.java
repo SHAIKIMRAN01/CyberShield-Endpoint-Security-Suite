@@ -10,6 +10,10 @@ public class PasswordEntry {
     private String username;
     private String password;
     private String notes;
+    private String category;
+    private boolean favourite;
+    // Whether the stored website, username, notes and category are encrypted (always true once saved now).
+    private boolean fieldsEncrypted;
     private String updatedAt;
 
     public PasswordEntry() {
@@ -39,6 +43,30 @@ public class PasswordEntry {
 
     public int getUserId() {
         return userId;
+    }
+
+    public String getCategory() {
+        return category;
+    }
+
+    public void setCategory(String category) {
+        this.category = category;
+    }
+
+    public boolean isFavourite() {
+        return favourite;
+    }
+
+    public void setFavourite(boolean favourite) {
+        this.favourite = favourite;
+    }
+
+    public boolean isFieldsEncrypted() {
+        return fieldsEncrypted;
+    }
+
+    public void setFieldsEncrypted(boolean fieldsEncrypted) {
+        this.fieldsEncrypted = fieldsEncrypted;
     }
 
     public int getVaultId() {

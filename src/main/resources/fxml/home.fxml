@@ -7,6 +7,7 @@
 
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressBar?>
 <?import javafx.scene.control.ScrollPane?>
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.GridPane?>
@@ -87,30 +88,37 @@
 
         </GridPane>
 
-        <!-- TIPS -->
+        <!-- SECURITY SCORE (left third) AND QUICK ACTIONS (other two thirds) -->
         <GridPane hgap="18">
 
             <columnConstraints>
                 <ColumnConstraints percentWidth="33.333"/>
-                <ColumnConstraints percentWidth="33.333"/>
-                <ColumnConstraints percentWidth="33.333"/>
+                <ColumnConstraints percentWidth="66.667"/>
             </columnConstraints>
 
-            <VBox styleClass="panel" spacing="4" GridPane.columnIndex="0">
-                <Label text="A long master password" styleClass="field-label"/>
-                <Label text="Four or more unrelated words are easy to remember and hard to guess. Nobody can reset it for you."
-                       styleClass="hint" wrapText="true"/>
+            <VBox styleClass="card,score-card" spacing="6" GridPane.columnIndex="0">
+                <Label text="Security score" styleClass="card-title"/>
+                <HBox spacing="10" alignment="BASELINE_LEFT">
+                    <Label fx:id="scoreValue" styleClass="big-number"/>
+                    <Label fx:id="scoreGrade" styleClass="chip,plain"/>
+                </HBox>
+                <ProgressBar fx:id="scoreBar" progress="0" maxWidth="Infinity" styleClass="score-bar"/>
+                <VBox fx:id="hintsBox" spacing="4"/>
             </VBox>
 
-            <VBox styleClass="panel" spacing="4" GridPane.columnIndex="1">
-                <Label text="Lock when you step away" styleClass="field-label"/>
-                <Label text="The vault locks itself after a few idle minutes. Settings changes how long."
-                       styleClass="hint" wrapText="true"/>
-            </VBox>
-
-            <VBox styleClass="panel" spacing="4" GridPane.columnIndex="2">
-                <Label text="Watch your sign-ins" styleClass="field-label"/>
-                <Label text="Failed attempts you don't recognise mean someone tried your account. Change its password in Settings."
+            <VBox styleClass="card,quick-card" spacing="10" GridPane.columnIndex="1">
+                <Label text="Quick actions" styleClass="card-title"/>
+                <GridPane hgap="10" vgap="10">
+                    <columnConstraints>
+                        <ColumnConstraints percentWidth="50"/>
+                        <ColumnConstraints percentWidth="50"/>
+                    </columnConstraints>
+                    <Button fx:id="lockAction" text="Lock vault now" onAction="#lockNow" maxWidth="Infinity" GridPane.columnIndex="0" GridPane.rowIndex="0"/>
+                    <Button text="Protect files" onAction="#openFileSecurity" maxWidth="Infinity" GridPane.columnIndex="1" GridPane.rowIndex="0"/>
+                    <Button text="New login" onAction="#openPasswordVault" maxWidth="Infinity" GridPane.columnIndex="0" GridPane.rowIndex="1"/>
+                    <Button text="New note" onAction="#openSecureNotes" maxWidth="Infinity" GridPane.columnIndex="1" GridPane.rowIndex="1"/>
+                </GridPane>
+                <Label text="Tip: four or more unrelated words make a master password that is easy to remember and hard to guess."
                        styleClass="hint" wrapText="true"/>
             </VBox>
 

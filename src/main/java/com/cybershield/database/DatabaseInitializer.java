@@ -109,11 +109,27 @@ public final class DatabaseInitializer {
 
         }
 
+        addColumn(statement, "password_entries", "category", "TEXT");
+        addColumn(statement, "password_entries", "favourite", "INTEGER DEFAULT 0");
+        addColumn(statement, "password_entries", "fields_encrypted", "INTEGER DEFAULT 0");
+
         statement.execute("CREATE INDEX IF NOT EXISTS idx_password_vault ON password_entries(vault_id)");
 
         statement.execute("CREATE INDEX IF NOT EXISTS idx_notes_vault ON secure_notes(vault_id)");
 
         statement.execute("CREATE INDEX IF NOT EXISTS idx_protected_items_vault ON protected_items(vault_id)");
+
+    }
+
+    private static void addColumn(Statement statement, String table, String column, String definition) throws SQLException {
+
+        if (!hasColumn(statement, table, column)) {
+
+            statement.execute("ALTER TABLE " + table + " ADD COLUMN " + column + " " + definition);
+
+            AppLogger.info("Added " + column + " to " + table + ".");
+
+        }
 
     }
 

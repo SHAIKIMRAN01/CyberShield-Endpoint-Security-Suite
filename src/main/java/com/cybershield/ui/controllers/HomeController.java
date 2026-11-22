@@ -7,6 +7,7 @@ import com.cybershield.logger.AppLogger;
 import com.cybershield.models.User;
 import com.cybershield.password.PasswordDAO;
 import com.cybershield.security.SessionManager;
+import com.cybershield.services.SecurityScore;
 import com.cybershield.ui.Ui;
 import com.cybershield.utils.DisplayFormat;
 import com.cybershield.vault.Vault;
@@ -15,8 +16,10 @@ import com.cybershield.vault.VaultService;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.ProgressBar;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.StackPane;
+import javafx.scene.layout.VBox;
 
 import java.sql.SQLException;
 import java.time.LocalTime;
@@ -72,6 +75,21 @@ public class HomeController {
     @FXML
     private Label failedAttempts;
 
+    @FXML
+    private Label scoreValue;
+
+    @FXML
+    private Label scoreGrade;
+
+    @FXML
+    private ProgressBar scoreBar;
+
+    @FXML
+    private VBox hintsBox;
+
+    @FXML
+    private Button lockAction;
+
     private final VaultService vaultService = new VaultService();
 
     private DashboardController dashboard;
@@ -125,6 +143,58 @@ public class HomeController {
         showCounts(vault);
 
         showLastSignIn(userId);
+
+        showScore(userId);
+
+    }
+
+    private void showScore(int userId) {
+
+        SecurityScore.Score score = SecurityScore.compute(userId);
+
+        scoreValue.setText(score.percent() + "");
+
+        scoreGrade.setText(score.grade());
+
+        scoreGrade.getStyleClass().removeAll("plain", "good", "warn", "bad");
+        scoreGrade.getStyleClass().add(score.percent() >= 60 ? "good" : score.percent() >= 35 ? "warn" : "bad");
+
+        scoreBar.setProgress(score.percent() / 100.0);
+
+        hintsBox.getChildren().clear();
+
+        score.hints().stream().limit(3).forEach(hint -> {
+            Label line = new Label("• " + hint);
+            line.getStyleClass().add("hint");
+            line.setWrapText(true);
+            hintsBox.getChildren().add(line);
+        });
+
+        if (score.hints().isEmpty()) {
+            Label line = new Label("Everything checked is in good shape.");
+            line.getStyleClass().add("hint");
+            hintsBox.getChildren().add(line);
+        }
+
+        lockAction.setDisable(status != VaultService.Status.UNLOCKED);
+
+    }
+
+    @FXML
+    private void lockNow() {
+
+        if (dashboard != null) {
+            dashboard.lockNow();
+        }
+
+    }
+
+    @FXML
+    private void openSecureNotes() {
+
+        if (dashboard != null) {
+            dashboard.openSecureNotes();
+        }
 
     }
 

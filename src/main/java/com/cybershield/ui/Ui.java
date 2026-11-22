@@ -150,6 +150,34 @@ public final class Ui {
     }
 
     /**
+     * Copies text and clears it from the clipboard after the given seconds, unless
+     * something else has been copied meanwhile.
+     */
+    public static void copyAndClearLater(String text, int seconds) {
+
+        javafx.scene.input.ClipboardContent content = new javafx.scene.input.ClipboardContent();
+
+        content.putString(text);
+
+        javafx.scene.input.Clipboard.getSystemClipboard().setContent(content);
+
+        javafx.animation.PauseTransition delay = new javafx.animation.PauseTransition(javafx.util.Duration.seconds(seconds));
+
+        delay.setOnFinished(event -> {
+
+            javafx.scene.input.Clipboard clipboard = javafx.scene.input.Clipboard.getSystemClipboard();
+
+            if (text.equals(clipboard.getString())) {
+                clipboard.clear();
+            }
+
+        });
+
+        delay.play();
+
+    }
+
+    /**
      * Runs slow work (PBKDF2, BCrypt, database) off the JavaFX thread, then hands
      * the result back on it. A failure is logged and passed to onError.
      */

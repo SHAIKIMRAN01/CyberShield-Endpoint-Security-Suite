@@ -1,0 +1,34 @@
+/* Secure Notes (fxml/notes/secure_notes.fxml). Colours come from theme.css. */
+
+.notes {
+    -fx-padding: 22 26 22 26;
+}
+
+.notes .notes-list,
+.notes .notes-editor {
+    -fx-padding: 16;
+}
+
+.notes .note-title {
+    -fx-font-size: 16px;
+    -fx-font-weight: bold;
+}
+
+.notes .text-area {
+    -fx-font-size: 14px;
+}
+
+.notes .note-cell-title {
+    -fx-font-weight: bold;
+}
+
+.notes .list-cell:selected .note-cell-title,
+.notes .list-cell:selected .hint {
+    -fx-text-fill: white;
+}
+
+.notes .confirm-box {
+    -fx-background-color: -cs-bad-bg;
+    -fx-background-radius: 8;
+    -fx-padding: 8 10 8 12;
+}

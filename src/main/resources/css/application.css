@@ -133,7 +133,9 @@
     -fx-fill: -cs-caramel;
 }
 
-.home-card .card-title {
+.home-card .card-title,
+.score-card .card-title,
+.quick-card .card-title {
     -fx-font-size: 14px;
     -fx-font-weight: bold;
     -fx-text-fill: -cs-brown-700;
@@ -155,4 +157,14 @@
 .coming-soon {
     -fx-spacing: 10;
     -fx-alignment: center;
+}
+
+.score-bar > .bar {
+    -fx-background-color: -cs-caramel;
+    -fx-background-insets: 0;
+    -fx-padding: 0.35em;
+}
+
+.score-bar > .track {
+    -fx-background-insets: 0;
 }

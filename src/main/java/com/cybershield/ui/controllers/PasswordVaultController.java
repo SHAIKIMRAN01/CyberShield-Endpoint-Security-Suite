@@ -1,560 +1,500 @@
 package com.cybershield.ui.controllers;
 
-import com.cybershield.password.PasswordEntry;
 import com.cybershield.dao.SettingsDAO;
+import com.cybershield.logger.AppLogger;
+import com.cybershield.password.PasswordEntry;
+import com.cybershield.password.PasswordHealth;
 import com.cybershield.password.PasswordService;
+import com.cybershield.services.ActivityLog;
+import com.cybershield.ui.Ui;
 import com.cybershield.utils.DisplayFormat;
+import com.cybershield.utils.PasswordGenerator;
+import com.cybershield.utils.SearchUtil;
+import com.cybershield.utils.ValidationUtil;
 import com.cybershield.vault.VaultService;
 
-import javafx.animation.PauseTransition;
 import javafx.beans.property.SimpleStringProperty;
-import com.cybershield.security.SessionManager;
 import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
-
 import javafx.fxml.FXML;
-
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
+import javafx.scene.control.ProgressBar;
+import javafx.scene.control.Spinner;
+import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.layout.HBox;
 
-import javafx.scene.control.cell.PropertyValueFactory;
-import javafx.scene.input.Clipboard;
-import javafx.util.Duration;
-
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.List;
-import java.util.stream.Collectors;
+import java.util.Map;
+import java.util.Objects;
+import java.util.TreeSet;
 
+/**
+ * The Password Vault: a form for one login and the list of saved logins, with search,
+ * a category filter, sorting, favourites and a health check. Passwords and every other
+ * field are encrypted with the vault key by PasswordService; this screen holds them
+ * decrypted only in memory, and drops them when the vault locks or the screen closes.
+ */
 public class PasswordVaultController implements LockableScreen {
 
-    // =====================================================
-    // Form
-    // =====================================================
+    private static final String ALL_CATEGORIES = "All categories";
 
-    @FXML
-    private TextField websiteField;
+    private static final String NEEDS_ATTENTION = "Needs attention";
 
-    @FXML
-    private TextField usernameField;
+    private static final List<String> SORTS = List.of("Favourites first", "Website A–Z", "Recently changed", "Weakest first");
 
-    @FXML
-    private PasswordField passwordField;
+    @FXML private Label healthLabel;
+    @FXML private Label formTitle;
+    @FXML private CheckBox favouriteBox;
+    @FXML private TextField websiteField;
+    @FXML private TextField usernameField;
+    @FXML private PasswordField passwordField;
+    @FXML private TextField visiblePasswordField;
+    @FXML private Button showPasswordButton;
+    @FXML private ProgressBar strengthBar;
+    @FXML private Label strengthLabel;
+    @FXML private Spinner<Integer> lengthSpinner;
+    @FXML private CheckBox digitsBox;
+    @FXML private CheckBox symbolsBox;
+    @FXML private ComboBox<String> categoryBox;
+    @FXML private TextArea notesArea;
+    @FXML private HBox confirmBox;
+    @FXML private Label confirmLabel;
+    @FXML private Button updateButton;
+    @FXML private Button deleteButton;
+    @FXML private TextField searchField;
+    @FXML private ComboBox<String> filterBox;
+    @FXML private ComboBox<String> sortBox;
+    @FXML private TableView<PasswordEntry> passwordTable;
+    @FXML private TableColumn<PasswordEntry, String> favouriteColumn;
+    @FXML private TableColumn<PasswordEntry, String> websiteColumn;
+    @FXML private TableColumn<PasswordEntry, String> usernameColumn;
+    @FXML private TableColumn<PasswordEntry, String> categoryColumn;
+    @FXML private TableColumn<PasswordEntry, String> healthColumn;
+    @FXML private TableColumn<PasswordEntry, String> updatedColumn;
+    @FXML private Label statusLabel;
 
-    // Plain-text twin of passwordField, shown while the password is revealed.
-    @FXML
-    private TextField visiblePasswordField;
+    private final PasswordService service = new PasswordService();
 
-    @FXML
-    private Button showPasswordButton;
+    private final VaultService vaultService = new VaultService();
 
-    @FXML
-    private TextArea notesArea;
+    private final SettingsDAO settings = new SettingsDAO();
 
-    @FXML
-    private TextField searchField;
+    // Every saved login of the open vault, decrypted. Dropped on dispose.
+    private List<PasswordEntry> entries = new ArrayList<>();
 
-    // =====================================================
-    // Labels
-    // =====================================================
+    private Map<Integer, EnumSet<PasswordHealth.Issue>> health = Map.of();
 
-    @FXML
-    private Label statusLabel;
+    private PasswordEntry selected;
 
-    @FXML
-    private Label strengthLabel;
-
-    // =====================================================
-    // Table
-    // =====================================================
-
-    @FXML
-    private TableView<PasswordEntry> passwordTable;
-
-    @FXML
-    private TableColumn<PasswordEntry,String> websiteColumn;
-
-    @FXML
-    private TableColumn<PasswordEntry,String> usernameColumn;
-
-    @FXML
-    private TableColumn<PasswordEntry,String> updatedColumn;
-
-    // =====================================================
-    // Data
-    // =====================================================
-
-    private final PasswordService service =
-            new PasswordService();
-
-    private ObservableList<PasswordEntry> passwordList =
-            FXCollections.observableArrayList();
-
-    private PasswordEntry selectedEntry;
-
-    private boolean passwordVisible = false;
-
-    private final VaultService vaultService =
-            new VaultService();
+    private boolean passwordVisible;
 
     // Set by the dashboard so it can show the unlock screen after locking.
     private Runnable onLocked = () -> { };
 
-    private final SettingsDAO settings =
-            new SettingsDAO();
-
-        @FXML
+    @FXML
     public void initialize() {
 
-        websiteColumn.setCellValueFactory(
-                new PropertyValueFactory<>("website"));
+        visiblePasswordField.textProperty().bindBidirectional(passwordField.textProperty());
 
-        usernameColumn.setCellValueFactory(
-                new PropertyValueFactory<>("username"));
+        passwordField.textProperty().addListener((observable, before, text) -> Ui.strength(strengthBar, strengthLabel, text));
 
-        updatedColumn.setCellValueFactory(cell ->
+        favouriteColumn.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().isFavourite() ? "★" : "☆"));
+        favouriteColumn.setCellFactory(column -> new FavouriteCell());
+        websiteColumn.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getWebsite()));
+        usernameColumn.setCellValueFactory(cell -> new SimpleStringProperty(cell.getValue().getUsername()));
+        categoryColumn.setCellValueFactory(cell -> new SimpleStringProperty(Objects.requireNonNullElse(cell.getValue().getCategory(), "")));
+        healthColumn.setCellValueFactory(cell -> new SimpleStringProperty(PasswordHealth.describe(health.get(cell.getValue().getId()))));
+        healthColumn.setCellFactory(column -> new HealthCell());
+        updatedColumn.setCellValueFactory(cell -> new SimpleStringProperty(DisplayFormat.timestamp(cell.getValue().getUpdatedAt())));
 
-                new SimpleStringProperty(
-                        DisplayFormat.timestamp(cell.getValue().getUpdatedAt())
-                )
+        passwordTable.getSelectionModel().selectedItemProperty().addListener((observable, before, entry) -> {
+            if (entry != null) {
+                fillForm(entry);
+            }
+        });
 
-        );
+        sortBox.setItems(FXCollections.observableArrayList(SORTS));
+        sortBox.getSelectionModel().select(0);
+        sortBox.valueProperty().addListener((observable, before, sort) -> showList());
 
-        visiblePasswordField.textProperty()
-                .bindBidirectional(passwordField.textProperty());
+        filterBox.valueProperty().addListener((observable, before, filter) -> showList());
+
+        searchField.textProperty().addListener((observable, before, text) -> showList());
 
         loadPasswords();
 
-        initializeSelection();
-
-        initializeSearch();
-
-        initializeStrengthMeter();
+        clearForm();
 
     }
-        private void loadPasswords() {
 
-        passwordList.clear();
+    // =====================================================
+    // THE LIST
+    // =====================================================
 
-        List<PasswordEntry> list =
-                service.getAllPasswords();
+    private void loadPasswords() {
 
-        passwordList.addAll(list);
+        try {
 
-        passwordTable.setItems(passwordList);
+            entries = new ArrayList<>(service.getAllPasswords());
 
-    }
-        private void initializeSelection() {
+        } catch (RuntimeException e) {
 
-        passwordTable.getSelectionModel()
+            AppLogger.error("Couldn't read the saved logins: " + e.getMessage());
 
-                .selectedItemProperty()
+            entries = new ArrayList<>();
 
-                .addListener(
-
-                        (obs, oldValue, newValue) -> {
-
-                            if (newValue == null) {
-
-                                return;
-
-                            }
-
-                            selectedEntry = newValue;
-
-                            websiteField.setText(
-                                    newValue.getWebsite());
-
-                            usernameField.setText(
-                                    newValue.getUsername());
-
-                            passwordField.setText(
-                                    newValue.getPassword());
-
-                            notesArea.setText(
-                                    newValue.getNotes());
-
-                            updateStrength();
-
-                        }
-
-                );
-
-    }
-        private void initializeSearch() {
-
-        searchField.textProperty()
-
-                .addListener(
-
-                        (observable,
-                         oldValue,
-                         newValue) -> {
-
-                            if (newValue.isBlank()) {
-
-                                passwordTable.setItems(
-                                        passwordList);
-
-                                return;
-
-                            }
-
-                            List<PasswordEntry> filtered =
-
-                                    passwordList.stream()
-
-                                            .filter(
-
-                                                    p ->
-
-                                                            p.getWebsite()
-
-                                                                    .toLowerCase()
-
-                                                                    .contains(
-
-                                                                            newValue.toLowerCase()
-
-                                                                    )
-
-                                                            ||
-
-                                                            p.getUsername()
-
-                                                                    .toLowerCase()
-
-                                                                    .contains(
-
-                                                                            newValue.toLowerCase()
-
-                                                                    )
-
-                                            )
-
-                                            .collect(
-
-                                                    Collectors.toList()
-
-                                            );
-
-                            passwordTable.setItems(
-
-                                    FXCollections.observableArrayList(
-
-                                            filtered
-
-                                    )
-
-                            );
-
-                        }
-
-                );
-
-    }
-        private void initializeStrengthMeter() {
-
-        passwordField.textProperty()
-
-                .addListener(
-
-                        (obs,
-                         oldValue,
-                         newValue) ->
-
-                                updateStrength()
-
-                );
-
-    }
-        private void updateStrength() {
-
-        String password = passwordField.getText();
-
-        if(password==null){
-
-            strengthLabel.setText(
-                    "Strength :");
-
-            return;
+            status("The saved logins couldn't be read. See the console for details.", "bad");
 
         }
 
-        int score=0;
+        health = PasswordHealth.check(entries);
 
-        if(password.length()>=8)
-            score++;
+        showHealth();
 
-        if(password.matches(".*[A-Z].*"))
-            score++;
+        refreshCategories();
 
-        if(password.matches(".*[a-z].*"))
-            score++;
+        showList();
 
-        if(password.matches(".*\\d.*"))
-            score++;
+    }
 
-        if(password.matches(".*[^A-Za-z0-9].*"))
-            score++;
+    private void showHealth() {
 
-        switch(score){
+        PasswordHealth.Summary summary = PasswordHealth.summarize(health);
 
-            case 0,1 ->
+        healthLabel.getStyleClass().removeAll("plain", "good", "warn");
 
-                    strengthLabel.setText(
-                            "Strength : Weak");
-
-            case 2,3 ->
-
-                    strengthLabel.setText(
-                            "Strength : Medium");
-
-            case 4 ->
-
-                    strengthLabel.setText(
-                            "Strength : Strong");
-
-            case 5 ->
-
-                    strengthLabel.setText(
-                            "Strength : Very Strong");
-
+        if (summary.total() == 0) {
+            healthLabel.setText("No saved logins yet");
+            healthLabel.getStyleClass().add("plain");
+        } else if (summary.allGood()) {
+            healthLabel.setText("All " + summary.total() + " passwords look healthy");
+            healthLabel.getStyleClass().add("good");
+        } else {
+            healthLabel.setText("Health: " + summary.weak() + " weak · " + summary.reused() + " reused · " + summary.old() + " old");
+            healthLabel.getStyleClass().add("warn");
         }
 
     }
-    // =====================================================
-    // SAVE PASSWORD
-    // =====================================================
+
+    private void refreshCategories() {
+
+        TreeSet<String> categories = new TreeSet<>(String.CASE_INSENSITIVE_ORDER);
+
+        for (PasswordEntry entry : entries) {
+            if (entry.getCategory() != null && !entry.getCategory().isBlank()) {
+                categories.add(entry.getCategory().strip());
+            }
+        }
+
+        String filter = filterBox.getValue();
+
+        List<String> filters = new ArrayList<>(List.of(ALL_CATEGORIES, NEEDS_ATTENTION));
+        filters.addAll(categories);
+
+        filterBox.setItems(FXCollections.observableArrayList(filters));
+        filterBox.setValue(filter != null && filters.contains(filter) ? filter : ALL_CATEGORIES);
+
+        String typed = categoryBox.getEditor().getText();
+        categoryBox.setItems(FXCollections.observableArrayList(categories));
+        categoryBox.getEditor().setText(typed);
+
+    }
+
+    private void showList() {
+
+        List<PasswordEntry> visible = new ArrayList<>(SearchUtil.filter(entries, searchField.getText()));
+
+        // The shared search covers website and username; the category counts too.
+        String query = searchField.getText() == null ? "" : searchField.getText().strip().toLowerCase();
+        if (!query.isEmpty()) {
+            for (PasswordEntry entry : entries) {
+                if (!visible.contains(entry) && entry.getCategory() != null && entry.getCategory().toLowerCase().contains(query)) {
+                    visible.add(entry);
+                }
+            }
+        }
+
+        String filter = filterBox.getValue();
+
+        if (NEEDS_ATTENTION.equals(filter)) {
+            visible.removeIf(entry -> health.getOrDefault(entry.getId(), EnumSet.noneOf(PasswordHealth.Issue.class)).isEmpty());
+        } else if (filter != null && !ALL_CATEGORIES.equals(filter)) {
+            visible.removeIf(entry -> entry.getCategory() == null || !entry.getCategory().strip().equalsIgnoreCase(filter));
+        }
+
+        visible.sort(comparator());
+
+        PasswordEntry keep = selected;
+
+        passwordTable.setItems(FXCollections.observableArrayList(visible));
+
+        if (keep != null) {
+            visible.stream().filter(entry -> entry.getId() == keep.getId()).findFirst()
+                    .ifPresent(entry -> passwordTable.getSelectionModel().select(entry));
+        }
+
+    }
+
+    private Comparator<PasswordEntry> comparator() {
+
+        Comparator<PasswordEntry> byWebsite = Comparator.comparing(entry -> entry.getWebsite() == null ? "" : entry.getWebsite().toLowerCase());
+
+        Comparator<PasswordEntry> recent = Comparator.comparing((PasswordEntry entry) ->
+                entry.getUpdatedAt() == null ? "" : entry.getUpdatedAt()).reversed();
+
+        return switch (sortBox.getValue() == null ? SORTS.get(0) : sortBox.getValue()) {
+            case "Website A–Z" -> byWebsite;
+            case "Recently changed" -> recent;
+            case "Weakest first" -> Comparator.comparing((PasswordEntry entry) ->
+                    -health.getOrDefault(entry.getId(), EnumSet.noneOf(PasswordHealth.Issue.class)).size()).thenComparing(byWebsite);
+            default -> Comparator.comparing((PasswordEntry entry) -> !entry.isFavourite()).thenComparing(byWebsite);
+        };
+
+    }
 
     @FXML
-    private void savePassword() {
+    private void refreshTable() {
 
-        String website = websiteField.getText().trim();
-        String username = usernameField.getText().trim();
-        String password = passwordField.getText();
-        String notes = notesArea.getText();
-
-        if (website.isBlank()
-                || username.isBlank()
-                || password.isBlank()) {
-
-            statusLabel.setText(
-                    "Please fill all required fields."
-            );
-
-            return;
-
-        }
-
-        PasswordEntry entry = new PasswordEntry();
-
-        entry.setUserId(
-        SessionManager
-                .getCurrentUser()
-                .getId()
-);
-
-        entry.setWebsite(website);
-
-        entry.setUsername(username);
-
-        entry.setPassword(password);
-
-        entry.setNotes(notes);
-
-        boolean saved =
-                service.savePassword(entry);
-
-        if (saved) {
-
-            statusLabel.setText(
-                    "Password saved successfully."
-            );
-
-            clearForm();
-
-            loadPasswords();
-
-        }
-
-        else {
-
-            statusLabel.setText(
-                    "Unable to save password."
-            );
-
-        }
+        loadPasswords();
 
     }
 
     // =====================================================
-    // UPDATE PASSWORD
+    // THE FORM
     // =====================================================
 
-    @FXML
-    private void updatePassword() {
+    private void fillForm(PasswordEntry entry) {
 
-        if (selectedEntry == null) {
+        hideConfirm();
 
-            statusLabel.setText(
-                    "Please select an entry."
-            );
+        selected = entry;
 
-            return;
+        formTitle.setText("Edit login");
 
-        }
+        websiteField.setText(entry.getWebsite());
+        usernameField.setText(entry.getUsername());
+        passwordField.setText(entry.getPassword());
+        notesArea.setText(entry.getNotes());
+        categoryBox.getEditor().setText(entry.getCategory() == null ? "" : entry.getCategory());
+        favouriteBox.setSelected(entry.isFavourite());
 
-        selectedEntry.setWebsite(
-                websiteField.getText().trim()
-        );
+        setPasswordVisible(false);
 
-        selectedEntry.setUsername(
-                usernameField.getText().trim()
-        );
+        updateButton.setDisable(false);
+        deleteButton.setDisable(false);
 
-        selectedEntry.setPassword(
-                passwordField.getText()
-        );
+        EnumSet<PasswordHealth.Issue> issues = health.get(entry.getId());
 
-        selectedEntry.setNotes(
-                notesArea.getText()
-        );
-
-        boolean updated =
-                service.updatePassword(
-                        selectedEntry
-                );
-
-        if (updated) {
-
-            statusLabel.setText(
-                    "Password updated successfully."
-            );
-
-            clearForm();
-
-            loadPasswords();
-
-        }
-
-        else {
-
-            statusLabel.setText(
-                    "Update failed."
-            );
-
-        }
+        status(issues == null || issues.isEmpty() ? "" : advice(issues), issues == null || issues.isEmpty() ? null : "warn");
 
     }
 
-    // =====================================================
-    // DELETE PASSWORD
-    // =====================================================
+    private static String advice(EnumSet<PasswordHealth.Issue> issues) {
 
-    @FXML
-    private void deletePassword() {
+        List<String> tips = new ArrayList<>();
 
-        if (selectedEntry == null) {
-
-            statusLabel.setText(
-                    "Select a password first."
-            );
-
-            return;
-
+        if (issues.contains(PasswordHealth.Issue.WEAK)) {
+            tips.add("this password is weak: Generate a long one");
         }
 
-        boolean deleted =
-                service.deletePassword(
-                        selectedEntry.getId()
-                );
-
-        if (deleted) {
-
-            statusLabel.setText(
-                    "Password deleted."
-            );
-
-            clearForm();
-
-            loadPasswords();
-
+        if (issues.contains(PasswordHealth.Issue.REUSED)) {
+            tips.add("it is used for other logins too: give each site its own");
         }
 
-        else {
-
-            statusLabel.setText(
-                    "Delete failed."
-            );
-
+        if (issues.contains(PasswordHealth.Issue.OLD)) {
+            tips.add("it hasn't been changed in over a year");
         }
+
+        String text = String.join("; ", tips);
+
+        return Character.toUpperCase(text.charAt(0)) + text.substring(1) + ".";
 
     }
-
-    // =====================================================
-    // CLEAR FORM
-    // =====================================================
 
     @FXML
     public void clearForm() {
 
-        // Otherwise clicking the same row again would not fill the form.
+        hideConfirm();
+
         passwordTable.getSelectionModel().clearSelection();
 
+        selected = null;
+
+        formTitle.setText("New login");
+
         websiteField.clear();
-
         usernameField.clear();
-
         passwordField.clear();
-
         notesArea.clear();
-
-        strengthLabel.setText(
-                "Strength :"
-        );
-
-        selectedEntry = null;
+        categoryBox.getEditor().clear();
+        favouriteBox.setSelected(false);
 
         setPasswordVisible(false);
 
+        updateButton.setDisable(true);
+        deleteButton.setDisable(true);
+
+        status("", null);
+
     }
-        // =====================================================
-    // REVEAL / HIDE PASSWORD
+
+    private PasswordEntry formEntry() {
+
+        PasswordEntry entry = new PasswordEntry();
+
+        entry.setWebsite(websiteField.getText().strip());
+        entry.setUsername(usernameField.getText().strip());
+        entry.setPassword(passwordField.getText());
+        entry.setNotes(notesArea.getText().isBlank() ? null : notesArea.getText());
+        String category = categoryBox.getEditor().getText();
+        entry.setCategory(category == null || category.isBlank() ? null : category.strip());
+        entry.setFavourite(favouriteBox.isSelected());
+
+        return entry;
+
+    }
+
+    private boolean valid(PasswordEntry entry) {
+
+        if (entry.getWebsite().isEmpty() || entry.getUsername().isEmpty() || entry.getPassword().isEmpty()) {
+            status("Fill in the website, username and password.", "bad");
+            return false;
+        }
+
+        if (!ValidationUtil.isValidWebsite(entry.getWebsite())) {
+            status("Enter a website, for example github.com.", "bad");
+            return false;
+        }
+
+        return true;
+
+    }
+
+    @FXML
+    private void savePassword() {
+
+        PasswordEntry entry = formEntry();
+
+        if (!valid(entry)) {
+            return;
+        }
+
+        if (service.savePassword(entry)) {
+            String website = entry.getWebsite();
+            clearForm();
+            loadPasswords();
+            status("Saved " + website + ".", "good");
+        } else {
+            status("The login couldn't be saved. See the console for details.", "bad");
+        }
+
+    }
+
+    @FXML
+    private void updatePassword() {
+
+        if (selected == null) {
+            status("Pick a login in the list to update it.", "bad");
+            return;
+        }
+
+        PasswordEntry entry = formEntry();
+
+        if (!valid(entry)) {
+            return;
+        }
+
+        entry.setId(selected.getId());
+
+        if (service.updatePassword(entry)) {
+            loadPasswords();
+            status("Updated " + entry.getWebsite() + ".", "good");
+        } else {
+            status("The login couldn't be updated.", "bad");
+        }
+
+    }
+
+    // =====================================================
+    // DELETE, WITH CONFIRMATION
+    // =====================================================
+
+    @FXML
+    private void askDelete() {
+
+        if (selected == null) {
+            return;
+        }
+
+        confirmLabel.setText("Delete the login for " + selected.getWebsite() + "? This can't be undone.");
+
+        confirmBox.setVisible(true);
+        confirmBox.setManaged(true);
+
+    }
+
+    @FXML
+    private void cancelDelete() {
+
+        hideConfirm();
+
+    }
+
+    @FXML
+    private void confirmDelete() {
+
+        hideConfirm();
+
+        if (selected == null) {
+            return;
+        }
+
+        PasswordEntry doomed = selected;
+
+        if (service.deletePassword(doomed)) {
+            clearForm();
+            loadPasswords();
+            status("Deleted the login for " + doomed.getWebsite() + ".", "good");
+        } else {
+            status("The login couldn't be deleted.", "bad");
+        }
+
+    }
+
+    private void hideConfirm() {
+
+        confirmBox.setVisible(false);
+        confirmBox.setManaged(false);
+
+    }
+
+    // =====================================================
+    // SHOW, COPY, GENERATE
     // =====================================================
 
     @FXML
     private void togglePasswordVisibility() {
 
-        if (passwordField.getText().isBlank()) {
-
-            statusLabel.setText(
-                    "No password available."
-            );
-
+        if (passwordField.getText().isEmpty()) {
+            status("There's no password to show.", null);
             return;
-
         }
 
         setPasswordVisible(!passwordVisible);
 
-        if (passwordVisible) {
-
-            statusLabel.setText(
-                    "Password Revealed"
-            );
-
-        }
-
-        else {
-
-            statusLabel.setText(
-                    "Password Hidden"
-            );
-
+        if (passwordVisible && selected != null) {
+            ActivityLog.record(ActivityLog.Action.LOGIN_SHOWN, selected.getWebsite());
         }
 
     }
@@ -571,203 +511,73 @@ public class PasswordVaultController implements LockableScreen {
 
     }
 
-    // =====================================================
-    // COPY PASSWORD
-    // =====================================================
-
     @FXML
     private void copyPassword() {
 
-        if (passwordField.getText().isBlank()) {
-
-            statusLabel.setText(
-                    "Nothing to copy."
-            );
-
+        if (passwordField.getText().isEmpty()) {
+            status("There's no password to copy.", null);
             return;
-
         }
 
-        javafx.scene.input.Clipboard clipboard =
+        int seconds = settings.clipboardClearSeconds();
 
-                javafx.scene.input.Clipboard
-                        .getSystemClipboard();
+        Ui.copyAndClearLater(passwordField.getText(), seconds);
 
-        javafx.scene.input.ClipboardContent content =
+        ActivityLog.record(ActivityLog.Action.PASSWORD_COPIED, websiteField.getText().strip());
 
-                new javafx.scene.input.ClipboardContent();
-
-        content.putString(
-                passwordField.getText()
-        );
-
-        clipboard.setContent(content);
-
-        int clearSeconds = settings.clipboardClearSeconds();
-
-        scheduleClipboardClear(passwordField.getText(), clearSeconds);
-
-        statusLabel.setText(
-                "Password copied. The clipboard clears in " + clearSeconds + " seconds."
-        );
+        status("Password copied. The clipboard clears in " + seconds + " seconds.", "good");
 
     }
-
-    // =====================================================
-    // COPY USERNAME
-    // =====================================================
 
     @FXML
     private void copyUsername() {
 
         if (usernameField.getText().isBlank()) {
-
-            statusLabel.setText(
-                    "Nothing to copy."
-            );
-
+            status("There's no username to copy.", null);
             return;
-
         }
 
-        javafx.scene.input.Clipboard clipboard =
+        Ui.copyAndClearLater(usernameField.getText(), settings.clipboardClearSeconds());
 
-                javafx.scene.input.Clipboard
-                        .getSystemClipboard();
+        ActivityLog.record(ActivityLog.Action.USERNAME_COPIED, websiteField.getText().strip());
 
-        javafx.scene.input.ClipboardContent content =
-
-                new javafx.scene.input.ClipboardContent();
-
-        content.putString(
-                usernameField.getText()
-        );
-
-        clipboard.setContent(content);
-
-        statusLabel.setText(
-                "Username copied."
-        );
+        status("Username copied.", "good");
 
     }
-
-    // =====================================================
-    // PASSWORD GENERATOR
-    // =====================================================
 
     @FXML
     private void generatePassword() {
 
-        String upper =
-                "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        int length = lengthSpinner.getValue() == null ? 16 : lengthSpinner.getValue();
 
-        String lower =
-                "abcdefghijklmnopqrstuvwxyz";
-
-        String numbers =
-                "0123456789";
-
-        String symbols =
-                "!@#$%^&*()_-+=<>?/";
-
-        String chars =
-                upper + lower + numbers + symbols;
-
-        java.security.SecureRandom random =
-                new java.security.SecureRandom();
-
-        StringBuilder builder =
-                new StringBuilder();
-
-        for (int i = 0; i < 16; i++) {
-
-            builder.append(
-
-                    chars.charAt(
-
-                            random.nextInt(
-
-                                    chars.length()
-
-                            )
-
-                    )
-
-            );
-
+        try {
+            length = Integer.parseInt(lengthSpinner.getEditor().getText().strip());
+        } catch (NumberFormatException ignored) {
+            // Keep the spinner's value.
         }
 
-        passwordField.setText(
-                builder.toString()
-        );
+        passwordField.setText(PasswordGenerator.generate(length, digitsBox.isSelected(), symbolsBox.isSelected()));
 
-        updateStrength();
+        setPasswordVisible(true);
 
-        statusLabel.setText(
-                "Password Generated."
-        );
+        status("A new " + Math.max(8, Math.min(128, length)) + "-character password. Save or Update to keep it.", null);
 
     }
-        // =====================================================
-    // REFRESH TABLE
+
+    // =====================================================
+    // LOCKING
     // =====================================================
 
     @FXML
-    private void refreshTable() {
+    private void lockVault() {
 
-        loadPasswords();
+        dispose();
 
-        statusLabel.setText(
-                "Password list refreshed."
-        );
+        vaultService.lockVault();
 
-    }
-
-    // =====================================================
-    // CLEAR SEARCH
-    // =====================================================
-
-    @FXML
-    private void clearSearch() {
-
-        searchField.clear();
-
-        passwordTable.setItems(passwordList);
+        onLocked.run();
 
     }
-
-    // =====================================================
-    // AUTO CLEAR CLIPBOARD
-    // =====================================================
-
-    private void scheduleClipboardClear(String copiedText, int seconds) {
-
-        // Runs on the JavaFX thread, so no extra thread or runLater is needed.
-        // It keeps running if the user locks the vault or leaves this screen.
-        PauseTransition delay =
-                new PauseTransition(Duration.seconds(seconds));
-
-        delay.setOnFinished(event -> {
-
-            Clipboard clipboard =
-                    Clipboard.getSystemClipboard();
-
-            // Leave it alone if the user has copied something else since.
-            if (copiedText.equals(clipboard.getString())) {
-
-                clipboard.clear();
-
-            }
-
-        });
-
-        delay.play();
-
-    }
-
-    // =====================================================
-    // LOCK VAULT
-    // =====================================================
 
     @Override
     public void setOnLocked(Runnable onLocked) {
@@ -776,26 +586,108 @@ public class PasswordVaultController implements LockableScreen {
 
     }
 
-    /** Drops the decrypted passwords from the screen when it closes or the vault locks. */
+    /** Drops every decrypted login from memory and the screen. */
     @Override
     public void dispose() {
 
-        clearForm();
+        entries = new ArrayList<>();
 
-        passwordList.clear();
+        health = Map.of();
+
+        selected = null;
+
+        passwordTable.getItems().clear();
+
+        websiteField.clear();
+        usernameField.clear();
+        passwordField.clear();
+        notesArea.clear();
 
     }
 
-    @FXML
-    private void lockVault() {
+    private void status(String text, String tone) {
 
-        clearForm();
+        statusLabel.getStyleClass().removeAll("good", "bad", "warn");
 
-        passwordList.clear();
+        if (tone != null) {
+            statusLabel.getStyleClass().add(tone);
+        }
 
-        vaultService.lockVault();
+        statusLabel.setText(text);
 
-        onLocked.run();
+    }
+
+    // =====================================================
+    // CELLS
+    // =====================================================
+
+    /** A star that toggles the favourite mark. */
+    private final class FavouriteCell extends TableCell<PasswordEntry, String> {
+
+        FavouriteCell() {
+
+            setOnMouseClicked(event -> {
+
+                PasswordEntry entry = getTableRow() == null ? null : getTableRow().getItem();
+
+                if (entry == null || isEmpty()) {
+                    return;
+                }
+
+                try {
+
+                    service.setFavourite(entry, !entry.isFavourite());
+
+                    entry.setFavourite(!entry.isFavourite());
+
+                    showList();
+
+                } catch (SQLException e) {
+
+                    status("Couldn't change the favourite mark.", "bad");
+
+                }
+
+                event.consume();
+
+            });
+
+        }
+
+        @Override
+        protected void updateItem(String star, boolean empty) {
+
+            super.updateItem(star, empty);
+
+            setText(empty ? null : star);
+
+            getStyleClass().remove("favourite");
+
+            if (!empty && "★".equals(star)) {
+                getStyleClass().add("favourite");
+            }
+
+        }
+
+    }
+
+    /** "OK" in green, problems in amber. */
+    private static final class HealthCell extends TableCell<PasswordEntry, String> {
+
+        @Override
+        protected void updateItem(String text, boolean empty) {
+
+            super.updateItem(text, empty);
+
+            setText(empty ? null : text);
+
+            getStyleClass().removeAll("health-ok", "health-bad");
+
+            if (!empty && text != null) {
+                getStyleClass().add("OK".equals(text) ? "health-ok" : "health-bad");
+            }
+
+        }
 
     }
 

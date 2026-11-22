@@ -64,6 +64,10 @@ CREATE TABLE IF NOT EXISTS user_vaults
 -- PASSWORD VAULT
 -- vault_id is NULL only for entries saved before accounts
 -- had their own vaults (they belong to the shared vault).
+-- Website, username, password, notes and category are all
+-- encrypted with the vault key. Entries from before every
+-- field was encrypted have fields_encrypted = 0 and are
+-- converted the next time their vault is open.
 ----------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS password_entries
@@ -81,6 +85,12 @@ CREATE TABLE IF NOT EXISTS password_entries
     password TEXT NOT NULL,
 
     notes TEXT,
+
+    category TEXT,
+
+    favourite INTEGER DEFAULT 0,
+
+    fields_encrypted INTEGER DEFAULT 0,
 
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
