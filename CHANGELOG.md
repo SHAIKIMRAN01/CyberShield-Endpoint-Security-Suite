@@ -1,5 +1,29 @@
 # Changelog
 
+## Unreleased: Phase 4, Steganography and Privacy Tools
+
+### Added
+- **Steganography** (no vault needed):
+  - hide a message or a small file inside a picture, locked with a password (AES-256-GCM, PBKDF2) and spread over the lowest bit of the colour values;
+  - how much fits is shown before you start, and the picture before and after, with Show what changed marking every changed pixel;
+  - reveal with the same password; a hidden file is saved where you choose, under a safe name;
+  - pictures are always saved as PNG, and the screen says why: JPEG wipes the hidden bits.
+- **Privacy Tools** (no vault needed):
+  - **Shred files:** files and folders, picked or dropped, are listed with their total before anything happens, then renamed, overwritten with random data and deleted after a confirmation. File Security's safety rules apply; links and junctions are never followed, even when chosen directly; a file open in another program stays whole and is reported; Stop leaves the rest untouched.
+  - **Clear the clipboard** now.
+  - **Photo details:** what JPEG and PNG photos give away (location, camera, time, EXIF, XMP, IPTC, comments, text blocks, the extra pictures phones add) and clean copies saved beside them. The image data is copied as it is; only the orientation is kept.
+  - **Windows traces:** recent items, jump lists, the thumbnail cache and temporary files older than a day. It looks first and removes only what you tick (jump lists wait to be ticked, because pinned items go too). Files in use are skipped.
+  - **On-screen keyboard:** a keyboard button beside the password on the sign-in and vault screens, with Shift, Backspace and Mix the keys.
+- **Reports:**
+  - **Sign-ins by date:** pick the days (within the 30 kept) and see every attempt with the wrong passwords and refused attempts counted; Save as PDF.
+  - **Monthly report:** when turned on, a security report is made the first time the vault is unlocked in a month, saved in the folder you choose (Documents\CyberShield reports at first) and listed with the others. A month that couldn't be saved is tried again at the next unlock. The status bar says when one is made.
+- **Settings → Backup and restore:** File Security's encrypted backup and restore, with progress and Stop. When the vault is locked it offers to unlock it and comes back.
+
+### Changed
+- **The sidebar:** Steganography and Privacy Tools open their screens; the "coming soon" page is gone.
+- **Database upgrades on start:** a new `report_schedule` table.
+- **Tests:** 182 JUnit tests now. The screenshot test covers the new screens, and the README screenshots are new.
+
 ## Unreleased: videos of any size, sign-in reports, a new look
 
 ### Fixed

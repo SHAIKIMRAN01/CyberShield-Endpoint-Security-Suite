@@ -47,14 +47,27 @@ A Windows desktop app that keeps passwords and files private on a shared PC. Eve
 **Reports**
 - A security summary on screen and as a PDF: the score, password health, vault locks, protected files, 30 days of sign-ins and a count of everything done.
 - A report never contains passwords, note text, website names or file names. Saved reports are listed with Open, Show in folder and Delete.
+- Sign-ins by date: pick any days in the last 30 to see every attempt, with wrong passwords and refused attempts counted, and save it as a PDF.
+- A monthly report, if you turn it on: made by itself the first time the vault is unlocked in a month, saved in a folder you choose and listed with the others.
 - A PDF of every sign-in: when, on which computer, and everything done, naming the files, logins and notes. Each is kept encrypted with the vault key and opens only inside CyberShield. Sharing one saves a copy protected with a password you choose; sharing or deleting asks for the master password.
+
+**Steganography** (works without the vault)
+- Hide a message or a small file inside a picture, locked with a password. Only the lowest bit of some colour values changes, so the picture looks the same.
+- Before you start it shows how much fits; afterwards, the picture before and after, and where it changed.
+- Reveal a message or file from a picture with the same password. Pictures are saved as PNG, because JPEG (and apps that shrink photos) would wipe what is hidden.
+
+**Privacy Tools** (works without the vault)
+- Shred files and folders: each file is renamed, overwritten with random data and deleted. The same safety rules as File Security apply, links and junctions are never followed, and a file open in another program is left whole.
+- Clear the clipboard now.
+- Photo details: see what JPEG and PNG photos give away (location, camera, time, EXIF, XMP, IPTC, comments, the extra pictures phones add) and save clean copies beside them. The picture isn't re-compressed, and its orientation is kept.
+- Clean Windows traces: recent items, jump lists, the thumbnail cache and temporary files older than a day. It looks first and removes only what you tick; files in use are skipped.
+- An on-screen keyboard beside the password on the sign-in and vault screens, against keyloggers. Mix the keys puts them in a new order.
 
 **Settings**
 - Auto-lock minutes and clipboard clear time, per account.
 - Change the account password or the master password.
 - Sign-in history, with what each sign-in did.
-
-**Coming next** (see the roadmap below): Steganography and Privacy Tools.
+- Back up the protected files to another drive, and restore them (it asks to unlock the vault first if needed).
 
 ## Screenshots
 
@@ -65,6 +78,8 @@ A Windows desktop app that keeps passwords and files private on a shared PC. Eve
 | ![Secure Notes](docs/screenshots/secure-notes.png) | ![Encryption Center](docs/screenshots/encryption-center.png) |
 | **File Security** | **File Security tools** |
 | ![File Security](docs/screenshots/file-security.png) | ![File Security tools](docs/screenshots/file-security-tools.png) |
+| **Steganography** | **Privacy Tools** |
+| ![Steganography](docs/screenshots/steganography.png) | ![Privacy Tools](docs/screenshots/privacy-tools.png) |
 | **Settings** | |
 | ![Settings](docs/screenshots/settings.png) | |
 
@@ -101,8 +116,10 @@ The tests cover:
 - video streamed from encrypted files: MKV, AVI, MOV and MP4, big pictures, turned phone videos, seeking, songs, damaged files, and reading any part of a protected file;
 - sign-in reports: stored encrypted, shared and deleted only with the master password, private to each account;
 - the logo and the opening animation;
-- the security score, and reports (no secrets in the PDF);
-- settings, and every screen opening.
+- the security score, and reports (no secrets in the PDF), sign-ins by date and the monthly report;
+- steganography: messages and files in and out of pictures, wrong passwords, too-big messages, and JPEG wiping the bits;
+- Privacy Tools, on made-up files and folders only: shredding (refused places, junctions, open files, stopping), photo details in JPEG and PNG, the traces cleaner, the on-screen keyboard;
+- settings, backups from Settings, and every screen opening.
 
 Each test uses its own database and file store in a temp folder, so the real data is never touched. `ScreensTest` opens the screens with JavaFX (in windows that are never shown), so it needs a desktop session.
 
@@ -122,6 +139,8 @@ mvn test -Dtest=ScreensTest -Dcybershield.snapshots=target/screens
 | What each sign-in did (names encrypted), removed after 30 days | the database |
 | Backups of protected files | the folder you choose, as `CyberShield backup <date and time>` |
 | Reports | the PDF wherever you save it; the list of them in the database |
+| Monthly reports | `Documents\CyberShield reports`, or the folder you choose |
+| Pictures with something hidden | where you save them, as PNG |
 
 The database is not in git (see `.gitignore`).
 
@@ -147,8 +166,12 @@ The database is not in git (see `.gitignore`).
 
 **Shared encryption** (Encryption Center) uses AES-256-GCM with a key derived from the chosen password (PBKDF2-HMAC-SHA512, 210,000 rounds, random salt). Files are sealed in 1 MiB chunks, so a changed or cut-off file is refused, and a wrong password leaves nothing behind.
 
+**Steganography** seals the message or file the same way before hiding it, then spreads it over the lowest bit of the red, green and blue values, behind a short header. Without the password the bits are just noise; a wrong password is refused.
+
+**Shredding** renames each file to a random name, overwrites it with random data, flushes it to the disk, empties it and deletes it. The places File Security refuses (drives, the user folder, system and program folders, CyberShield's own files) are refused here too.
+
 **Limits**
-- Overwriting a file doesn't guarantee it is gone from an SSD.
+- Overwriting a file (File Security, the shredder) doesn't guarantee it is gone from an SSD or a USB stick, and OneDrive or other synced folders keep their own copies.
 - Video playback uses an internal JavaFX class, so re-test it when JavaFX is upgraded.
 - Video and music play through FFmpeg. If FFmpeg can't load, the viewer falls back to JavaFX's player, which holds a file of up to 1 GB in memory.
 - A report is a plain PDF on purpose: it holds no secrets.
@@ -178,9 +201,11 @@ src/main/java/com/cybershield/
   files/        File Security: protect, hide, restore, check, back up, recover
   notes/        Secure Notes data
   password/     Password Vault data and password health
-  reports/      security reports, a PDF of every sign-in
+  privacy/      the shredder, photo details, the Windows traces cleaner
+  reports/      security reports, sign-ins by date, the monthly report, a PDF of every sign-in
   security/     BCrypt, session
   services/     sign-in and registration, activity log, security score, the open vault key
+  stego/        hiding messages and files in pictures
   vault/        per-account vaults, auto-lock, key backup
   ui/           screens (controllers) and the file viewer
   utils/        validation, generator, formatting
@@ -199,8 +224,8 @@ src/test/java/  JUnit tests
 | 1 · Accounts & Settings | 2–6 | Registration, sign-in history and waits, one vault per account, Settings, master password change | Done |
 | 2 · Core modules | 6–11 | Secure Notes, every Password Vault field encrypted, home screen score | Done |
 | 3 · Tools & reports | 11–15 | Encryption Center, PDF reports, File Security backup and recovery | Done |
-| 4 · Extras | 16–20 | Steganography, Privacy Tools | Next |
-| 5 · Polish & release | 20–21 | Light and dark themes, installer, automatic builds | |
+| 4 · Extras | 16–20 | Steganography, Privacy Tools, sign-ins by date, the monthly report, backups from Settings | Done |
+| 5 · Polish & release | 20–21 | Light and dark themes, installer, automatic builds | Next |
 
 ## License
 

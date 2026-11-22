@@ -601,6 +601,13 @@ public class DashboardController {
 
     }
 
+    /** The open screen's controller (for the tests). */
+    Object currentScreen() {
+
+        return currentScreen;
+
+    }
+
     /** Shows a note in the status bar for a few seconds. */
     void showNote(String text) {
 

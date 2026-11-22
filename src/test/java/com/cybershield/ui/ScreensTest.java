@@ -6,22 +6,29 @@ import com.cybershield.notes.Note;
 import com.cybershield.notes.NoteService;
 import com.cybershield.password.PasswordEntry;
 import com.cybershield.password.PasswordService;
+import com.cybershield.privacy.TestPhotos;
+import com.cybershield.privacy.TraceCleaner;
 import com.cybershield.reports.ReportService;
 import com.cybershield.security.SessionManager;
 import com.cybershield.services.AuthenticationService;
 import com.cybershield.ui.controllers.DashboardController;
+import com.cybershield.ui.controllers.ScreenDriver;
 import com.cybershield.vault.VaultService;
 
 import javafx.application.Platform;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
+import javafx.scene.control.PasswordField;
 import javafx.scene.control.TabPane;
+import javafx.scene.control.TextArea;
 import javafx.scene.control.TreeItem;
 import javafx.scene.control.TreeView;
 import javafx.scene.image.PixelFormat;
 import javafx.scene.image.WritableImage;
+import javafx.scene.layout.VBox;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -33,10 +40,12 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BooleanSupplier;
 
 import static com.cybershield.TestSupport.ACCOUNT_PASSWORD;
 import static com.cybershield.TestSupport.MASTER_PASSWORD;
@@ -213,21 +222,81 @@ class ScreensTest {
         run(() -> ((Button) scene.lookup("#reportsButton")).fire());
         assertNotNull(scene.lookup("#reportTable"), "Reports opens behind the unlocked vault");
         snapshot("17-reports", scene);
+
+        // The sign-ins of chosen days
         run(() -> ((TabPane) scene.lookup("#tabs")).getSelectionModel().select(1));
+        run(() -> ScreenDriver.reportDays(dashboard.controller(), LocalDate.now().minusDays(6), LocalDate.now()));
+        waitFor(() -> label(scene, "#historyCounts").contains("sign-in"), "the sign-ins are counted");
+        snapshot("24-reports-sign-ins-by-date", scene);
+
+        // Saved reports, with the monthly report switch
+        run(() -> ((TabPane) scene.lookup("#tabs")).getSelectionModel().select(2));
         run(() -> ((javafx.scene.control.TableView<?>) scene.lookup("#reportTable")).getSelectionModel().select(0));
+        assertTrue(text(scene, "#monthlyFolderLabel").contains("CyberShield reports"), text(scene, "#monthlyFolderLabel"));
         snapshot("18-reports-saved", scene);
 
         // A PDF for every sign-in: the one in progress is listed first
-        run(() -> ((TabPane) scene.lookup("#tabs")).getSelectionModel().select(2));
+        run(() -> ((TabPane) scene.lookup("#tabs")).getSelectionModel().select(3));
         Thread.sleep(1500);
         run(() -> ((javafx.scene.control.TableView<?>) scene.lookup("#sessionTable")).getSelectionModel().select(0));
         assertTrue(onFx(() -> ((javafx.scene.control.TableView<?>) scene.lookup("#sessionTable")).getItems().size()) >= 1,
                 "the sign-in in progress is listed");
         snapshot("19-sign-in-reports", scene);
 
-        // A module that isn't built yet
+        // Steganography: a message about to be hidden in a picture, then before and after
+        Path pictures = Files.createDirectories(tempDir.resolve("pictures"));
+        Path garden = Files.write(pictures.resolve("garden.png"), sampleImage());
         run(() -> ((Button) scene.lookup("#stegoButton")).fire());
-        snapshot("20-coming-soon", scene);
+        assertNotNull(scene.lookup("#hidePanel"), "Steganography opens");
+        run(() -> ScreenDriver.stegoCover(dashboard.controller(), garden));
+        waitFor(() -> label(scene, "#coverLabel").contains("800 × 520"), "the picture is read");
+        run(() -> {
+            ((TextArea) scene.lookup("#messageArea")).setText("Meet at the old oak at six. Bring the blue notebook.");
+            ((PasswordField) scene.lookup("#hidePassword")).setText("Garden-Pass-77");
+            ((PasswordField) scene.lookup("#hidePasswordAgain")).setText("Garden-Pass-77");
+        });
+        snapshot("20-steganography", scene);
+        run(() -> ScreenDriver.stegoHideTo(dashboard.controller(), pictures.resolve("garden (hidden).png")));
+        waitFor(() -> scene.lookup("#previewGrid").isVisible(), "before and after are shown");
+        snapshot("25-steganography-preview", scene);
+
+        // Privacy Tools, on made-up photos and made-up Windows folders: never this PC's own
+        run(() -> ((Button) scene.lookup("#privacyButton")).fire());
+        assertNotNull(scene.lookup("#shredPanel"), "Privacy Tools opens");
+        snapshot("26-privacy-shred", scene);
+
+        Path beach = Files.write(pictures.resolve("beach.jpg"), TestPhotos.phonePhoto(TestPhotos.jpeg(TestPhotos.picture(640, 420))));
+        run(() -> ((Button) scene.lookup("#photoTab")).fire());
+        run(() -> ScreenDriver.privacyPhotos(dashboard.controller(), List.of(beach, garden)));
+        waitFor(() -> label(scene, "#photoMessage").contains("details to remove"), "the photos are read");
+        snapshot("27-privacy-photo-details", scene);
+
+        Path windows = Files.createDirectories(tempDir.resolve("made-up windows"));
+        Path recent = Files.createDirectories(windows.resolve("Recent"));
+        Path jumpLists = Files.createDirectories(recent.resolve("AutomaticDestinations"));
+        Path explorer = Files.createDirectories(windows.resolve("Explorer"));
+        Path temp = Files.createDirectories(windows.resolve("Temp"));
+        for (String shortcut : List.of("budget.csv.lnk", "letter.txt.lnk", "trip plan.docx.lnk")) {
+            Files.writeString(recent.resolve(shortcut), "shortcut " + shortcut);
+        }
+        Files.writeString(jumpLists.resolve("5f7b5f1e01b83767.automaticDestinations-ms"), "jump list");
+        Files.write(explorer.resolve("thumbcache_256.db"), new byte[48_000]);
+        Path leftOver = Files.write(temp.resolve("setup.tmp"), new byte[120_000]);
+        Files.setLastModifiedTime(leftOver, java.nio.file.attribute.FileTime.fromMillis(System.currentTimeMillis() - 3 * 86_400_000L));
+        TraceCleaner madeUp = new TraceCleaner(new TraceCleaner.Places(recent, jumpLists, recent.resolve("CustomDestinations"), explorer, temp));
+        run(() -> ((Button) scene.lookup("#tracesTab")).fire());
+        run(() -> ScreenDriver.privacyTraces(dashboard.controller(), madeUp));
+        waitFor(() -> ((VBox) scene.lookup("#traceChoices")).getChildren().size() == 4, "what was found is listed");
+        snapshot("28-privacy-traces", scene);
+
+        run(() -> ((Button) scene.lookup("#keyboardTab")).fire());
+        snapshot("29-privacy-keyboard", scene);
+
+        // Settings: backup and restore, with the vault unlocked
+        run(dashboard.controller()::openSettings);
+        run(() -> ((Button) scene.lookup("#backupTab")).fire());
+        waitFor(() -> label(scene, "#backupStatus").contains("protected item"), "the backup section shows what there is");
+        snapshot("30-settings-backup", scene);
 
         // The sidebar shrunk to its icons, then closed (the ☰ button brings it back)
         run(() -> dashboard.controller().showSidebar(DashboardController.SidebarMode.RAIL, false));
@@ -286,6 +355,39 @@ class ScreensTest {
         });
 
         return result.get(30, TimeUnit.SECONDS);
+
+    }
+
+    /** A label's text; call on the JavaFX thread (waitFor's conditions run there). */
+    private static String label(Scene scene, String id) {
+
+        String text = ((Label) scene.lookup(id)).getText();
+
+        return text == null ? "" : text;
+
+    }
+
+    private static String text(Scene scene, String id) throws Exception {
+
+        return onFx(() -> label(scene, id));
+
+    }
+
+    private static void waitFor(BooleanSupplier condition, String what) throws Exception {
+
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
+
+        while (System.nanoTime() < deadline) {
+
+            if (onFx(condition::getAsBoolean)) {
+                return;
+            }
+
+            Thread.sleep(50);
+
+        }
+
+        throw new AssertionError("timed out waiting: " + what);
 
     }
 
