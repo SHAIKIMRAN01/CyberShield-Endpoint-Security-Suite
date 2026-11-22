@@ -166,7 +166,7 @@ public final class AutoLock {
             return;
         }
 
-        vaultService.lockVault();
+        vaultService.lockVault(true);
 
         secondsLeft.set(-1);
 

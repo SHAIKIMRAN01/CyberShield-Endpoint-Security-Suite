@@ -3,6 +3,10 @@ package com.cybershield.ui.viewer;
 import com.cybershield.vault.AutoLock;
 import com.sun.media.jfxmedia.locator.LocatorCache;
 
+import javafx.animation.Animation;
+import javafx.animation.KeyFrame;
+import javafx.animation.Timeline;
+import javafx.application.Platform;
 import javafx.beans.InvalidationListener;
 import javafx.beans.value.ChangeListener;
 import javafx.scene.Node;
@@ -20,11 +24,18 @@ import javafx.scene.media.MediaView;
 import javafx.util.Duration;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.lang.ref.Reference;
 import java.net.URI;
 import java.nio.ByteBuffer;
 import java.security.SecureRandom;
+import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BooleanSupplier;
 
 /**
@@ -35,6 +46,11 @@ import java.util.function.BooleanSupplier;
  * Instead, the decrypted bytes are registered in JavaFX's internal in-memory
  * media cache under a random address that nothing listens on, so the player
  * reads them from memory with full seeking and nothing touches the disk.
+ *
+ * <p>On PCs where JavaFX can't decode AAC sound (most MP4 videos and M4A songs),
+ * {@link Mp4Sound} decodes it in Java instead: the picture plays from the MP4 with
+ * its sound track switched off, and a second player plays the decoded WAV, kept in
+ * step with the picture ({@link #openSplit}).
  *
  * <p>LocatorCache is internal to JavaFX. When JavaFX runs as modules (as with
  * mvn javafx:run) the JVM needs
@@ -47,23 +63,40 @@ public final class MediaPreview implements FilePreview {
 
     private static final byte[] ZEROS = new byte[64 * 1024];
 
+    // The sound player is pulled back in step when it drifts further than this from the picture.
+    private static final double MAX_DRIFT_MILLIS = 150;
+
+    private static volatile Boolean aacPlays;
+
     private final ByteBuffer buffer;
 
-    // Holds JavaFX's cache entry for as long as the media is open.
+    private final ByteBuffer soundBuffer;
+
+    // Hold JavaFX's cache entries for as long as the media is open.
     private Object cacheEntry;
 
+    private Object soundCacheEntry;
+
     private final MediaPlayer player;
+
+    // Only for split playback: the decoded sound, following the picture.
+    private final MediaPlayer soundPlayer;
 
     private final boolean video;
 
     // MP4 and M4A files usually carry AAC sound, which some Windows PCs can't decode for JavaFX.
     private final boolean mayUseAac;
 
+    // A line under the picture, for example why there is no sound.
+    private final String note;
+
     private final StackPane view = new StackPane();
 
     private final ControlBar controlBar;
 
     private final BooleanSupplier playing;
+
+    private Timeline keepInStep;
 
     private boolean disposed;
 
@@ -73,23 +106,58 @@ public final class MediaPreview implements FilePreview {
      */
     public static MediaPreview open(ByteBuffer buffer, String extension) throws IOException {
 
+        Object[] entry = new Object[1];
+
+        MediaPlayer player = newPlayer(buffer, extension, entry);
+
+        return new MediaPreview(buffer, entry[0], player, null, null, null,
+                PreviewKind.isVideo(extension), usesAac(extension), null);
+
+    }
+
+    /**
+     * Plays a video whose sound tracks are switched off, together with its sound decoded
+     * to a WAV. Takes ownership of both buffers. sound may be null: the video then plays
+     * silently, with the note saying why.
+     */
+    public static MediaPreview openSplit(ByteBuffer video, ByteBuffer sound, String extension, String note) throws IOException {
+
+        Object[] entry = new Object[1];
+
+        MediaPlayer player = newPlayer(video, extension, entry);
+
+        if (sound == null) {
+            return new MediaPreview(video, entry[0], player, null, null, null, true, false, note);
+        }
+
+        Object[] soundEntry = new Object[1];
+
+        MediaPlayer soundPlayer;
+
+        try {
+            soundPlayer = newPlayer(sound, "wav", soundEntry);
+        } catch (IOException | RuntimeException e) {
+            player.dispose();
+            throw e;
+        }
+
+        return new MediaPreview(video, entry[0], player, sound, soundEntry[0], soundPlayer, true, false, note);
+
+    }
+
+    private static MediaPlayer newPlayer(ByteBuffer buffer, String extension, Object[] entry) throws IOException {
+
         String type = PreviewKind.mediaType(extension);
 
         if (type == null) {
             throw new IOException("This kind of media can't be played here.");
         }
 
-        byte[] token = new byte[16];
-        RANDOM.nextBytes(token);
-
-        // Port 9 is the "discard" port: nothing answers there, so the media can only come from the cache.
-        URI address = URI.create("http://127.0.0.1:9/" + HexFormat.of().formatHex(token) + "/media." + extension);
-
-        Object entry;
+        URI address = address(extension);
 
         try {
 
-            entry = LocatorCache.locatorCache().registerURICache(address, buffer, type);
+            entry[0] = LocatorCache.locatorCache().registerURICache(address, buffer, type);
 
         } catch (IllegalAccessError | NoClassDefFoundError e) {
 
@@ -100,9 +168,7 @@ public final class MediaPreview implements FilePreview {
 
         try {
 
-            MediaPlayer player = new MediaPlayer(new Media(address.toString()));
-
-            return new MediaPreview(buffer, entry, player, PreviewKind.isVideo(extension), usesAac(extension));
+            return new MediaPlayer(new Media(address.toString()));
 
         } catch (RuntimeException e) {
 
@@ -112,26 +178,59 @@ public final class MediaPreview implements FilePreview {
 
     }
 
-    private MediaPreview(ByteBuffer buffer, Object cacheEntry, MediaPlayer player, boolean video, boolean mayUseAac) {
+    private static URI address(String extension) {
+
+        byte[] token = new byte[16];
+
+        RANDOM.nextBytes(token);
+
+        // Port 9 is the "discard" port: nothing answers there, so the media can only come from the cache.
+        return URI.create("http://127.0.0.1:9/" + HexFormat.of().formatHex(token) + "/media." + extension);
+
+    }
+
+    private MediaPreview(ByteBuffer buffer, Object cacheEntry, MediaPlayer player,
+                         ByteBuffer soundBuffer, Object soundCacheEntry, MediaPlayer soundPlayer,
+                         boolean video, boolean mayUseAac, String note) {
 
         this.buffer = buffer;
         this.cacheEntry = cacheEntry;
         this.player = player;
+        this.soundBuffer = soundBuffer;
+        this.soundCacheEntry = soundCacheEntry;
+        this.soundPlayer = soundPlayer;
         this.video = video;
         this.mayUseAac = mayUseAac;
+        this.note = note;
 
         view.setMinSize(0, 0);
         view.getChildren().add(mediaViewFor(view));
 
         if (!video) {
-            Label note = new Label("♪");
-            note.getStyleClass().add("media-note");
-            view.getChildren().add(note);
+            Label noteLabel = new Label("♪");
+            noteLabel.getStyleClass().add("media-note");
+            view.getChildren().add(noteLabel);
         }
 
         // JavaFX leaves the status at PLAYING after the last frame, and ignores pause()
         // there. Stopping rewinds to the start and shows Play again.
-        player.setOnEndOfMedia(player::stop);
+        player.setOnEndOfMedia(() -> {
+            player.stop();
+            if (soundPlayer != null) {
+                soundPlayer.stop();
+            }
+        });
+
+        if (soundPlayer != null) {
+
+            soundPlayer.setOnEndOfMedia(soundPlayer::stop);
+
+            // Every half second, pull the sound back in step if it has drifted.
+            keepInStep = new Timeline(new KeyFrame(Duration.millis(500), event -> keepSoundInStep()));
+            keepInStep.setCycleCount(Animation.INDEFINITE);
+            keepInStep.play();
+
+        }
 
         controlBar = new ControlBar();
 
@@ -145,6 +244,10 @@ public final class MediaPreview implements FilePreview {
 
     /** Wipes decrypted media that was never turned into a preview. */
     public static void wipe(ByteBuffer buffer) {
+
+        if (buffer == null) {
+            return;
+        }
 
         buffer.clear();
 
@@ -163,6 +266,103 @@ public final class MediaPreview implements FilePreview {
             case "mp4", "m4v", "m4a", "aac" -> true;
             default -> false;
         };
+
+    }
+
+    /**
+     * Whether JavaFX can play AAC sound on this PC, found out once by playing a tiny
+     * clip from memory. Call it off the JavaFX thread: it waits for the answer.
+     */
+    public static boolean aacPlays() {
+
+        Boolean known = aacPlays;
+
+        if (known != null) {
+            return known;
+        }
+
+        if (Platform.isFxApplicationThread()) {
+            // Can't wait here; decoding in Java works on every PC.
+            return false;
+        }
+
+        synchronized (MediaPreview.class) {
+
+            if (aacPlays == null) {
+                aacPlays = probeAac();
+            }
+
+            return aacPlays;
+
+        }
+
+    }
+
+    private static boolean probeAac() {
+
+        byte[] bytes;
+
+        try (InputStream in = MediaPreview.class.getResourceAsStream("/media/aac-probe.m4a")) {
+
+            if (in == null) {
+                return false;
+            }
+
+            bytes = in.readAllBytes();
+
+        } catch (IOException e) {
+            return false;
+        }
+
+        ByteBuffer clip = ByteBuffer.allocateDirect(bytes.length).put(bytes).flip();
+
+        CountDownLatch answered = new CountDownLatch(1);
+
+        AtomicBoolean ready = new AtomicBoolean();
+
+        AtomicReference<MediaPlayer> probe = new AtomicReference<>();
+
+        Object[] entry = new Object[1];
+
+        Platform.runLater(() -> {
+
+            try {
+
+                MediaPlayer player = newPlayer(clip, "m4a", entry);
+
+                probe.set(player);
+
+                player.setOnReady(() -> {
+                    ready.set(true);
+                    answered.countDown();
+                });
+
+                player.setOnError(answered::countDown);
+
+            } catch (IOException | RuntimeException e) {
+
+                answered.countDown();
+
+            }
+
+        });
+
+        try {
+            answered.await(6, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+
+        Platform.runLater(() -> {
+            MediaPlayer player = probe.get();
+            if (player != null) {
+                player.dispose();
+            }
+        });
+
+        Reference.reachabilityFence(entry);
+
+        return ready.get();
 
     }
 
@@ -186,6 +386,11 @@ public final class MediaPreview implements FilePreview {
 
     public MediaPlayer player() {
         return player;
+    }
+
+    /** The player of the decoded sound in split playback, or null. */
+    public MediaPlayer soundPlayer() {
+        return soundPlayer;
     }
 
     @Override
@@ -245,13 +450,82 @@ public final class MediaPreview implements FilePreview {
 
         AutoLock.getInstance().stopKeepingOpen(playing);
 
+        if (keepInStep != null) {
+            keepInStep.stop();
+        }
+
         controlBar.detach();
 
         player.dispose();
 
+        if (soundPlayer != null) {
+            soundPlayer.dispose();
+        }
+
         cacheEntry = null;
 
+        soundCacheEntry = null;
+
         wipe(buffer);
+
+        wipe(soundBuffer);
+
+    }
+
+    // ------------------------------------------------------------- playback, for one or two players
+
+    private void play() {
+
+        if (atEnd()) {
+            seek(Duration.ZERO);
+        }
+
+        player.play();
+
+        if (soundPlayer != null) {
+            soundPlayer.seek(player.getCurrentTime());
+            soundPlayer.play();
+        }
+
+    }
+
+    private void pause() {
+
+        player.pause();
+
+        if (soundPlayer != null) {
+            soundPlayer.pause();
+        }
+
+    }
+
+    private void seek(Duration to) {
+
+        player.seek(to);
+
+        if (soundPlayer != null) {
+            soundPlayer.seek(to);
+        }
+
+    }
+
+    private void keepSoundInStep() {
+
+        if (soundPlayer == null || player.getStatus() != MediaPlayer.Status.PLAYING) {
+            return;
+        }
+
+        if (soundPlayer.getStatus() != MediaPlayer.Status.PLAYING) {
+            soundPlayer.seek(player.getCurrentTime());
+            soundPlayer.play();
+            return;
+        }
+
+        double drift = Math.abs(soundPlayer.getCurrentTime().toMillis() - player.getCurrentTime().toMillis());
+
+        if (drift > MAX_DRIFT_MILLIS) {
+            soundPlayer.seek(player.getCurrentTime());
+        }
 
     }
 
@@ -283,7 +557,7 @@ public final class MediaPreview implements FilePreview {
 
     }
 
-    /** Play/pause, a seek bar, the time and mute, all tied to the player. */
+    /** Play/pause, a seek bar, the time and mute, tied to the player (and the sound player, if any). */
     private final class ControlBar {
 
         final Button playPause = new Button("Play");
@@ -296,6 +570,8 @@ public final class MediaPreview implements FilePreview {
 
         final List<Node> nodes;
 
+        private final MediaPlayer audible = soundPlayer != null ? soundPlayer : player;
+
         private final ChangeListener<MediaPlayer.Status> statusListener =
                 (observable, before, status) -> playPause.setText(status == MediaPlayer.Status.PLAYING ? "Pause" : "Play");
 
@@ -307,12 +583,9 @@ public final class MediaPreview implements FilePreview {
 
             playPause.setOnAction(event -> {
                 if (player.getStatus() == MediaPlayer.Status.PLAYING) {
-                    player.pause();
+                    pause();
                 } else {
-                    if (atEnd()) {
-                        player.seek(Duration.ZERO);
-                    }
-                    player.play();
+                    play();
                 }
             });
 
@@ -327,7 +600,7 @@ public final class MediaPreview implements FilePreview {
             });
             timeline.setOnMouseReleased(event -> seekToSlider());
 
-            mute.selectedProperty().bindBidirectional(player.muteProperty());
+            mute.selectedProperty().bindBidirectional(audible.muteProperty());
 
             player.statusProperty().addListener(statusListener);
             player.currentTimeProperty().addListener(timeListener);
@@ -335,7 +608,19 @@ public final class MediaPreview implements FilePreview {
 
             player.setOnError(() -> time.setText(problem(player.getError(), mayUseAac)));
 
-            nodes = List.of(playPause, timeline, time, mute);
+            if (soundPlayer != null) {
+                soundPlayer.setOnError(() -> time.setText("The sound can't be played: " + soundPlayer.getError().getMessage()));
+            }
+
+            List<Node> all = new ArrayList<>(List.of(playPause, timeline, time, mute));
+
+            if (note != null) {
+                Label noteLabel = new Label(note);
+                noteLabel.getStyleClass().add("hint");
+                all.add(noteLabel);
+            }
+
+            nodes = List.copyOf(all);
 
             showTime();
 
@@ -346,7 +631,7 @@ public final class MediaPreview implements FilePreview {
             player.statusProperty().removeListener(statusListener);
             player.currentTimeProperty().removeListener(timeListener);
             player.totalDurationProperty().removeListener(timeListener);
-            mute.selectedProperty().unbindBidirectional(player.muteProperty());
+            mute.selectedProperty().unbindBidirectional(audible.muteProperty());
 
         }
 
@@ -355,7 +640,7 @@ public final class MediaPreview implements FilePreview {
             Duration total = player.getTotalDuration();
 
             if (total != null && !total.isUnknown() && !total.isIndefinite()) {
-                player.seek(total.multiply(timeline.getValue()));
+                seek(total.multiply(timeline.getValue()));
             }
 
         }

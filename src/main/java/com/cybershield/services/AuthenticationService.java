@@ -169,6 +169,9 @@ public class AuthenticationService {
 
             SessionManager.login(user, historyId);
 
+            // Sign-ins and activity are kept for 30 days.
+            ActivityLog.purgeOld();
+
             AppLogger.info("Signed in: " + user.getUsername());
 
             return new LoginResult(LoginStatus.SUCCESS, user, 0);
@@ -231,6 +234,8 @@ public class AuthenticationService {
         }
 
         AppLogger.success("Account password changed: " + user.getUsername());
+
+        ActivityLog.record(ActivityLog.Action.ACCOUNT_PASSWORD_CHANGED);
 
         return Result.success("Password changed. Use it the next time you sign in.");
 

@@ -157,6 +157,41 @@ public class LoginHistoryDAO {
 
     }
 
+    /** Removes the account's sign-ins, except the one keepId (the current session). */
+    public int clear(int userId, long keepId) throws SQLException {
+
+        try (
+                Connection connection = DatabaseManager.getConnection();
+                PreparedStatement statement = connection.prepareStatement(
+                        "DELETE FROM login_history WHERE user_id = ? AND id <> ?")
+        ) {
+
+            statement.setInt(1, userId);
+            statement.setLong(2, keepId);
+
+            return statement.executeUpdate();
+
+        }
+
+    }
+
+    /** Removes everyone's sign-ins older than the given number of days. */
+    public int purgeOlderThan(int days) throws SQLException {
+
+        try (
+                Connection connection = DatabaseManager.getConnection();
+                PreparedStatement statement = connection.prepareStatement(
+                        "DELETE FROM login_history WHERE login_time < datetime('now', ?)")
+        ) {
+
+            statement.setString(1, "-" + days + " days");
+
+            return statement.executeUpdate();
+
+        }
+
+    }
+
     /** Failed attempts since the given sign-in (the one before the current), for the home screen. */
     public int failuresSince(int userId, long afterId) throws SQLException {
 

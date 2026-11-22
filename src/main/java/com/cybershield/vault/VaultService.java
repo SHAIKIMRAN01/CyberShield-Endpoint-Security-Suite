@@ -7,6 +7,7 @@ import com.cybershield.encryption.KeyDerivation;
 import com.cybershield.files.FileVaultService;
 import com.cybershield.logger.AppLogger;
 import com.cybershield.password.PasswordDAO;
+import com.cybershield.services.ActivityLog;
 import com.cybershield.services.EncryptionService;
 import com.cybershield.utils.ValidationUtil;
 
@@ -173,6 +174,8 @@ public class VaultService {
 
             backUpKey(vault);
 
+            ActivityLog.record(ActivityLog.Action.VAULT_CREATED);
+
             return Result.OK;
 
         } catch (SQLException | RuntimeException e) {
@@ -213,6 +216,8 @@ public class VaultService {
             }
 
             open(vault, vaultKey);
+
+            ActivityLog.record(ActivityLog.Action.VAULT_UNLOCKED);
 
             return Result.OK;
 
@@ -296,6 +301,8 @@ public class VaultService {
 
             backUpKey(vault);
 
+            ActivityLog.recordPlain(ActivityLog.Action.VAULT_TAKEN_OVER, moved + (moved == 1 ? " saved item" : " saved items"));
+
             AppLogger.success("Shared vault moved into account " + userId + " with " + moved + " saved items"
                     + (sharedRemoved ? "; the shared vault is gone." : "; other accounts still have items in it."));
 
@@ -347,6 +354,8 @@ public class VaultService {
 
             AppLogger.success("Master password changed for account " + userId + ".");
 
+            ActivityLog.record(ActivityLog.Action.MASTER_PASSWORD_CHANGED);
+
             return Result.OK;
 
         } catch (SQLException | RuntimeException e) {
@@ -371,10 +380,42 @@ public class VaultService {
 
     public void lockVault() {
 
+        lockVault(false);
+
+    }
+
+    /** @param automatic true when auto-lock did it, which the history says */
+    public void lockVault(boolean automatic) {
+
+        boolean wasOpen = isUnlocked();
+
+        if (wasOpen) {
+            ActivityLog.record(automatic ? ActivityLog.Action.VAULT_AUTO_LOCKED : ActivityLog.Action.VAULT_LOCKED);
+        }
+
         // Drop the key from memory, not just the flag.
         encryptionService.clear();
 
         VaultSession.lock();
+
+    }
+
+    /** True if this is the account's master password. Opens nothing. Takes PBKDF2 time, so call it off the JavaFX thread. */
+    public boolean verifyMasterPassword(int userId, String masterPassword) {
+
+        try {
+
+            Vault vault = dao.find(userId);
+
+            return vault != null && masterPassword != null && unwrap(vault, masterPassword) != null;
+
+        } catch (SQLException | RuntimeException e) {
+
+            AppLogger.error("Could not check the master password: " + e.getMessage());
+
+            return false;
+
+        }
 
     }
 

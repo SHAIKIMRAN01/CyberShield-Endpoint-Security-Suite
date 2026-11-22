@@ -8,6 +8,7 @@ import org.apache.pdfbox.pdmodel.PDDocument;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Loads previews in two halves: the slow part (decrypting and decoding) on a
@@ -33,6 +34,10 @@ public final class Previews {
     public static Prepared prepare(PreviewKind kind, FileVaultService service, FileVaultService.VaultFile file)
             throws IOException {
 
+        if (kind != PreviewKind.NONE) {
+            com.cybershield.services.ActivityLog.record(com.cybershield.services.ActivityLog.Action.FILE_OPENED, file.originalPath());
+        }
+
         switch (kind) {
 
             case IMAGE: {
@@ -43,7 +48,10 @@ public final class Previews {
 
                     Image image = ImagePreview.decode(bytes);
 
-                    return prepared(() -> new ImagePreview(image), () -> { });
+                    // Phone photos are stored sideways with a note on how to turn them.
+                    ExifOrientation.Turn turn = ExifOrientation.of(ExifOrientation.read(bytes));
+
+                    return prepared(() -> new ImagePreview(image, turn), () -> { });
 
                 } finally {
 
@@ -99,6 +107,22 @@ public final class Previews {
 
                 ByteBuffer buffer = service.readFileForPlayback(file, kind.sizeLimit());
 
+                try {
+
+                    Prepared split = splitAacIfNeeded(buffer, file.extension());
+
+                    if (split != null) {
+                        return split;
+                    }
+
+                } catch (IOException | RuntimeException e) {
+
+                    MediaPreview.wipe(buffer);
+
+                    throw e;
+
+                }
+
                 return prepared(() -> MediaPreview.open(buffer, file.extension()), () -> MediaPreview.wipe(buffer));
 
             }
@@ -108,6 +132,68 @@ public final class Previews {
                 throw new IllegalArgumentException("There is no viewer for " + kind);
 
         }
+
+    }
+
+    /**
+     * Where JavaFX can't decode AAC sound, decodes it in Java: the video then plays with its
+     * sound tracks switched off, beside the decoded WAV. A song (M4A) becomes just the WAV.
+     * Returns null when the file can play as it is.
+     */
+    private static Prepared splitAacIfNeeded(ByteBuffer buffer, String extension) throws IOException {
+
+        if (!MediaPreview.usesAac(extension) || MediaPreview.aacPlays()) {
+            return null;
+        }
+
+        List<Mp4Sound.Track> tracks = Mp4Sound.tracks(buffer);
+
+        Mp4Sound.Track aac = Mp4Sound.firstAac(tracks);
+
+        if (aac == null) {
+            return null;
+        }
+
+        ByteBuffer sound;
+
+        String note = null;
+
+        try {
+
+            sound = Mp4Sound.decodeToWav(buffer, aac);
+
+        } catch (Mp4Sound.TooLongException tooLong) {
+
+            if (!Mp4Sound.hasVideo(tracks)) {
+                throw new IOException("This song is too long to play here. Use Export a copy to play it in another app.");
+            }
+
+            sound = null;
+
+            note = "No sound: it is too long to prepare here.";
+
+        }
+
+        if (!Mp4Sound.hasVideo(tracks)) {
+
+            MediaPreview.wipe(buffer);
+
+            ByteBuffer song = sound;
+
+            return prepared(() -> MediaPreview.open(song, "wav"), () -> MediaPreview.wipe(song));
+
+        }
+
+        Mp4Sound.muteInPlace(buffer, tracks);
+
+        ByteBuffer decoded = sound;
+
+        String why = note;
+
+        return prepared(() -> MediaPreview.openSplit(buffer, decoded, extension, why), () -> {
+            MediaPreview.wipe(buffer);
+            MediaPreview.wipe(decoded);
+        });
 
     }
 

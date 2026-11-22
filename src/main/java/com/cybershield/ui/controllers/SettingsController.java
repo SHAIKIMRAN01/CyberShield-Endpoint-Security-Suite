@@ -1,10 +1,12 @@
 package com.cybershield.ui.controllers;
 
+import com.cybershield.dao.ActivityDAO;
 import com.cybershield.dao.LoginHistoryDAO;
 import com.cybershield.dao.SettingsDAO;
 import com.cybershield.logger.AppLogger;
 import com.cybershield.models.User;
 import com.cybershield.security.SessionManager;
+import com.cybershield.services.ActivityLog;
 import com.cybershield.services.AuthenticationService;
 import com.cybershield.ui.Ui;
 import com.cybershield.utils.DisplayFormat;
@@ -23,6 +25,7 @@ import javafx.scene.control.Spinner;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 
 import java.sql.SQLException;
@@ -135,6 +138,38 @@ public class SettingsController {
 
     @FXML
     private TableColumn<LoginHistoryDAO.Entry, String> signedOutColumn;
+
+    @FXML
+    private Label activityHeading;
+
+    @FXML
+    private TableView<ActivityDAO.Event> activityTable;
+
+    @FXML
+    private TableColumn<ActivityDAO.Event, String> activityTimeColumn;
+
+    @FXML
+    private TableColumn<ActivityDAO.Event, String> activityWhatColumn;
+
+    @FXML
+    private TableColumn<ActivityDAO.Event, String> activityDetailColumn;
+
+    @FXML
+    private Button clearHistoryButton;
+
+    @FXML
+    private HBox clearBox;
+
+    @FXML
+    private PasswordField clearMasterField;
+
+    @FXML
+    private Button confirmClearButton;
+
+    @FXML
+    private Label clearMessage;
+
+    private final ActivityDAO activity = new ActivityDAO();
 
     private final SettingsDAO settingsDAO = new SettingsDAO();
 
@@ -250,6 +285,9 @@ public class SettingsController {
             clipboardSpinner.getValueFactory().setValue(saved.clipboardClearSeconds());
 
             AutoLock.getInstance().setTimeoutMillis(saved.autoLockMinutes() * 60_000L);
+
+            ActivityLog.recordPlain(ActivityLog.Action.SETTINGS_SAVED,
+                    "Auto-lock " + saved.autoLockMinutes() + " min, clipboard " + saved.clipboardClearSeconds() + " s");
 
             Ui.message(securityMessage, "Saved. The vault now locks after " + saved.autoLockMinutes()
                     + (saved.autoLockMinutes() == 1 ? " minute" : " minutes") + " without use, and copied passwords clear after "
@@ -445,6 +483,17 @@ public class SettingsController {
 
         signedOutColumn.setCellValueFactory(cell -> new SimpleStringProperty(signedOut(cell.getValue())));
 
+        activityTimeColumn.setCellValueFactory(cell -> new SimpleStringProperty(timeOnly(cell.getValue().occurredAt())));
+
+        activityWhatColumn.setCellValueFactory(cell -> new SimpleStringProperty(ActivityLog.Action.wordsFor(cell.getValue().action())));
+
+        activityDetailColumn.setCellValueFactory(cell -> new SimpleStringProperty(ActivityLog.readable(cell.getValue())));
+
+        // The sign-ins take the top third of the panel, what the chosen one did the rest.
+        historyTable.prefHeightProperty().bind(historyPanel.heightProperty().multiply(0.3));
+
+        historyTable.getSelectionModel().selectedItemProperty().addListener((observable, before, entry) -> showActivity(entry));
+
         resultColumn.setCellFactory(column -> new TableCell<>() {
 
             @Override
@@ -476,6 +525,12 @@ public class SettingsController {
 
             historyTable.setItems(FXCollections.observableArrayList(entries));
 
+            if (!entries.isEmpty()) {
+                historyTable.getSelectionModel().select(0);
+            } else {
+                showActivity(null);
+            }
+
             long failures = entries.stream().filter(entry -> !LoginHistoryDAO.SUCCESS.equals(entry.status())).count();
 
             historySummary.setText(entries.isEmpty()
@@ -490,6 +545,148 @@ public class SettingsController {
             historySummary.setText("The sign-in history couldn't be read.");
 
         }
+
+    }
+
+    private void showActivity(LoginHistoryDAO.Entry entry) {
+
+        if (entry == null) {
+            activityHeading.setText("What this sign-in did");
+            activityTable.getItems().clear();
+            return;
+        }
+
+        activityHeading.setText("What the sign-in of " + DisplayFormat.timestamp(entry.signedInAt()) + " did");
+
+        try {
+
+            activityTable.setItems(FXCollections.observableArrayList(activity.forSession(userId, entry.id())));
+
+        } catch (SQLException e) {
+
+            AppLogger.error("Couldn't read the activity: " + e.getMessage());
+
+            activityTable.getItems().clear();
+
+        }
+
+    }
+
+    /** "14:05" from a stored UTC time, in local time. */
+    private static String timeOnly(String utc) {
+
+        String shown = DisplayFormat.timestamp(utc);
+
+        int comma = shown.lastIndexOf(", ");
+
+        return comma >= 0 ? shown.substring(comma + 2) : shown;
+
+    }
+
+    @FXML
+    private void askToClearHistory() {
+
+        clearHistoryButton.setVisible(false);
+        clearHistoryButton.setManaged(false);
+
+        clearBox.setVisible(true);
+        clearBox.setManaged(true);
+
+        Ui.message(clearMessage, "Enter your master password to clear every earlier sign-in and what it did.", null);
+
+        clearMasterField.requestFocus();
+
+    }
+
+    @FXML
+    private void cancelClear() {
+
+        clearMasterField.clear();
+
+        clearBox.setVisible(false);
+        clearBox.setManaged(false);
+
+        clearHistoryButton.setVisible(true);
+        clearHistoryButton.setManaged(true);
+
+        Ui.message(clearMessage, "", null);
+
+    }
+
+    /** Clears the history after checking the master password; the current sign-in stays. */
+    @FXML
+    private void clearHistory() {
+
+        String password = clearMasterField.getText();
+
+        if (password.isEmpty()) {
+            Ui.message(clearMessage, "Enter your master password.", "bad");
+            return;
+        }
+
+        confirmClearButton.setDisable(true);
+
+        Ui.message(clearMessage, "Checking…", null);
+
+        long current = SessionManager.historyId();
+
+        Ui.background("clear-history", () -> {
+
+            try {
+
+                if (vaultService.find(userId) == null) {
+                    return "NO_VAULT";
+                }
+
+                if (!vaultService.verifyMasterPassword(userId, password)) {
+                    return "WRONG";
+                }
+
+                activity.clear(userId, current);
+
+                history.clear(userId, current);
+
+                ActivityLog.record(ActivityLog.Action.HISTORY_CLEARED);
+
+                return "OK";
+
+            } catch (SQLException e) {
+
+                AppLogger.error("Couldn't clear the history: " + e.getMessage());
+
+                return "FAILED";
+
+            }
+
+        }, outcome -> {
+
+            confirmClearButton.setDisable(false);
+
+            clearMasterField.clear();
+
+            switch (outcome) {
+
+                case "OK" -> {
+                    cancelClear();
+                    refreshHistory();
+                    Ui.message(clearMessage, "History cleared. Only this sign-in is left.", "good");
+                }
+
+                case "WRONG" -> Ui.message(clearMessage, "Wrong master password. Nothing was cleared.", "bad");
+
+                case "NO_VAULT" -> Ui.message(clearMessage, "Clearing the history needs the master password: set up your vault first.", "bad");
+
+                default -> Ui.message(clearMessage, "The history couldn't be cleared. See the console for details.", "bad");
+
+            }
+
+        }, error -> {
+
+            confirmClearButton.setDisable(false);
+
+            Ui.message(clearMessage, "The history couldn't be cleared.", "bad");
+
+        });
 
     }
 

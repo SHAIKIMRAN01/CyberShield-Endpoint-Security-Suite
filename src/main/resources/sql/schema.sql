@@ -145,6 +145,43 @@ CREATE TABLE IF NOT EXISTS login_history
 );
 
 ----------------------------------------------------
+-- ACTIVITY
+-- What each sign-in session did: files opened, protected,
+-- restored or exported, logins added or copied, and so on.
+-- detail names the file or entry. It is encrypted with the
+-- vault key (vault_id says which), so the database never
+-- shows a name. Rows older than 30 days are removed, and the
+-- account can clear them with its master password.
+----------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS activity_log
+(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    user_id INTEGER NOT NULL,
+
+    session_id INTEGER,
+
+    occurred_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    action TEXT NOT NULL,
+
+    detail TEXT,
+
+    vault_id INTEGER,
+
+    FOREIGN KEY(user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE
+);
+
+CREATE INDEX IF NOT EXISTS idx_activity_session
+ON activity_log(session_id);
+
+CREATE INDEX IF NOT EXISTS idx_activity_user_time
+ON activity_log(user_id, occurred_at);
+
+----------------------------------------------------
 -- SETTINGS
 -- settings is the original single-row table and only
 -- supplies defaults now. Each account's own choices are

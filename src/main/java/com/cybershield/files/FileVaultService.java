@@ -5,6 +5,7 @@ import com.cybershield.encryption.FileDecryptor;
 import com.cybershield.encryption.FileEncryptionService;
 import com.cybershield.encryption.FileMetadata;
 import com.cybershield.logger.AppLogger;
+import com.cybershield.services.ActivityLog;
 import com.cybershield.services.EncryptionService;
 import com.cybershield.vault.Vault;
 import com.cybershield.vault.VaultKeyFile;
@@ -714,6 +715,11 @@ public class FileVaultService {
 
         AppLogger.info("File vault: protected " + protectedFiles + " file(s) in " + items + " item(s).");
 
+        if (protectedFiles > 0) {
+            ActivityLog.record(ActivityLog.Action.FILES_PROTECTED, count(protectedFiles, "file") + " from "
+                    + names(scan.items().stream().map(item -> String.valueOf(item.root().getFileName())).toList()));
+        }
+
         return new ProtectResult(protectedFiles, items, inUse, changed, List.copyOf(problems), stopped);
 
     }
@@ -1087,6 +1093,11 @@ public class FileVaultService {
 
         AppLogger.info("File vault: restored " + counts.files + " file(s).");
 
+        if (counts.files > 0) {
+            ActivityLog.record(ActivityLog.Action.FILES_RESTORED, count(counts.files, "file") + " from "
+                    + names(items.stream().map(ProtectedItem::name).toList()));
+        }
+
         return counts.result();
 
     }
@@ -1161,6 +1172,11 @@ public class FileVaultService {
         }
 
         AppLogger.info("File vault: restored " + counts.files + " file(s).");
+
+        if (counts.files > 0) {
+            ActivityLog.record(ActivityLog.Action.FILES_RESTORED, item.name() + ": "
+                    + names(files.stream().map(VaultFile::relativePath).toList()));
+        }
 
         return counts.result();
 
@@ -1403,6 +1419,25 @@ public class FileVaultService {
         } catch (IOException e) {
             // The copy is there; only its date differs.
         }
+
+        ActivityLog.record(ActivityLog.Action.FILE_EXPORTED, file.originalPath() + " to " + target);
+
+    }
+
+    /** "a, b, c and 4 more", for the history. */
+    private static String names(List<String> names) {
+
+        int shown = Math.min(5, names.size());
+
+        String list = String.join(", ", names.subList(0, shown));
+
+        return names.size() > shown ? list + " and " + (names.size() - shown) + " more" : list;
+
+    }
+
+    private static String count(int n, String noun) {
+
+        return n + " " + noun + (n == 1 ? "" : "s");
 
     }
 

@@ -26,6 +26,9 @@ public class Launcher extends Application {
 
             DatabaseInitializer.initialize();
 
+            // Sign-ins and activity are kept for 30 days.
+            com.cybershield.services.ActivityLog.purgeOld();
+
         } catch (IllegalStateException e) {
 
             AppLogger.error(e.getMessage());
