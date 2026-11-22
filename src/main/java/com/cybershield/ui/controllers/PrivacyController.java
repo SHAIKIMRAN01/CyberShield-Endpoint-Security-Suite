@@ -103,6 +103,9 @@ public class PrivacyController implements LockableScreen {
 
     private Shredder.Plan shredPlan;
 
+    // While the chosen files are being counted, Shred waits for the count.
+    private boolean counting;
+
     private final AtomicBoolean stopShred = new AtomicBoolean();
 
     private final Map<CheckBox, TraceCleaner.Found> traceBoxes = new LinkedHashMap<>();
@@ -297,6 +300,7 @@ public class PrivacyController implements LockableScreen {
 
         if (selected != null) {
             shredList.getItems().remove(selected);
+            hideShredConfirm();
             planShred();
         }
 
@@ -320,6 +324,8 @@ public class PrivacyController implements LockableScreen {
 
         shredPlan = null;
 
+        counting = !chosen.isEmpty();
+
         if (chosen.isEmpty()) {
             shredSummary.setText("");
             return;
@@ -332,6 +338,8 @@ public class PrivacyController implements LockableScreen {
             if (!chosen.equals(shredList.getItems())) {
                 return;
             }
+
+            counting = false;
 
             shredPlan = plan;
 
@@ -346,14 +354,26 @@ public class PrivacyController implements LockableScreen {
 
             shredSummary.setText(text.toString());
 
-        }, error -> shredSummary.setText("Couldn't count the files: " + error.getMessage()));
+        }, error -> {
+
+            if (chosen.equals(shredList.getItems())) {
+                counting = false;
+                shredSummary.setText("Couldn't count the files: " + error.getMessage());
+            }
+
+        });
 
     }
 
     @FXML
     private void askShred() {
 
-        if (shredPlan == null || shredPlan.files().isEmpty() && shredPlan.folders().isEmpty()) {
+        if (counting) {
+            Ui.message(shredMessage, "Still counting the files. Try again in a moment.", "warn");
+            return;
+        }
+
+        if (shredPlan == null || shredPlan.isEmpty()) {
             Ui.message(shredMessage, shredList.getItems().isEmpty() ? "Add files or folders first." : "There is nothing here that can be shredded.", "bad");
             return;
         }
