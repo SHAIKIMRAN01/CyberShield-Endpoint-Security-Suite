@@ -33,3 +33,9 @@
     -fx-background-radius: 8;
     -fx-padding: 8 10 8 12;
 }
+
+.reports .ask-box {
+    -fx-background-color: -cs-sand;
+    -fx-background-radius: 8;
+    -fx-padding: 12;
+}

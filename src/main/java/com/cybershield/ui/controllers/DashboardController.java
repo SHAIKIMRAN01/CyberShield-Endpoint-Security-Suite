@@ -397,6 +397,7 @@ public class DashboardController {
 
             vault.setOnUnlocked(() -> {
                 showVaultState(AutoLock.getInstance().secondsLeftProperty().get());
+                com.cybershield.reports.SessionReports.catchUpInBackground();
                 afterUnlock.run();
             });
 
@@ -409,6 +410,7 @@ public class DashboardController {
                     newVault.warnAboutSharedVault();
                     newVault.setOnUnlocked(() -> {
                         showVaultState(AutoLock.getInstance().secondsLeftProperty().get());
+                        com.cybershield.reports.SessionReports.catchUpInBackground();
                         afterUnlock.run();
                     });
                 }
@@ -513,6 +515,15 @@ public class DashboardController {
         disposeCurrentScreen();
 
         AutoLock.getInstance().stop();
+
+        // The sign-in's report needs the vault key for the names in it: keep it before locking.
+        if (vaultService.isUnlocked()) {
+            try {
+                new com.cybershield.reports.SessionReports().saveCurrent(true);
+            } catch (java.sql.SQLException | java.io.IOException | RuntimeException e) {
+                AppLogger.error("Couldn't keep this sign-in's report: " + e.getMessage());
+            }
+        }
 
         vaultService.lockVault();
 

@@ -227,7 +227,47 @@ CREATE TABLE IF NOT EXISTS user_settings
 );
 
 ----------------------------------------------------
--- REPORTS
+-- SIGN-IN REPORTS: one PDF for every sign-in
+----------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS session_reports
+(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    user_id INTEGER NOT NULL,
+
+    -- The vault whose key encrypted the PDF.
+    vault_id INTEGER,
+
+    -- The sign-in it describes (login_history.id), and its details
+    -- kept here, since the sign-in history only keeps 30 days.
+    session_id INTEGER NOT NULL,
+
+    signed_in_at TIMESTAMP,
+
+    signed_out_at TIMESTAMP,
+
+    device TEXT,
+
+    actions INTEGER DEFAULT 0,
+
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    -- The PDF, encrypted with the vault key. It names files, logins
+    -- and notes. NULL once deleted: the row stays so the PDF isn't
+    -- made again.
+    pdf BLOB,
+
+    deleted_at TIMESTAMP,
+
+    UNIQUE (user_id, session_id),
+
+    FOREIGN KEY(user_id)
+        REFERENCES users(id)
+);
+
+----------------------------------------------------
+-- REPORTS (security summaries saved as PDF)
 ----------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS reports

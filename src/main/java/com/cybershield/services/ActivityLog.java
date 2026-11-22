@@ -55,6 +55,8 @@ public final class ActivityLog {
         HASH_MADE("Made a checksum"),
         REPORT_CREATED("Created a report"),
         REPORT_DELETED("Deleted a report"),
+        SESSION_REPORT_SHARED("Shared a sign-in report"),
+        SESSION_REPORT_DELETED("Deleted sign-in reports"),
         SETTINGS_SAVED("Changed auto-lock or clipboard settings"),
         ACCOUNT_PASSWORD_CHANGED("Changed the account password"),
         MASTER_PASSWORD_CHANGED("Changed the master password"),

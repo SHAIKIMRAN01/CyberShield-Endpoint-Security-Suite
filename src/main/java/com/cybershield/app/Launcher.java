@@ -61,4 +61,20 @@ public class Launcher extends Application {
 
     }
 
+    /** Closing the window ends the sign-in: keep its report while the vault key is still open. */
+    @Override
+    public void stop() {
+
+        if (com.cybershield.security.SessionManager.isLoggedIn() && com.cybershield.vault.VaultSession.isUnlocked()) {
+
+            try {
+                new com.cybershield.reports.SessionReports().saveCurrent(false);
+            } catch (java.sql.SQLException | java.io.IOException | RuntimeException e) {
+                AppLogger.error("Couldn't keep this sign-in's report: " + e.getMessage());
+            }
+
+        }
+
+    }
+
 }

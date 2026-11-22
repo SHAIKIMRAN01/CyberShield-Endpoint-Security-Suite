@@ -3,6 +3,8 @@ package com.cybershield.ui.controllers;
 import com.cybershield.logger.AppLogger;
 import com.cybershield.reports.ReportDAO;
 import com.cybershield.reports.ReportService;
+import com.cybershield.reports.SessionReports;
+import com.cybershield.ui.viewer.PdfPreview;
 import com.cybershield.services.SecurityScore;
 import com.cybershield.ui.Ui;
 import com.cybershield.utils.DisplayFormat;
@@ -13,14 +15,20 @@ import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
+import javafx.scene.control.PasswordField;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.Tab;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.geometry.Insets;
+import javafx.geometry.Pos;
+import javafx.scene.Scene;
+import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
+import javafx.stage.Stage;
 
 import java.awt.Desktop;
 import java.io.File;
@@ -28,6 +36,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
 import java.util.function.Function;
@@ -76,7 +85,38 @@ public class ReportsController implements LockableScreen {
     @FXML private Button showButton;
     @FXML private Button deleteButton;
 
+    @FXML private Tab sessionsTab;
+    @FXML private TableView<SessionReports.Session> sessionTable;
+    @FXML private TableColumn<SessionReports.Session, String> sessionInColumn;
+    @FXML private TableColumn<SessionReports.Session, String> sessionOutColumn;
+    @FXML private TableColumn<SessionReports.Session, String> sessionDeviceColumn;
+    @FXML private TableColumn<SessionReports.Session, String> sessionActionsColumn;
+    @FXML private VBox sessionAskBox;
+    @FXML private Label sessionAskTitle;
+    @FXML private PasswordField sessionMasterField;
+    @FXML private HBox sessionCopyBox;
+    @FXML private PasswordField sessionCopyField;
+    @FXML private PasswordField sessionCopyAgainField;
+    @FXML private Label sessionAskMessage;
+    @FXML private Button sessionAskConfirm;
+    @FXML private Label sessionMessage;
+    @FXML private Button sessionOpenButton;
+    @FXML private Button sessionShareButton;
+    @FXML private Button sessionDeleteButton;
+    @FXML private Button sessionDeleteAllButton;
+
     private final ReportService reports = new ReportService();
+
+    private final SessionReports sessionReports = new SessionReports();
+
+    private enum Ask { SHARE, DELETE, DELETE_ALL }
+
+    private Ask asking;
+
+    // The sign-in report open in its own window, closed with the screen.
+    private Stage reportWindow;
+
+    private PdfPreview reportPreview;
 
     private final VaultService vaultService = new VaultService();
 
@@ -101,7 +141,22 @@ public class ReportsController implements LockableScreen {
 
         showSelection(null);
 
+        column(sessionInColumn, session -> DisplayFormat.timestamp(session.signedInAt()) + (session.current() ? "  (now)" : ""));
+        column(sessionOutColumn, session -> session.current() ? "Still signed in"
+                : session.signedOutAt() == null ? "Closed without signing out" : DisplayFormat.timestamp(session.signedOutAt()));
+        column(sessionDeviceColumn, session -> session.device() == null ? "" : session.device());
+        column(sessionActionsColumn, session -> String.valueOf(session.actions()));
+
+        sessionTable.getSelectionModel().selectedItemProperty().addListener((observable, before, session) -> {
+            hideSessionAsk();
+            showSessionSelection(session);
+        });
+
+        showSessionSelection(null);
+
         refresh();
+
+        loadSessions(null);
 
     }
 
@@ -439,6 +494,372 @@ public class ReportsController implements LockableScreen {
     }
 
     // =====================================================
+    // SIGN-IN REPORTS
+    // =====================================================
+
+    /** Makes any reports still missing, then lists them; selects keep if given. */
+    private void loadSessions(Long keep) {
+
+        Ui.background("sign-in-reports", () -> {
+
+            try {
+                sessionReports.catchUp();
+                return sessionReports.list();
+            } catch (SQLException | IOException e) {
+                throw new IllegalStateException(e.getMessage(), e);
+            }
+
+        }, list -> {
+
+            sessionTable.setItems(FXCollections.observableArrayList(list));
+
+            long stored = list.stream().filter(session -> !session.current()).count();
+
+            sessionsTab.setText(stored == 0 ? "Sign-in reports" : "Sign-in reports (" + stored + ")");
+
+            sessionDeleteAllButton.setDisable(stored == 0);
+
+            if (keep != null) {
+                list.stream().filter(session -> session.sessionId() == keep).findFirst()
+                        .ifPresent(session -> sessionTable.getSelectionModel().select(session));
+            }
+
+        }, error -> Ui.message(sessionMessage, "The sign-in reports couldn't be read: " + reason(error), "bad"));
+
+    }
+
+    private void showSessionSelection(SessionReports.Session session) {
+
+        sessionOpenButton.setDisable(session == null);
+
+        sessionShareButton.setDisable(session == null);
+
+        sessionDeleteButton.setDisable(session == null || session.current());
+
+    }
+
+    @FXML
+    private void openSession() {
+
+        SessionReports.Session session = sessionTable.getSelectionModel().getSelectedItem();
+
+        if (session == null) {
+            return;
+        }
+
+        Ui.message(sessionMessage, "Opening…", null);
+
+        Ui.background("open-sign-in-report", () -> {
+
+            try {
+                return sessionReports.pdf(session);
+            } catch (SQLException | IOException e) {
+                throw new IllegalStateException(e.getMessage(), e);
+            }
+
+        }, bytes -> {
+
+            Ui.message(sessionMessage, "", null);
+
+            showReport(session, bytes);
+
+        }, error -> Ui.message(sessionMessage, "Couldn't open it: " + reason(error), "bad"));
+
+    }
+
+    /** Shows a sign-in report in its own window, from memory: nothing is written to disk. */
+    private void showReport(SessionReports.Session session, byte[] bytes) {
+
+        closeReportWindow();
+
+        PdfPreview preview;
+
+        try {
+            preview = new PdfPreview(PdfPreview.load(bytes), bytes);
+        } catch (IOException e) {
+            Arrays.fill(bytes, (byte) 0);
+            Ui.message(sessionMessage, "Couldn't open it: " + e.getMessage(), "bad");
+            return;
+        }
+
+        HBox bar = new HBox(8);
+        bar.getChildren().addAll(preview.controls());
+        bar.setAlignment(Pos.CENTER_LEFT);
+        bar.setPadding(new Insets(8, 14, 10, 14));
+
+        BorderPane root = new BorderPane(preview.view());
+        root.setBottom(bar);
+        root.setStyle("-fx-background-color: #FAF6F0;");
+
+        Scene scene = new Scene(root, 860, 760);
+        scene.getStylesheets().add(Ui.class.getResource("/css/theme.css").toExternalForm());
+
+        Stage window = new Stage();
+        window.initOwner(sessionTable.getScene().getWindow());
+        window.setTitle("Sign-in report · " + DisplayFormat.timestamp(session.signedInAt()));
+        window.setScene(scene);
+        window.setOnHidden(event -> {
+            preview.dispose();
+            if (reportWindow == window) {
+                reportWindow = null;
+                reportPreview = null;
+            }
+        });
+
+        reportWindow = window;
+        reportPreview = preview;
+
+        window.show();
+
+    }
+
+    private void closeReportWindow() {
+
+        if (reportWindow != null) {
+            reportWindow.close();
+        }
+
+        if (reportPreview != null) {
+            reportPreview.dispose();
+        }
+
+        reportWindow = null;
+        reportPreview = null;
+
+    }
+
+    @FXML
+    private void askShareSession() {
+
+        SessionReports.Session session = sessionTable.getSelectionModel().getSelectedItem();
+
+        if (session != null) {
+            ask(Ask.SHARE, "Share the report of " + DisplayFormat.timestamp(session.signedInAt())
+                    + ". The copy opens in any PDF reader, only with the password you choose here: give it to whoever should read it.",
+                    "Save copy…");
+        }
+
+    }
+
+    @FXML
+    private void askDeleteSession() {
+
+        SessionReports.Session session = sessionTable.getSelectionModel().getSelectedItem();
+
+        if (session != null && !session.current()) {
+            ask(Ask.DELETE, "Delete the report of " + DisplayFormat.timestamp(session.signedInAt())
+                    + "? It can't be brought back.", "Delete");
+        }
+
+    }
+
+    @FXML
+    private void askDeleteAllSessions() {
+
+        long stored = sessionTable.getItems().stream().filter(session -> !session.current()).count();
+
+        if (stored > 0) {
+            ask(Ask.DELETE_ALL, "Delete all " + stored + (stored == 1 ? " sign-in report" : " sign-in reports")
+                    + "? They can't be brought back.", "Delete all");
+        }
+
+    }
+
+    private void ask(Ask what, String title, String confirmText) {
+
+        asking = what;
+
+        sessionAskTitle.setText(title);
+
+        sessionCopyBox.setVisible(what == Ask.SHARE);
+        sessionCopyBox.setManaged(what == Ask.SHARE);
+
+        sessionAskConfirm.setText(confirmText);
+        sessionAskConfirm.getStyleClass().removeAll("primary-button", "danger-button");
+        sessionAskConfirm.getStyleClass().add(what == Ask.SHARE ? "primary-button" : "danger-button");
+
+        clearSessionPasswords();
+
+        Ui.message(sessionAskMessage, "", null);
+
+        sessionAskBox.setVisible(true);
+        sessionAskBox.setManaged(true);
+
+        sessionMasterField.requestFocus();
+
+    }
+
+    @FXML
+    private void cancelSessionAction() {
+
+        hideSessionAsk();
+
+    }
+
+    private void hideSessionAsk() {
+
+        clearSessionPasswords();
+
+        sessionAskBox.setVisible(false);
+        sessionAskBox.setManaged(false);
+
+    }
+
+    private void clearSessionPasswords() {
+
+        sessionMasterField.clear();
+        sessionCopyField.clear();
+        sessionCopyAgainField.clear();
+
+    }
+
+    @FXML
+    private void confirmSessionAction() {
+
+        String master = sessionMasterField.getText();
+
+        if (master.isEmpty()) {
+            Ui.message(sessionAskMessage, "Type your master password.", "bad");
+            return;
+        }
+
+        SessionReports.Session session = sessionTable.getSelectionModel().getSelectedItem();
+
+        switch (asking == null ? Ask.DELETE_ALL : asking) {
+
+            case SHARE -> shareSession(session, master);
+
+            case DELETE -> deleteSessions(session, master);
+
+            case DELETE_ALL -> deleteSessions(null, master);
+
+        }
+
+    }
+
+    private void shareSession(SessionReports.Session session, String master) {
+
+        if (session == null) {
+            return;
+        }
+
+        String copy = sessionCopyField.getText();
+
+        if (copy.length() < SessionReports.MIN_COPY_PASSWORD) {
+            Ui.message(sessionAskMessage, "The copy's password needs " + SessionReports.MIN_COPY_PASSWORD + " or more characters.", "bad");
+            return;
+        }
+
+        if (!copy.equals(sessionCopyAgainField.getText())) {
+            Ui.message(sessionAskMessage, "The two passwords for the copy don't match.", "bad");
+            return;
+        }
+
+        if (copy.equals(master)) {
+            Ui.message(sessionAskMessage, "Use a different password from your master password: you'll give this one to someone.", "bad");
+            return;
+        }
+
+        FileChooser chooser = new FileChooser();
+
+        chooser.setTitle("Save a protected copy of the sign-in report");
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PDF files", "*.pdf"));
+        chooser.setInitialFileName(SessionReports.fileName(session));
+
+        Path documents = Path.of(System.getProperty("user.home"), "Documents");
+
+        if (Files.isDirectory(documents)) {
+            chooser.setInitialDirectory(documents.toFile());
+        }
+
+        File file = chooser.showSaveDialog(sessionTable.getScene().getWindow());
+
+        if (file != null) {
+            shareSessionTo(session, master, copy, file.toPath());
+        }
+
+    }
+
+    /** Also used by the tests, in place of the save dialog. */
+    void shareSessionTo(SessionReports.Session session, String master, String copy, Path target) {
+
+        sessionAskConfirm.setDisable(true);
+
+        Ui.message(sessionAskMessage, "Checking your master password…", null);
+
+        Ui.background("share-sign-in-report", () -> {
+
+            try {
+                return sessionReports.share(session, master, copy, target);
+            } catch (SQLException | IOException e) {
+                throw new IllegalStateException(e.getMessage(), e);
+            }
+
+        }, outcome -> {
+
+            sessionAskConfirm.setDisable(false);
+
+            if (outcome == SessionReports.Outcome.WRONG_PASSWORD) {
+                sessionMasterField.clear();
+                Ui.message(sessionAskMessage, "That isn't your master password.", "bad");
+                return;
+            }
+
+            hideSessionAsk();
+
+            Ui.message(sessionMessage, "Saved " + target.getFileName() + ". It opens with the password you chose.", "good");
+
+        }, error -> {
+
+            sessionAskConfirm.setDisable(false);
+
+            Ui.message(sessionAskMessage, "Couldn't save the copy: " + reason(error), "bad");
+
+        });
+
+    }
+
+    private void deleteSessions(SessionReports.Session session, String master) {
+
+        sessionAskConfirm.setDisable(true);
+
+        Ui.message(sessionAskMessage, "Checking your master password…", null);
+
+        Ui.background("delete-sign-in-reports", () -> {
+
+            try {
+                return session == null ? sessionReports.deleteAll(master) : sessionReports.delete(session, master);
+            } catch (SQLException e) {
+                throw new IllegalStateException(e.getMessage(), e);
+            }
+
+        }, outcome -> {
+
+            sessionAskConfirm.setDisable(false);
+
+            if (outcome == SessionReports.Outcome.WRONG_PASSWORD) {
+                sessionMasterField.clear();
+                Ui.message(sessionAskMessage, "That isn't your master password.", "bad");
+                return;
+            }
+
+            hideSessionAsk();
+
+            loadSessions(null);
+
+            Ui.message(sessionMessage, session == null ? "All sign-in reports were deleted." : "Deleted.", "good");
+
+        }, error -> {
+
+            sessionAskConfirm.setDisable(false);
+
+            Ui.message(sessionAskMessage, "Couldn't delete: " + reason(error), "bad");
+
+        });
+
+    }
+
+    // =====================================================
     // LOCK
     // =====================================================
 
@@ -462,6 +883,12 @@ public class ReportsController implements LockableScreen {
 
     @Override
     public void dispose() {
+
+        closeReportWindow();
+
+        clearSessionPasswords();
+
+        sessionTable.getItems().clear();
 
         signInTable.getItems().clear();
 

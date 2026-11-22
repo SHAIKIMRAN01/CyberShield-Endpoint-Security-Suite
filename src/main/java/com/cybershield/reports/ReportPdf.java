@@ -124,6 +124,27 @@ final class ReportPdf implements AutoCloseable {
     /** Adds the footer to every page and writes the file. */
     void save(Path target, String footer) throws IOException {
 
+        finish(footer);
+
+        document.save(target.toFile());
+
+    }
+
+    /** Adds the footer to every page and returns the PDF, kept only in memory. */
+    byte[] toBytes(String footer) throws IOException {
+
+        finish(footer);
+
+        java.io.ByteArrayOutputStream bytes = new java.io.ByteArrayOutputStream();
+
+        document.save(bytes);
+
+        return bytes.toByteArray();
+
+    }
+
+    private void finish(String footer) throws IOException {
+
         out.close();
 
         int pages = document.getNumberOfPages();
@@ -143,8 +164,6 @@ final class ReportPdf implements AutoCloseable {
         }
 
         out = null;
-
-        document.save(target.toFile());
 
     }
 
@@ -231,28 +250,54 @@ final class ReportPdf implements AutoCloseable {
         float boxWidth = (areaWidth - 2 * gap) / 3;
 
         for (int i = 0; i < figures.length && i < 3; i++) {
-
-            float boxLeft = areaLeft + i * (boxWidth + gap);
-
-            fill(boxLeft, bottom, boxWidth, height, PAPER);
-            stroke(boxLeft, bottom, boxWidth, height, LINE, 0.75f);
-
-            float inner = boxLeft + 12;
-
-            text(fit(figures[i][0].toUpperCase(java.util.Locale.ROOT), bold, 8, boxWidth - 24), bold, 8, MUTED, inner, y - 22);
-
-            text(fit(figures[i][1], bold, 26, boxWidth - 24), bold, 26, BROWN_800, inner, y - 58);
-
-            float baseline = y - 80;
-
-            for (String line : wrap(figures[i][2], regular, 9, boxWidth - 24).stream().limit(2).toList()) {
-                text(line, regular, 9, INK, inner, baseline);
-                baseline -= 12;
-            }
-
+            figureBox(areaLeft + i * (boxWidth + gap), boxWidth, bottom, height, figures[i]);
         }
 
         y = bottom - 24;
+
+    }
+
+    /** Three figures side by side across the page, a third of the width each. */
+    void figureRow(String[][] figures) throws IOException {
+
+        float height = 100;
+
+        float gap = 12;
+
+        ensure(height + 10);
+
+        float bottom = y - height;
+
+        float boxWidth = (WIDTH - 2 * gap) / 3;
+
+        for (int i = 0; i < figures.length && i < 3; i++) {
+            figureBox(LEFT + i * (boxWidth + gap), boxWidth, bottom, height, figures[i]);
+        }
+
+        y = bottom - 24;
+
+    }
+
+    /** A box with a small label, a big number and a note under it. */
+    private void figureBox(float boxLeft, float boxWidth, float bottom, float height, String[] figure) throws IOException {
+
+        float top = bottom + height;
+
+        fill(boxLeft, bottom, boxWidth, height, PAPER);
+        stroke(boxLeft, bottom, boxWidth, height, LINE, 0.75f);
+
+        float inner = boxLeft + 12;
+
+        text(fit(figure[0].toUpperCase(java.util.Locale.ROOT), bold, 8, boxWidth - 24), bold, 8, MUTED, inner, top - 22);
+
+        text(fit(figure[1], bold, 26, boxWidth - 24), bold, 26, BROWN_800, inner, top - 58);
+
+        float baseline = top - 80;
+
+        for (String line : wrap(figure[2], regular, 9, boxWidth - 24).stream().limit(2).toList()) {
+            text(line, regular, 9, INK, inner, baseline);
+            baseline -= 12;
+        }
 
     }
 
