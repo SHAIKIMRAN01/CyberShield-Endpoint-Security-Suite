@@ -24,6 +24,9 @@ public class Launcher extends Application {
 
         try {
 
+            // The database moved to the user's data folder: bring an older one across first.
+            com.cybershield.database.LegacyDatabase.copyIfNeeded();
+
             DatabaseInitializer.initialize();
 
             // Sign-ins and activity are kept for 30 days.

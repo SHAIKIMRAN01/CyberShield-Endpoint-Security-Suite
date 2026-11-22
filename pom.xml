@@ -187,6 +187,7 @@
                     <!-- Tests point the database and the file store at their own temp folders.
                          These defaults keep any test that forgets well away from the real ones. -->
                     <systemPropertyVariables>
+                        <cybershield.home>${project.build.directory}/test-data/home</cybershield.home>
                         <cybershield.db>${project.build.directory}/test-data/default.db</cybershield.db>
                         <cybershield.filevault.dir>${project.build.directory}/test-data/store</cybershield.filevault.dir>
                     </systemPropertyVariables>
