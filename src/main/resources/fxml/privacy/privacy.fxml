@@ -1,0 +1,237 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Privacy Tools. Rule of thirds: the five tools in the left third, the chosen one in the other two. -->
+
+<?import java.net.URL?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<GridPane xmlns="http://javafx.com/javafx/21"
+          xmlns:fx="http://javafx.com/fxml"
+          fx:controller="com.cybershield.ui.controllers.PrivacyController"
+          styleClass="encryption,privacy"
+          hgap="22">
+
+    <stylesheets>
+        <URL value="@../../css/encryption.css"/>
+        <URL value="@../../css/privacy.css"/>
+    </stylesheets>
+
+    <columnConstraints>
+        <ColumnConstraints percentWidth="33.333"/>
+        <ColumnConstraints percentWidth="66.667"/>
+    </columnConstraints>
+
+    <rowConstraints>
+        <RowConstraints vgrow="ALWAYS"/>
+    </rowConstraints>
+
+    <!-- TOOLS -->
+    <VBox spacing="6" GridPane.columnIndex="0">
+
+        <Button fx:id="shredTab" styleClass="tool-tab" maxWidth="Infinity" maxHeight="-Infinity" onAction="#showShred">
+            <graphic>
+                <VBox spacing="2">
+                    <Label text="Shred files" styleClass="tab-title"/>
+                    <Label text="Overwrite, then delete" styleClass="tab-text"/>
+                </VBox>
+            </graphic>
+        </Button>
+
+        <Button fx:id="clipboardTab" styleClass="tool-tab" maxWidth="Infinity" maxHeight="-Infinity" onAction="#showClipboard">
+            <graphic>
+                <VBox spacing="2">
+                    <Label text="Clear the clipboard" styleClass="tab-title"/>
+                    <Label text="Whatever is copied now" styleClass="tab-text"/>
+                </VBox>
+            </graphic>
+        </Button>
+
+        <Button fx:id="photoTab" styleClass="tool-tab" maxWidth="Infinity" maxHeight="-Infinity" onAction="#showPhotos">
+            <graphic>
+                <VBox spacing="2">
+                    <Label text="Photo details" styleClass="tab-title"/>
+                    <Label text="Location, camera, time" styleClass="tab-text"/>
+                </VBox>
+            </graphic>
+        </Button>
+
+        <Button fx:id="tracesTab" styleClass="tool-tab" maxWidth="Infinity" maxHeight="-Infinity" onAction="#showTraces">
+            <graphic>
+                <VBox spacing="2">
+                    <Label text="Windows traces" styleClass="tab-title"/>
+                    <Label text="Recent items, jump lists, caches" styleClass="tab-text"/>
+                </VBox>
+            </graphic>
+        </Button>
+
+        <Button fx:id="keyboardTab" styleClass="tool-tab" maxWidth="Infinity" maxHeight="-Infinity" onAction="#showKeyboard">
+            <graphic>
+                <VBox spacing="2">
+                    <Label text="On-screen keyboard" styleClass="tab-title"/>
+                    <Label text="Type passwords with the mouse" styleClass="tab-text"/>
+                </VBox>
+            </graphic>
+        </Button>
+
+    </VBox>
+
+    <StackPane GridPane.columnIndex="1">
+
+        <!-- SHRED -->
+        <VBox fx:id="shredPanel" styleClass="card,tool-panel" spacing="8">
+
+            <Label text="Shred files" styleClass="section-heading"/>
+
+            <Label text="Each file is overwritten with random data, then deleted, so undelete tools can't bring it back from a hard drive. On SSDs and USB sticks the drive may keep old copies out of reach, and OneDrive or other synced folders keep their own: encrypting is the safer habit there."
+                   styleClass="hint" wrapText="true" minHeight="-Infinity"/>
+
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Button text="Add files…" onAction="#addShredFiles" minWidth="-Infinity"/>
+                <Button text="Add a folder…" onAction="#addShredFolder" minWidth="-Infinity"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button text="Remove" onAction="#removeShredItem" minWidth="-Infinity"/>
+                <Button text="Clear" onAction="#clearShredList" minWidth="-Infinity"/>
+            </HBox>
+
+            <ListView fx:id="shredList" VBox.vgrow="ALWAYS" prefHeight="200">
+                <placeholder>
+                    <Label text="Add files or folders, or drop them here." wrapText="true"/>
+                </placeholder>
+            </ListView>
+
+            <Label fx:id="shredSummary" styleClass="hint" wrapText="true" minHeight="-Infinity"/>
+
+            <HBox fx:id="shredConfirmBox" styleClass="confirm-box" spacing="8" alignment="CENTER_LEFT" visible="false" managed="false">
+                <Label fx:id="shredConfirmLabel" wrapText="true" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                <Button text="Shred for good" styleClass="danger-button" onAction="#confirmShred" minWidth="-Infinity"/>
+                <Button text="Cancel" onAction="#cancelShred" minWidth="-Infinity"/>
+            </HBox>
+
+            <HBox fx:id="shredProgressBox" spacing="8" alignment="CENTER_LEFT" visible="false" managed="false">
+                <ProgressBar fx:id="shredProgress" progress="0" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                <Label fx:id="shredProgressLabel" styleClass="hint" minWidth="-Infinity"/>
+                <Button text="Stop" onAction="#stopShred" minWidth="-Infinity"/>
+            </HBox>
+
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Button fx:id="shredButton" text="Shred…" styleClass="danger-button" onAction="#askShred" minWidth="-Infinity"/>
+                <Label fx:id="shredMessage" styleClass="message" wrapText="true" HBox.hgrow="ALWAYS" maxWidth="Infinity" minHeight="-Infinity"/>
+            </HBox>
+
+        </VBox>
+
+        <!-- CLIPBOARD -->
+        <VBox fx:id="clipboardPanel" styleClass="card,tool-panel" spacing="10" StackPane.alignment="TOP_LEFT" maxHeight="-Infinity" visible="false">
+
+            <Label text="Clear the clipboard" styleClass="section-heading"/>
+
+            <Label text="Removes whatever is copied right now, such as a password you copied in another app. What CyberShield copies already clears itself after the time set in Settings."
+                   styleClass="hint" wrapText="true" minHeight="-Infinity"/>
+
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Button fx:id="clearClipboardButton" text="Clear the clipboard now" styleClass="primary-button" onAction="#clearClipboard" minWidth="-Infinity"/>
+                <Label fx:id="clipboardMessage" styleClass="message" wrapText="true" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+            </HBox>
+
+            <Label text="If Windows clipboard history is on (Windows key + V), older copies stay in that list: open it and choose Clear all."
+                   styleClass="hint" wrapText="true" minHeight="-Infinity"/>
+
+        </VBox>
+
+        <!-- PHOTO DETAILS -->
+        <VBox fx:id="photoPanel" styleClass="card,tool-panel" spacing="8" visible="false">
+
+            <Label text="Remove photo details" styleClass="section-heading"/>
+
+            <Label text="Photos often carry where they were taken, the phone or camera, and when. A clean copy keeps the picture exactly as it is, without them. JPEG and PNG."
+                   styleClass="hint" wrapText="true" minHeight="-Infinity"/>
+
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Button text="Add photos…" onAction="#addPhotos" minWidth="-Infinity"/>
+                <Region HBox.hgrow="ALWAYS"/>
+                <Button text="Clear" onAction="#clearPhotos" minWidth="-Infinity"/>
+            </HBox>
+
+            <TableView fx:id="photoTable" VBox.vgrow="ALWAYS" prefHeight="200">
+                <columns>
+                    <TableColumn fx:id="photoNameColumn" text="Photo" prefWidth="170"/>
+                    <TableColumn fx:id="photoFoundColumn" text="What it gives away" prefWidth="380"/>
+                </columns>
+                <columnResizePolicy>
+                    <TableView fx:constant="CONSTRAINED_RESIZE_POLICY_FLEX_LAST_COLUMN"/>
+                </columnResizePolicy>
+                <placeholder>
+                    <Label text="Add photos, or drop them here, to see what they give away." wrapText="true"/>
+                </placeholder>
+            </TableView>
+
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Button fx:id="cleanPhotosButton" text="Save clean copies" styleClass="primary-button" onAction="#cleanPhotos" minWidth="-Infinity"/>
+                <Label fx:id="photoMessage" styleClass="message" wrapText="true" HBox.hgrow="ALWAYS" maxWidth="Infinity" minHeight="-Infinity"/>
+            </HBox>
+
+            <Label text="Clean copies are saved beside the originals, named &quot;… (no details)&quot;. The originals stay as they are."
+                   styleClass="hint" wrapText="true" minHeight="-Infinity"/>
+
+        </VBox>
+
+        <!-- WINDOWS TRACES -->
+        <VBox fx:id="tracesPanel" styleClass="card,tool-panel" spacing="10" StackPane.alignment="TOP_LEFT" maxHeight="-Infinity" visible="false">
+
+            <Label text="Clean Windows traces" styleClass="section-heading"/>
+
+            <Label text="Windows remembers what you opened. Look first, then choose what to remove. Files in use are skipped, and nothing else on the PC is touched."
+                   styleClass="hint" wrapText="true" minHeight="-Infinity"/>
+
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Button fx:id="scanTracesButton" text="Look for traces" onAction="#scanTraces" minWidth="-Infinity"/>
+                <Label fx:id="scanTracesLabel" styleClass="hint" wrapText="true" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+            </HBox>
+
+            <VBox fx:id="traceChoices" spacing="8"/>
+
+            <HBox fx:id="tracesConfirmBox" styleClass="confirm-box" spacing="8" alignment="CENTER_LEFT" visible="false" managed="false">
+                <Label fx:id="tracesConfirmLabel" wrapText="true" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                <Button text="Remove for good" styleClass="danger-button" onAction="#confirmCleanTraces" minWidth="-Infinity"/>
+                <Button text="Cancel" onAction="#cancelCleanTraces" minWidth="-Infinity"/>
+            </HBox>
+
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Button fx:id="cleanTracesButton" text="Remove the ticked…" styleClass="danger-button" onAction="#askCleanTraces" disable="true" minWidth="-Infinity"/>
+                <Label fx:id="tracesMessage" styleClass="message" wrapText="true" HBox.hgrow="ALWAYS" maxWidth="Infinity" minHeight="-Infinity"/>
+            </HBox>
+
+        </VBox>
+
+        <!-- ON-SCREEN KEYBOARD -->
+        <VBox fx:id="keyboardPanel" styleClass="card,tool-panel" spacing="10" StackPane.alignment="TOP_LEFT" maxHeight="-Infinity" visible="false">
+
+            <Label text="On-screen keyboard" styleClass="section-heading"/>
+
+            <Label text="Keyloggers record the keys you press. Typing a password with the mouse keeps it from them. The keyboard button sits beside the password on the sign-in screen and the vault screens. Mix the keys puts them in a new order, against tools that record where you click."
+                   styleClass="hint" wrapText="true" minHeight="-Infinity"/>
+
+            <Label text="Try it here (nothing is saved)" styleClass="field-label"/>
+
+            <PasswordField fx:id="tryKeyboardField" promptText="Press the keyboard button"/>
+
+            <Label fx:id="tryKeyboardEcho" styleClass="hint"/>
+
+        </VBox>
+
+    </StackPane>
+
+</GridPane>

@@ -78,6 +78,13 @@ public class VaultController {
                     Ui.strength(strengthBar, strengthLabel, password));
         }
 
+        // The master password can be typed with the mouse, out of reach of keyloggers.
+        com.cybershield.ui.OnScreenKeyboard.attach(passwordField);
+
+        if (confirmPasswordField != null) {
+            com.cybershield.ui.OnScreenKeyboard.attach(confirmPasswordField);
+        }
+
         // Let the user type straight away once the screen is shown.
         Platform.runLater(passwordField::requestFocus);
 

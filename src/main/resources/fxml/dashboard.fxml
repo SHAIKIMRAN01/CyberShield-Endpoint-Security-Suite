@@ -62,7 +62,7 @@
 
             <Button fx:id="stegoButton" text="Steganography" styleClass="nav-button" onAction="#openSteganography"/>
 
-            <Button fx:id="privacyButton" text="Privacy Tools" styleClass="nav-button,soon" onAction="#openPrivacyTools"/>
+            <Button fx:id="privacyButton" text="Privacy Tools" styleClass="nav-button" onAction="#openPrivacyTools"/>
 
             <Button fx:id="reportsButton" text="Reports" styleClass="nav-button" onAction="#openReports"/>
 

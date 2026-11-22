@@ -127,7 +127,8 @@ public class FileVaultService {
     ) {
     }
 
-    private enum Kind { FILE, DIRECTORY, LINK }
+    /** What a path is, links not followed: cloud placeholder files count as files, junctions as links. */
+    public enum PathKind { FILE, DIRECTORY, LINK }
 
     private enum Outcome { PROTECTED, IN_USE, CHANGED, GONE, FAILED }
 
@@ -140,8 +141,6 @@ public class FileVaultService {
     private static final String RESTORE_SUFFIX = ".cs-restore";
 
     private static final long SPACE_MARGIN = 64L * 1024 * 1024;
-
-    private static final int WIPE_BUFFER = 1024 * 1024;
 
     private final Path storeDir;
 
@@ -474,7 +473,7 @@ public class FileVaultService {
                 String relative = root.relativize(dir).toString();
 
                 // Never follow junctions or links into other places, such as system folders.
-                if (classify(dir, attributes) != Kind.DIRECTORY) {
+                if (classify(dir, attributes) != PathKind.DIRECTORY) {
                     skipped.add(rootLabel + "/" + relative + ": links to other places are skipped.");
                     return FileVisitResult.SKIP_SUBTREE;
                 }
@@ -490,7 +489,7 @@ public class FileVaultService {
 
                 String relative = root.relativize(file).toString();
 
-                if (classify(file, attributes) == Kind.FILE) {
+                if (classify(file, attributes) == PathKind.FILE) {
 
                     files.add(new ScanFile(file, relative, attributes.size()));
 
@@ -532,23 +531,23 @@ public class FileVaultService {
 
     }
 
-    private static Kind classify(Path path, BasicFileAttributes attributes) {
+    public static PathKind classify(Path path, BasicFileAttributes attributes) {
 
         if (attributes.isSymbolicLink()) {
-            return Kind.LINK;
+            return PathKind.LINK;
         }
 
         if (attributes.isDirectory()) {
             // A directory that is also a reparse point is a junction unless it resolves to itself.
-            return !attributes.isOther() || resolvesToItself(path) ? Kind.DIRECTORY : Kind.LINK;
+            return !attributes.isOther() || resolvesToItself(path) ? PathKind.DIRECTORY : PathKind.LINK;
         }
 
         if (attributes.isRegularFile()) {
-            return Kind.FILE;
+            return PathKind.FILE;
         }
 
         // Reparse points that aren't links, such as cloud placeholder files, read as normal files.
-        return attributes.isOther() && resolvesToItself(path) ? Kind.FILE : Kind.LINK;
+        return attributes.isOther() && resolvesToItself(path) ? PathKind.FILE : PathKind.LINK;
 
     }
 
@@ -877,35 +876,7 @@ public class FileVaultService {
 
     private static void wipeAndDelete(Path file) throws IOException {
 
-        try {
-            Files.setAttribute(file, "dos:readonly", false, LinkOption.NOFOLLOW_LINKS);
-        } catch (UnsupportedOperationException | IllegalArgumentException | IOException e) {
-            // Not Windows, or already writable.
-        }
-
-        long size = Files.size(file);
-
-        try (FileChannel channel = FileChannel.open(file, StandardOpenOption.WRITE)) {
-
-            ByteBuffer zeros = ByteBuffer.allocate((int) Math.min(WIPE_BUFFER, Math.max(1, size)));
-
-            long position = 0;
-
-            while (position < size) {
-
-                zeros.clear();
-
-                zeros.limit((int) Math.min(zeros.capacity(), size - position));
-
-                position += channel.write(zeros, position);
-
-            }
-
-            channel.force(true);
-
-        }
-
-        Files.delete(file);
+        Wipe.zeroAndDelete(file);
 
     }
 

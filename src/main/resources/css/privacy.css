@@ -1,0 +1,18 @@
+/* Privacy Tools (fxml/privacy/privacy.fxml). Shares the tool list style with encryption.css. */
+
+.privacy .confirm-box {
+    -fx-background-color: -cs-bad-bg;
+    -fx-background-radius: 8;
+    -fx-padding: 8 10 8 12;
+}
+
+.privacy .trace-choice {
+    -fx-background-color: -cs-sand;
+    -fx-background-radius: 8;
+    -fx-padding: 8 12 8 12;
+}
+
+.privacy .trace-choice .check-box {
+    -fx-font-weight: bold;
+    -fx-text-fill: -cs-brown-800;
+}

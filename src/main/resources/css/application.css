@@ -57,10 +57,6 @@
     -fx-border-width: 0 0 0 3;
 }
 
-.nav-button.soon {
-    -fx-text-fill: -cs-on-brown-muted;
-}
-
 .nav-button .nav-icon {
     -fx-fill: -cs-on-brown-muted;
 }
@@ -192,11 +188,6 @@
 
 .vault-banner.unlocked {
     -fx-background-color: -cs-good-bg;
-}
-
-.coming-soon {
-    -fx-spacing: 10;
-    -fx-alignment: center;
 }
 
 .score-bar > .bar {

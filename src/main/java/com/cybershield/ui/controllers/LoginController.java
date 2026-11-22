@@ -43,6 +43,9 @@ public class LoginController {
     @FXML
     public void initialize() {
 
+        // Type the password with the mouse, out of reach of keyloggers.
+        com.cybershield.ui.OnScreenKeyboard.attach(passwordField);
+
         Platform.runLater(usernameField::requestFocus);
 
     }

@@ -419,12 +419,11 @@ public class DashboardController {
     }
 
     @FXML
-    private void openPrivacyTools() {
+    public void openPrivacyTools() {
 
         select(privacyButton, "Privacy Tools");
 
-        showComingSoon(Ui.ICON_EYE, "Privacy Tools", 4,
-                "A secure file shredder, clipboard clearing, photo metadata removal and a Windows traces cleaner.");
+        showView("/fxml/privacy/privacy.fxml");
 
     }
 
@@ -450,39 +449,6 @@ public class DashboardController {
         }
 
         screenTitle.setText(title);
-
-    }
-
-    private void showComingSoon(String icon, String name, int phase, String description) {
-
-        VBox box = new VBox();
-
-        box.getStyleClass().addAll("card", "coming-soon");
-
-        box.setMaxWidth(460);
-        box.setMaxHeight(VBox.USE_PREF_SIZE);
-
-        Label title = new Label(name + " is on its way");
-        title.getStyleClass().add("section-heading");
-
-        Label when = new Label("Planned for phase " + phase + " of the roadmap.");
-        when.getStyleClass().addAll("chip", "plain");
-
-        Label text = new Label(description);
-        text.getStyleClass().add("hint");
-        text.setWrapText(true);
-        text.setAlignment(Pos.CENTER);
-        text.setStyle("-fx-text-alignment: center;");
-
-        box.getChildren().addAll(Ui.icon(icon, 44, "card-icon"), title, when, text);
-
-        StackPane holder = new StackPane(box);
-
-        holder.setStyle("-fx-padding: 40;");
-
-        StackPane.setAlignment(box, Pos.TOP_CENTER);
-
-        replaceContent(holder, null);
 
     }
 
