@@ -1,3 +1,5 @@
+<img src="docs/logo.svg" width="96" alt="CyberShield's logo: a brown cartoon wolf guarding a treasure chest">
+
 # CyberShield Endpoint Security Suite
 
 A Windows desktop app that keeps passwords and files private on a shared PC. Every account has its own encrypted vault, and nothing leaves the computer. Built with Java 21, JavaFX 21 and SQLite.
@@ -33,7 +35,8 @@ A Windows desktop app that keeps passwords and files private on a shared PC. Eve
 **File Security**
 - Pick files and folders from anywhere: browse, tick, drag and drop, or Add files / Add folder.
 - They are encrypted into a hidden store and the originals are wiped. Restore puts them back exactly: names, times and attributes.
-- A private viewer shows photos, text and code, PDFs, video and music inside CyberShield only, with copying blocked. Photos turn left and right and follow the camera's orientation. AAC sound (most MP4 videos, M4A songs) plays even where JavaFX can't decode it.
+- A private viewer shows photos, text and code, PDFs, video and music inside CyberShield only, with copying blocked. Photos turn left and right and follow the camera's orientation.
+- Videos and songs of any size play straight from the encrypted store: MP4, MOV, MKV, AVI, WebM, phone videos in HEVC, MP3, M4A, FLAC and more. They are decrypted a piece at a time in memory, never written to disk.
 - Tools: check every stored file, back the store up to another drive and restore it, and rebuild a lost list from the store.
 
 **Encryption Center** (works without the vault)
@@ -44,6 +47,7 @@ A Windows desktop app that keeps passwords and files private on a shared PC. Eve
 **Reports**
 - A security summary on screen and as a PDF: the score, password health, vault locks, protected files, 30 days of sign-ins and a count of everything done.
 - A report never contains passwords, note text, website names or file names. Saved reports are listed with Open, Show in folder and Delete.
+- A PDF of every sign-in: when, on which computer, and everything done, naming the files, logins and notes. Each is kept encrypted with the vault key and opens only inside CyberShield. Sharing one saves a copy protected with a password you choose; sharing or deleting asks for the master password.
 
 **Settings**
 - Auto-lock minutes and clipboard clear time, per account.
@@ -66,7 +70,7 @@ A Windows desktop app that keeps passwords and files private on a shared PC. Eve
 
 ## Requirements
 
-- Windows 10 or 11. File Security uses Windows file attributes; the rest runs anywhere Java does.
+- Windows 10 or 11, 64-bit. File Security uses Windows file attributes, and the video player's FFmpeg libraries are the Windows 64-bit ones.
 - JDK 21 or newer.
 - Maven 3.9 or newer.
 
@@ -93,7 +97,10 @@ The tests cover:
 - vaults: creating, unlocking, changing the master password, the PBKDF2 upgrade, and taking over the old shared vault;
 - sign-in, waits, history and the activity log with its 30-day limit, and registration rules;
 - Password Vault and Secure Notes: every field encrypted, older logins converted, password health, privacy between accounts;
-- File Security: protect, restore, the safety rules, export, the viewer (AAC sound, photo turns, zoom), the check, recovery and backups;
+- File Security: protect, restore, the safety rules, export, the viewer (photo turns, zoom), the check, recovery and backups;
+- video streamed from encrypted files: MKV, AVI, MOV and MP4, big pictures, turned phone videos, seeking, songs, damaged files, and reading any part of a protected file;
+- sign-in reports: stored encrypted, shared and deleted only with the master password, private to each account;
+- the logo and the opening animation;
 - the security score, and reports (no secrets in the PDF);
 - settings, and every screen opening.
 
@@ -143,7 +150,7 @@ The database is not in git (see `.gitignore`).
 **Limits**
 - Overwriting a file doesn't guarantee it is gone from an SSD.
 - Video playback uses an internal JavaFX class, so re-test it when JavaFX is upgraded.
-- AAC sound is decoded in memory. Over about 50 minutes it is too big: such a video plays muted, with a note, and such a song needs Export a copy.
+- Video and music play through FFmpeg. If FFmpeg can't load, the viewer falls back to JavaFX's player, which holds a file of up to 1 GB in memory.
 - A report is a plain PDF on purpose: it holds no secrets.
 
 ### Upgrading from v1
@@ -154,6 +161,9 @@ In v1 all accounts shared one vault. The first time an account that has items in
 
 - **Colours:** warm off-white and brown in a 60-30-10 split. Off-white paper covers most of the screen, brown gives the structure (sidebar, headings, main buttons), and one caramel accent marks focus and highlights.
 - **Layout:** follows the rule of thirds. Lists, navigation and explanations take one third and the main content the other two, and summary cards come three to a row.
+- **Logo:** a brown cartoon wolf guarding a treasure chest (`docs/logo.svg`), drawn from shapes in `ui/Logo.java`, so it is sharp from the window icon up.
+- **Opening:** a golden key flies into the chest's lock and turns, the wolf steps back, the lid opens and light fills the screen, then the sign-in screen appears. A click or any key skips it; `-Dcybershield.noIntro=true` turns it off.
+- **Sidebar:** the ☰ button (or Ctrl+B) shrinks it to its icons and back; ✕ closes it, and ☰ brings it back.
 - **One stylesheet:** the palette lives in `src/main/resources/css/theme.css`.
 
 ## Project layout
@@ -168,7 +178,7 @@ src/main/java/com/cybershield/
   files/        File Security: protect, hide, restore, check, back up, recover
   notes/        Secure Notes data
   password/     Password Vault data and password health
-  reports/      security reports and their PDF
+  reports/      security reports, a PDF of every sign-in
   security/     BCrypt, session
   services/     sign-in and registration, activity log, security score, the open vault key
   vault/        per-account vaults, auto-lock, key backup

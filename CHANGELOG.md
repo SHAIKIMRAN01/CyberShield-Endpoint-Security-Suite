@@ -1,5 +1,24 @@
 # Changelog
 
+## Unreleased: videos of any size, sign-in reports, a new look
+
+### Fixed
+- **Videos that wouldn't play:** the viewer refused anything over 1 GB, because it decrypted a whole file into memory first (and Java can't hold more than 2 GB in one piece). Videos and songs now stream from the encrypted store: each 1 MB piece is decrypted and checked when the player reaches it, so size no longer matters and nothing decrypted touches the disk. Checked with a 2.3 GB video, including seeking past the 2 GB mark.
+
+### Added
+- **Any video format:** playback now uses FFmpeg (JavaCV 1.5.14, Windows 64-bit libraries), so MOV, MKV, AVI, WebM, HEVC phone videos, FLAC, OGG and more play too. Turned phone videos are shown upright, and pictures larger than 1920 × 1080 are scaled down while decoding.
+- **A PDF of every sign-in** (Reports → Sign-in reports): when, on which computer, and everything done, naming the files, logins and notes. Each is stored encrypted with the vault key and opens only inside CyberShield. A report is kept at sign-out, or when the app is closed with the vault open; any sign-in still without one gets it the next time the vault is unlocked.
+  - Share saves a copy protected with a password you choose (AES-256 PDF encryption), after the master password is checked. The copy's password can't be the master password.
+  - Delete and Delete all need the master password. A deleted report isn't made again.
+- **New logo:** a brown cartoon wolf guarding a treasure chest, on the sign-in screen, in the sidebar and as the window icon.
+- **Opening animation:** a golden key flies into the chest's lock and turns, the wolf steps back, the lid opens and light fills the screen before the sign-in screen appears. A click or any key skips it.
+- **Sidebar:** the ☰ button in the header (or Ctrl+B) shrinks it to its icons, with the names as tooltips, and widens it again; ✕ closes it and ☰ brings it back.
+
+### Changed
+- **Status bar:** the line naming the encryption (AES-256-GCM, PBKDF2) is gone.
+- **Database upgrades on start:** a new `session_reports` table.
+- **Tests:** 151 JUnit tests now.
+
 ## Unreleased: Phases 2 and 3
 
 ### Added
