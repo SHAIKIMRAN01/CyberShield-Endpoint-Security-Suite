@@ -40,11 +40,6 @@
             <Label text="Every account has its own vault" wrapText="true" styleClass="brand-point"/>
         </HBox>
 
-        <HBox spacing="10" alignment="TOP_LEFT">
-            <Circle radius="4" style="-fx-fill: #B06A2F;" translateY="6"/>
-            <Label text="AES-256 encryption, nothing sent anywhere" wrapText="true" styleClass="brand-point"/>
-        </HBox>
-
     </VBox>
 
     <Region VBox.vgrow="ALWAYS"/>

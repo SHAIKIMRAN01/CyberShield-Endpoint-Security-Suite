@@ -15,7 +15,7 @@
 - **Sidebar:** the ☰ button in the header (or Ctrl+B) shrinks it to its icons, with the names as tooltips, and widens it again; ✕ closes it and ☰ brings it back.
 
 ### Changed
-- **Status bar:** the line naming the encryption (AES-256-GCM, PBKDF2) is gone.
+- **No encryption names on screen:** the status bar's line naming AES-256-GCM and PBKDF2, and the sign-in screen's "AES-256 encryption" point, are gone.
 - **Database upgrades on start:** a new `session_reports` table.
 - **Tests:** 151 JUnit tests now.
 
