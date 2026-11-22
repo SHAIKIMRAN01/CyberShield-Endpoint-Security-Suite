@@ -120,6 +120,100 @@ public class SettingsDAO {
 
     }
 
+    // =====================================================
+    // THEME
+    // =====================================================
+
+    /** The account's theme (LIGHT or DARK), or null if it never chose one. Never fails: a read error gives null. */
+    public String theme(int userId) {
+
+        try (
+                Connection connection = DatabaseManager.getConnection();
+                PreparedStatement statement = connection.prepareStatement("SELECT theme FROM user_settings WHERE user_id = ?")
+        ) {
+
+            statement.setInt(1, userId);
+
+            try (ResultSet rs = statement.executeQuery()) {
+                return rs.next() ? rs.getString(1) : null;
+            }
+
+        } catch (SQLException e) {
+
+            AppLogger.error("Couldn't read the theme", e);
+
+            return null;
+
+        }
+
+    }
+
+    /** Saves the account's theme; its other settings stay as they are. */
+    public void saveTheme(int userId, String theme) throws SQLException {
+
+        Settings current = load(userId);
+
+        String sql = """
+                INSERT INTO user_settings (user_id, auto_lock_minutes, clipboard_clear_seconds, theme, updated_at)
+                VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+                ON CONFLICT(user_id) DO UPDATE SET
+                    theme = excluded.theme,
+                    updated_at = CURRENT_TIMESTAMP
+                """;
+
+        try (
+                Connection connection = DatabaseManager.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)
+        ) {
+
+            statement.setInt(1, userId);
+            statement.setInt(2, current.autoLockMinutes());
+            statement.setInt(3, current.clipboardClearSeconds());
+            statement.setString(4, theme);
+
+            statement.executeUpdate();
+
+        }
+
+    }
+
+    /** The theme the sign-in screen shows: the one the last account to sign in used, or null. Never fails. */
+    public String appTheme() {
+
+        try (
+                Connection connection = DatabaseManager.getConnection();
+                PreparedStatement statement = connection.prepareStatement("SELECT value FROM app_settings WHERE key = 'theme'");
+                ResultSet rs = statement.executeQuery()
+        ) {
+
+            return rs.next() ? rs.getString(1) : null;
+
+        } catch (SQLException e) {
+
+            AppLogger.error("Couldn't read the sign-in screen's theme", e);
+
+            return null;
+
+        }
+
+    }
+
+    public void saveAppTheme(String theme) throws SQLException {
+
+        try (
+                Connection connection = DatabaseManager.getConnection();
+                PreparedStatement statement = connection.prepareStatement(
+                        "INSERT INTO app_settings (key, value) VALUES ('theme', ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value")
+        ) {
+
+            statement.setString(1, theme);
+
+            statement.executeUpdate();
+
+        }
+
+    }
+
     /** Minutes without mouse or keyboard use before the signed-in account's vault locks itself. */
     public int autoLockMinutes() {
 

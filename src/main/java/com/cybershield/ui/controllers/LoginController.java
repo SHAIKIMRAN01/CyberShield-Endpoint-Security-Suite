@@ -1,7 +1,11 @@
 package com.cybershield.ui.controllers;
 
+import com.cybershield.logger.AppLogger;
+import com.cybershield.security.SessionManager;
+import com.cybershield.dao.SettingsDAO;
 import com.cybershield.services.AuthenticationService;
 import com.cybershield.services.AuthenticationService.LoginResult;
+import com.cybershield.ui.Theme;
 import com.cybershield.ui.Ui;
 
 import javafx.animation.Animation;
@@ -37,6 +41,8 @@ public class LoginController {
     private Button signInButton;
 
     private final AuthenticationService auth = new AuthenticationService();
+
+    private final SettingsDAO settings = new SettingsDAO();
 
     private Timeline countdown;
 
@@ -186,17 +192,30 @@ public class LoginController {
 
         usernameField.getScene().setRoot(register.root());
 
+        Theme.style(usernameField.getScene());
+
     }
 
     private void openDashboard() {
 
         stopCountdown();
 
+        // Each account has its own theme; the sign-in screen keeps the last one used.
+        Theme.Mode theme = Theme.Mode.of(settings.theme(SessionManager.currentUserId()));
+
+        Theme.use(theme);
+
+        try {
+            settings.saveAppTheme(theme.name());
+        } catch (java.sql.SQLException e) {
+            AppLogger.error("Couldn't keep the theme for the sign-in screen", e);
+        }
+
         Ui.Loaded<DashboardController> dashboard = Ui.load("/fxml/dashboard.fxml");
 
         Stage stage = (Stage) usernameField.getScene().getWindow();
 
-        stage.setScene(new Scene(dashboard.root()));
+        stage.setScene(Theme.style(new Scene(dashboard.root())));
 
         stage.setMinWidth(DashboardController.MIN_WIDTH);
         stage.setMinHeight(DashboardController.MIN_HEIGHT);

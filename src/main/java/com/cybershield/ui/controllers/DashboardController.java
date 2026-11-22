@@ -5,6 +5,7 @@ import com.cybershield.logger.AppLogger;
 import com.cybershield.models.User;
 import com.cybershield.security.SessionManager;
 import com.cybershield.services.AuthenticationService;
+import com.cybershield.ui.Theme;
 import com.cybershield.ui.Ui;
 import com.cybershield.vault.AutoLock;
 import com.cybershield.vault.VaultService;
@@ -738,7 +739,7 @@ public class DashboardController {
                 stage.setMinWidth(LoginController.MIN_WIDTH);
                 stage.setMinHeight(LoginController.MIN_HEIGHT);
 
-                stage.setScene(new Scene(Ui.load("/fxml/login.fxml").root()));
+                stage.setScene(Theme.style(new Scene(Ui.load("/fxml/login.fxml").root())));
 
                 if (!stage.isMaximized()) {
                     stage.sizeToScene();
@@ -748,6 +749,8 @@ public class DashboardController {
             } else {
 
                 scene.setRoot(Ui.load("/fxml/login.fxml").root());
+
+                Theme.style(scene);
 
             }
 

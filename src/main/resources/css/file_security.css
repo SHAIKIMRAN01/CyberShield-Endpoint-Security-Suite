@@ -10,7 +10,7 @@
 
     -fx-font-weight: bold;
 
-    -fx-text-fill: -cs-brown-800;
+    -fx-text-fill: -cs-heading;
 
 }
 
@@ -53,7 +53,7 @@
 
 .file-security .tray-title {
 
-    -fx-text-fill: -cs-brown-800;
+    -fx-text-fill: -cs-heading;
 
     -fx-font-weight: bold;
 
@@ -129,7 +129,7 @@
 
     -fx-font-weight: bold;
 
-    -fx-text-fill: -cs-brown-800;
+    -fx-text-fill: -cs-heading;
 
 }
 
@@ -210,6 +210,6 @@
 
     -fx-font-weight: bold;
 
-    -fx-text-fill: -cs-brown-800;
+    -fx-text-fill: -cs-heading;
 
 }

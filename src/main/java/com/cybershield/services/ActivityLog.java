@@ -64,6 +64,7 @@ public final class ActivityLog {
         PHOTO_DETAILS_REMOVED("Removed details from photos"),
         TRACES_CLEANED("Cleaned Windows traces"),
         SETTINGS_SAVED("Changed auto-lock or clipboard settings"),
+        THEME_CHANGED("Changed the theme"),
         ACCOUNT_PASSWORD_CHANGED("Changed the account password"),
         MASTER_PASSWORD_CHANGED("Changed the master password"),
         HISTORY_CLEARED("Cleared the sign-in history");

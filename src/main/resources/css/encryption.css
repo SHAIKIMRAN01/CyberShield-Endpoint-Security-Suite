@@ -25,7 +25,7 @@
 
 .tool-tab .tab-title {
     -fx-font-weight: bold;
-    -fx-text-fill: -cs-brown-800;
+    -fx-text-fill: -cs-heading;
 }
 
 .tool-tab .tab-text {

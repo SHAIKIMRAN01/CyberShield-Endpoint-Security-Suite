@@ -10,6 +10,7 @@ import com.cybershield.models.User;
 import com.cybershield.security.SessionManager;
 import com.cybershield.services.ActivityLog;
 import com.cybershield.services.AuthenticationService;
+import com.cybershield.ui.Theme;
 import com.cybershield.ui.Ui;
 import com.cybershield.utils.DisplayFormat;
 import com.cybershield.vault.AutoLock;
@@ -25,10 +26,12 @@ import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.control.RadioButton;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
+import javafx.scene.control.ToggleGroup;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.DirectoryChooser;
@@ -49,6 +52,24 @@ public class SettingsController {
 
     @FXML
     private Button securityTab;
+
+    @FXML
+    private Button appearanceTab;
+
+    @FXML
+    private VBox appearancePanel;
+
+    @FXML
+    private ToggleGroup themeGroup;
+
+    @FXML
+    private RadioButton lightChoice;
+
+    @FXML
+    private RadioButton darkChoice;
+
+    @FXML
+    private Label appearanceMessage;
 
     @FXML
     private Button accountTab;
@@ -256,6 +277,14 @@ public class SettingsController {
 
         initializeHistoryTable();
 
+        (Theme.isDark() ? darkChoice : lightChoice).setSelected(true);
+
+        themeGroup.selectedToggleProperty().addListener((observable, before, chosen) -> {
+            if (chosen != null) {
+                chooseTheme(chosen == darkChoice ? Theme.Mode.DARK : Theme.Mode.LIGHT);
+            }
+        });
+
         showSecurity();
 
     }
@@ -304,14 +333,50 @@ public class SettingsController {
 
     private void show(Button tab, VBox panel) {
 
-        for (Button each : List.of(securityTab, accountTab, masterTab, historyTab, backupTab)) {
+        for (Button each : List.of(securityTab, appearanceTab, accountTab, masterTab, historyTab, backupTab)) {
             each.getStyleClass().remove("active");
         }
 
         tab.getStyleClass().add("active");
 
-        for (VBox each : List.of(securityPanel, accountPanel, masterPanel, historyPanel, backupPanel)) {
+        for (VBox each : List.of(securityPanel, appearancePanel, accountPanel, masterPanel, historyPanel, backupPanel)) {
             each.setVisible(each == panel);
+        }
+
+    }
+
+    @FXML
+    public void showAppearance() {
+
+        show(appearanceTab, appearancePanel);
+
+    }
+
+    /** Switches every window at once, and keeps the choice for this account and the sign-in screen. */
+    void chooseTheme(Theme.Mode mode) {
+
+        if (mode == Theme.current()) {
+            return;
+        }
+
+        Theme.use(mode);
+
+        try {
+
+            settingsDAO.saveTheme(userId, mode.name());
+
+            settingsDAO.saveAppTheme(mode.name());
+
+            ActivityLog.recordPlain(ActivityLog.Action.THEME_CHANGED, mode == Theme.Mode.DARK ? "Dark" : "Light");
+
+            Ui.message(appearanceMessage, (mode == Theme.Mode.DARK ? "Dark" : "Light") + " theme on, kept for this account.", "good");
+
+        } catch (SQLException e) {
+
+            AppLogger.error("Couldn't save the theme", e);
+
+            Ui.message(appearanceMessage, "The theme changed, but it couldn't be kept. Details are in CyberShield's log file.", "bad");
+
         }
 
     }

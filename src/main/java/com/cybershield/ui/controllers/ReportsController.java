@@ -7,6 +7,7 @@ import com.cybershield.reports.ReportService;
 import com.cybershield.reports.SessionReports;
 import com.cybershield.ui.viewer.PdfPreview;
 import com.cybershield.services.SecurityScore;
+import com.cybershield.ui.Theme;
 import com.cybershield.ui.Ui;
 import com.cybershield.utils.DisplayFormat;
 import com.cybershield.vault.VaultService;
@@ -1018,9 +1019,9 @@ public class ReportsController implements LockableScreen {
 
         BorderPane root = new BorderPane(preview.view());
         root.setBottom(bar);
-        root.setStyle("-fx-background-color: #FAF6F0;");
+        root.setStyle("-fx-background-color: -cs-paper;");
 
-        Scene scene = new Scene(root, 860, 760);
+        Scene scene = Theme.style(new Scene(root, 860, 760));
         scene.getStylesheets().add(Ui.class.getResource("/css/theme.css").toExternalForm());
 
         Stage window = new Stage();

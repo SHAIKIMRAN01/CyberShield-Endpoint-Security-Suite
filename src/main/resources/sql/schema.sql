@@ -219,6 +219,9 @@ CREATE TABLE IF NOT EXISTS user_settings
 
     clipboard_clear_seconds INTEGER NOT NULL DEFAULT 30,
 
+    -- LIGHT or DARK, or nothing yet (which means light).
+    theme TEXT,
+
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
     FOREIGN KEY(user_id)
@@ -284,6 +287,15 @@ CREATE TABLE IF NOT EXISTS reports
     report_type TEXT,
 
     file_path TEXT
+);
+
+-- Settings of the app itself rather than of one account, by name. "theme" is the
+-- theme the sign-in screen shows: the one the last account to sign in used.
+CREATE TABLE IF NOT EXISTS app_settings
+(
+    key TEXT PRIMARY KEY,
+
+    value TEXT
 );
 
 -- The automatic monthly report, per account: on or off, the folder it is

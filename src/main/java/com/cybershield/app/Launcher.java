@@ -3,6 +3,7 @@ package com.cybershield.app;
 import com.cybershield.config.AppConfig;
 import com.cybershield.database.DatabaseInitializer;
 import com.cybershield.logger.AppLogger;
+import com.cybershield.ui.Theme;
 import com.cybershield.ui.Ui;
 import com.cybershield.ui.controllers.LoginController;
 
@@ -30,6 +31,9 @@ public class Launcher extends Application {
             com.cybershield.database.LegacyDatabase.copyIfNeeded();
 
             DatabaseInitializer.initialize();
+
+            // The sign-in screen shows the theme the last account used.
+            Theme.use(Theme.Mode.of(new com.cybershield.dao.SettingsDAO().appTheme()));
 
             // Sign-ins and activity are kept for 30 days.
             com.cybershield.services.ActivityLog.purgeOld();
@@ -61,13 +65,13 @@ public class Launcher extends Application {
         // The key opens the treasure chest, then the sign-in screen appears (-Dcybershield.noIntro=true skips it).
         if (Boolean.getBoolean("cybershield.noIntro")) {
 
-            stage.setScene(new Scene(Ui.load("/fxml/login.fxml").root()));
+            stage.setScene(Theme.style(new Scene(Ui.load("/fxml/login.fxml").root())));
 
             stage.show();
 
         } else {
 
-            com.cybershield.ui.OpeningAnimation.playIn(stage, () -> new Scene(Ui.load("/fxml/login.fxml").root()));
+            com.cybershield.ui.OpeningAnimation.playIn(stage, () -> Theme.style(new Scene(Ui.load("/fxml/login.fxml").root())));
 
         }
 

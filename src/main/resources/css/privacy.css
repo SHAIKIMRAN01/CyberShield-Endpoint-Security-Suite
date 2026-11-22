@@ -14,5 +14,5 @@
 
 .privacy .trace-choice .check-box {
     -fx-font-weight: bold;
-    -fx-text-fill: -cs-brown-800;
+    -fx-text-fill: -cs-heading;
 }

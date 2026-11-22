@@ -80,13 +80,28 @@ public final class DatabaseInitializer {
 
         }
 
-        for (String part : sql.split(";")) {
-
-            if (!part.isBlank()) {
-                statement.execute(part);
-            }
-
+        for (String part : statements(sql)) {
+            statement.execute(part);
         }
+
+    }
+
+    /**
+     * The statements of a script, without its -- comments: a semicolon in a comment would
+     * otherwise cut a statement in two. (The schema has no "--" inside quoted text.)
+     */
+    static java.util.List<String> statements(String sql) {
+
+        String code = sql.lines()
+                .map(line -> {
+                    int comment = line.indexOf("--");
+                    return comment < 0 ? line : line.substring(0, comment);
+                })
+                .collect(Collectors.joining("\n"));
+
+        return java.util.Arrays.stream(code.split(";"))
+                .filter(part -> !part.isBlank())
+                .toList();
 
     }
 
@@ -114,6 +129,8 @@ public final class DatabaseInitializer {
         addColumn(statement, "password_entries", "fields_encrypted", "INTEGER DEFAULT 0");
 
         addColumn(statement, "reports", "user_id", "INTEGER");
+
+        addColumn(statement, "user_settings", "theme", "TEXT");
 
         statement.execute("CREATE INDEX IF NOT EXISTS idx_reports_user ON reports(user_id)");
 

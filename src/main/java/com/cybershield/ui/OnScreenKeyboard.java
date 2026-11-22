@@ -38,11 +38,28 @@ public final class OnScreenKeyboard {
 
     private static final SecureRandom RANDOM = new SecureRandom();
 
-    private static final String KEY_STYLE = "-fx-background-color: #F2E9DD; -fx-background-radius: 6; -fx-text-fill: #2B1D15; "
-            + "-fx-font-size: 14px; -fx-min-width: 34; -fx-pref-width: 34; -fx-min-height: 32; -fx-padding: 0; -fx-cursor: hand;";
+    // The keyboard is a popup of its own, outside the window's stylesheets: its colours are
+    // set here, from the theme's palette (sand keys, ink text, card background, line border).
+    private static final String KEY_SHAPE = "-fx-background-radius: 6; -fx-font-size: 14px; -fx-min-width: 34; -fx-pref-width: 34; "
+            + "-fx-min-height: 32; -fx-padding: 0; -fx-cursor: hand;";
 
-    private static final String WIDE_STYLE = "-fx-background-color: #E6D9C8; -fx-background-radius: 6; -fx-text-fill: #2B1D15; "
-            + "-fx-font-size: 12px; -fx-min-height: 32; -fx-padding: 0 12 0 12; -fx-cursor: hand;";
+    private static final String WIDE_SHAPE = "-fx-background-radius: 6; -fx-font-size: 12px; -fx-min-height: 32; "
+            + "-fx-padding: 0 12 0 12; -fx-cursor: hand;";
+
+    private static String keyStyle() {
+        return (Theme.isDark() ? "-fx-background-color: #322720; -fx-text-fill: #EFE5DA; " : "-fx-background-color: #F2E9DD; -fx-text-fill: #2B1D15; ")
+                + KEY_SHAPE;
+    }
+
+    private static String wideStyle() {
+        return (Theme.isDark() ? "-fx-background-color: #3D3027; -fx-text-fill: #EFE5DA; " : "-fx-background-color: #E6D9C8; -fx-text-fill: #2B1D15; ")
+                + WIDE_SHAPE;
+    }
+
+    private static String panelStyle() {
+        return (Theme.isDark() ? "-fx-background-color: #271E18; -fx-border-color: #4A3B30; " : "-fx-background-color: #FFFDF9; -fx-border-color: #DDD0BE; ")
+                + "-fx-background-radius: 10; -fx-border-radius: 10; -fx-effect: dropshadow(gaussian, rgba(46,31,22,0.18), 14, 0.1, 0, 4);";
+    }
 
     private final TextInputControl target;
 
@@ -69,8 +86,6 @@ public final class OnScreenKeyboard {
         }
 
         rows.setPadding(new Insets(10));
-        rows.setStyle("-fx-background-color: #FFFDF9; -fx-background-radius: 10; -fx-border-color: #DDD0BE; "
-                + "-fx-border-radius: 10; -fx-effect: dropshadow(gaussian, rgba(46,31,22,0.18), 14, 0.1, 0, 4);");
 
         popup.getContent().add(rows);
         popup.setAutoHide(true);
@@ -138,6 +153,8 @@ public final class OnScreenKeyboard {
             return;
         }
 
+        draw();
+
         popup.show(target, bounds.getMinX(), bounds.getMaxY() + 6);
 
         target.requestFocus();
@@ -145,6 +162,8 @@ public final class OnScreenKeyboard {
     }
 
     private void draw() {
+
+        rows.setStyle(panelStyle());
 
         rows.getChildren().clear();
 
@@ -160,12 +179,12 @@ public final class OnScreenKeyboard {
 
                 String character = String.valueOf(keys[r].charAt(place));
 
-                row.getChildren().add(key(character, KEY_STYLE, () -> type(character)));
+                row.getChildren().add(key(character, keyStyle(), () -> type(character)));
 
             }
 
             if (r == 0) {
-                row.getChildren().add(key("⌫", WIDE_STYLE, this::backspace));
+                row.getChildren().add(key("⌫", wideStyle(), this::backspace));
             }
 
             rows.getChildren().add(row);
@@ -176,17 +195,17 @@ public final class OnScreenKeyboard {
 
         bottom.setAlignment(Pos.CENTER);
 
-        Button shift = key(shifted ? "Shift (on)" : "Shift", WIDE_STYLE, () -> {
+        Button shift = key(shifted ? "Shift (on)" : "Shift", wideStyle(), () -> {
             shifted = !shifted;
             draw();
         });
 
-        Button space = key("Space", WIDE_STYLE, () -> type(" "));
+        Button space = key("Space", wideStyle(), () -> type(" "));
         space.setMinWidth(160);
 
-        Button mix = key(mixed ? "Keys in order" : "Mix the keys", WIDE_STYLE, this::toggleMix);
+        Button mix = key(mixed ? "Keys in order" : "Mix the keys", wideStyle(), this::toggleMix);
 
-        Button done = key("Done", WIDE_STYLE, popup::hide);
+        Button done = key("Done", wideStyle(), popup::hide);
 
         bottom.getChildren().addAll(shift, space, mix, done);
 

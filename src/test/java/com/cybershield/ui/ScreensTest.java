@@ -298,6 +298,51 @@ class ScreensTest {
         waitFor(() -> label(scene, "#backupStatus").contains("protected item"), "the backup section shows what there is");
         snapshot("30-settings-backup", scene);
 
+        // The dark theme, chosen in Settings, on the main screens
+        run(() -> ((Button) scene.lookup("#appearanceTab")).fire());
+        run(() -> ((javafx.scene.control.RadioButton) scene.lookup("#darkChoice")).fire());
+        run(() -> Theme.style(scene));
+        assertEquals(Theme.Mode.DARK, Theme.current());
+        snapshot("31-dark-settings-appearance", scene);
+        run(dashboard.controller()::openDashboard);
+        snapshot("32-dark-home", scene);
+        run(dashboard.controller()::openPasswordVault);
+        snapshot("33-dark-password-vault", scene);
+        run(() -> ((Button) scene.lookup("#notesButton")).fire());
+        run(() -> ((ListView<?>) scene.lookup("#noteList")).getSelectionModel().select(1));
+        snapshot("34-dark-secure-notes", scene);
+        System.setProperty("user.home", home.toString());
+        try {
+            run(dashboard.controller()::openFileSecurity);
+        } finally {
+            System.setProperty("user.home", realHome);
+        }
+        Thread.sleep(400);
+        run(() -> ((TabPane) scene.lookup(".tab-pane")).getSelectionModel().select(1));
+        Thread.sleep(600);
+        run(() -> selectFirstFile(scene));
+        Thread.sleep(1200);
+        snapshot("35-dark-file-security", scene);
+        run(dashboard.controller()::openEncryptionCenter);
+        snapshot("36-dark-encryption", scene);
+        run(() -> ((Button) scene.lookup("#stegoButton")).fire());
+        run(() -> ScreenDriver.stegoCover(dashboard.controller(), garden));
+        waitFor(() -> label(scene, "#coverLabel").contains("800 × 520"), "the picture is read");
+        snapshot("37-dark-steganography", scene);
+        run(() -> ((Button) scene.lookup("#privacyButton")).fire());
+        run(() -> ((Button) scene.lookup("#tracesTab")).fire());
+        run(() -> ScreenDriver.privacyTraces(dashboard.controller(), madeUp));
+        waitFor(() -> ((VBox) scene.lookup("#traceChoices")).getChildren().size() == 4, "what was found is listed");
+        snapshot("38-dark-privacy", scene);
+        run(() -> ((Button) scene.lookup("#reportsButton")).fire());
+        snapshot("39-dark-reports", scene);
+        snapshot("40-dark-sign-in", onFx(() -> Theme.style(new Scene(Ui.load("/fxml/login.fxml").root(), 960, 600))));
+        run(dashboard.controller()::openSettings);
+        run(() -> ((Button) scene.lookup("#appearanceTab")).fire());
+        run(() -> ((javafx.scene.control.RadioButton) scene.lookup("#lightChoice")).fire());
+        run(() -> Theme.style(scene));
+        assertEquals(Theme.Mode.LIGHT, Theme.current(), "back to light");
+
         // The sidebar shrunk to its icons, then closed (the ☰ button brings it back)
         run(() -> dashboard.controller().showSidebar(DashboardController.SidebarMode.RAIL, false));
         run(dashboard.controller()::openDashboard);

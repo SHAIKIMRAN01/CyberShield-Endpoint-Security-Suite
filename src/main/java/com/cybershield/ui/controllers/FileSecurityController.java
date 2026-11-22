@@ -2,6 +2,7 @@ package com.cybershield.ui.controllers;
 
 import com.cybershield.encryption.FileDecryptor;
 import com.cybershield.files.CloudFiles;
+import com.cybershield.ui.Theme;
 import com.cybershield.ui.Ui;
 import com.cybershield.files.FileSelection;
 import com.cybershield.files.FileVaultService;
@@ -1543,7 +1544,7 @@ public class FileSecurityController implements LockableScreen {
         root.getStylesheets().add(getClass().getResource("/css/theme.css").toExternalForm());
         root.getStylesheets().add(getClass().getResource("/css/file_security.css").toExternalForm());
 
-        Scene scene = new Scene(root, 1000, 700);
+        Scene scene = Theme.style(new Scene(root, 1000, 700));
 
         scene.addEventFilter(KeyEvent.KEY_PRESSED, event -> {
             if (event.getCode() == KeyCode.ESCAPE) {

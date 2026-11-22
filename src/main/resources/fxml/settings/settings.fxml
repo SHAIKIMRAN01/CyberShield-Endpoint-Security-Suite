@@ -6,6 +6,8 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.PasswordField?>
 <?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.control.RadioButton?>
+<?import javafx.scene.control.ToggleGroup?>
 <?import javafx.scene.control.Spinner?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
@@ -41,6 +43,15 @@
                 <VBox spacing="2">
                     <Label text="Auto-lock and clipboard" styleClass="tab-title"/>
                     <Label text="When the vault locks, how long copies last" styleClass="tab-text"/>
+                </VBox>
+            </graphic>
+        </Button>
+
+        <Button fx:id="appearanceTab" styleClass="settings-tab" maxWidth="Infinity" maxHeight="-Infinity" onAction="#showAppearance">
+            <graphic>
+                <VBox spacing="2">
+                    <Label text="Appearance" styleClass="tab-title"/>
+                    <Label text="Light or dark" styleClass="tab-text"/>
                 </VBox>
             </graphic>
         </Button>
@@ -255,6 +266,52 @@
             </HBox>
 
             <Label fx:id="clearMessage" styleClass="message" wrapText="true" visible="false" managed="false"/>
+
+        </VBox>
+
+        <!-- APPEARANCE -->
+        <VBox fx:id="appearancePanel" styleClass="card,settings-panel" spacing="12" maxHeight="-Infinity" StackPane.alignment="TOP_LEFT" visible="false">
+
+            <fx:define>
+                <ToggleGroup fx:id="themeGroup"/>
+            </fx:define>
+
+            <Label text="Appearance" styleClass="section-heading"/>
+
+            <Label text="Each account chooses for itself, and it changes at once. The sign-in screen shows the theme the last account used."
+                   styleClass="hint" wrapText="true" minHeight="-Infinity"/>
+
+            <HBox spacing="14">
+
+                <RadioButton fx:id="lightChoice" toggleGroup="$themeGroup" styleClass="theme-choice" text="Light">
+                    <graphic>
+                        <HBox styleClass="theme-swatch,light" spacing="4">
+                            <Region styleClass="swatch-side"/>
+                            <VBox spacing="5" styleClass="swatch-page">
+                                <Region styleClass="swatch-heading"/>
+                                <Region styleClass="swatch-line"/>
+                                <Region styleClass="swatch-button"/>
+                            </VBox>
+                        </HBox>
+                    </graphic>
+                </RadioButton>
+
+                <RadioButton fx:id="darkChoice" toggleGroup="$themeGroup" styleClass="theme-choice" text="Dark">
+                    <graphic>
+                        <HBox styleClass="theme-swatch,dark" spacing="4">
+                            <Region styleClass="swatch-side"/>
+                            <VBox spacing="5" styleClass="swatch-page">
+                                <Region styleClass="swatch-heading"/>
+                                <Region styleClass="swatch-line"/>
+                                <Region styleClass="swatch-button"/>
+                            </VBox>
+                        </HBox>
+                    </graphic>
+                </RadioButton>
+
+            </HBox>
+
+            <Label fx:id="appearanceMessage" styleClass="message" wrapText="true" visible="false" managed="false" minHeight="-Infinity"/>
 
         </VBox>
 

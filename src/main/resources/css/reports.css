@@ -25,12 +25,12 @@
 .reports .figure-number {
     -fx-font-size: 26px;
     -fx-font-weight: bold;
-    -fx-text-fill: -cs-brown-800;
+    -fx-text-fill: -cs-heading;
 }
 
 .reports .history-counts {
     -fx-font-weight: bold;
-    -fx-text-fill: -cs-brown-800;
+    -fx-text-fill: -cs-heading;
 }
 
 .reports .monthly-box {
@@ -39,7 +39,7 @@
 
 .reports .monthly-check {
     -fx-font-weight: bold;
-    -fx-text-fill: -cs-brown-800;
+    -fx-text-fill: -cs-heading;
 }
 
 .reports .confirm-box {

@@ -1,5 +1,6 @@
 /*
- * CyberShield theme: warm off-white with brown, used by every window.
+ * CyberShield theme: warm off-white with brown, used by every window. theme-dark.css
+ * gives the same colour names dark values (see ui/Theme.java).
  *
  * Colour weights follow 60-30-10: off-white paper for most of the screen,
  * brown for structure (sidebar, headings, primary buttons) and one caramel
@@ -36,13 +37,22 @@
     -cs-warn: #865800;
     -cs-warn-bg: #F7EBD0;
 
+    /* roles: what a colour is for, so the dark theme (theme-dark.css) can give each its own */
+    -cs-heading: -cs-brown-800;
+    -cs-heading-soft: -cs-brown-700;
+    -cs-primary: -cs-brown-700;
+    -cs-primary-hover: -cs-brown-600;
+    -cs-primary-pressed: -cs-brown-800;
+    -cs-danger: -cs-bad;
+    -cs-danger-hover: #B8462F;
+
     /* Modena's own colours, so built-in controls match */
     -fx-base: #EEE4D7;
     -fx-background: -cs-paper;
     -fx-control-inner-background: -cs-card;
     -fx-control-inner-background-alt: #F8F2EA;
     -fx-accent: -cs-brown-600;
-    -fx-default-button: -cs-brown-700;
+    -fx-default-button: -cs-primary;
     -fx-focus-color: -cs-caramel;
     -fx-faint-focus-color: #B06A2F33;
     -fx-dark-text-color: -cs-ink;
@@ -65,13 +75,13 @@
 .screen-title {
     -fx-font-size: 22px;
     -fx-font-weight: bold;
-    -fx-text-fill: -cs-brown-800;
+    -fx-text-fill: -cs-heading;
 }
 
 .section-heading {
     -fx-font-size: 15px;
     -fx-font-weight: bold;
-    -fx-text-fill: -cs-brown-800;
+    -fx-text-fill: -cs-heading;
 }
 
 .subtitle,
@@ -92,7 +102,7 @@
 .big-number {
     -fx-font-size: 28px;
     -fx-font-weight: bold;
-    -fx-text-fill: -cs-brown-800;
+    -fx-text-fill: -cs-heading;
 }
 
 /* status messages under forms */
@@ -123,7 +133,7 @@
 
 .primary-button,
 .button:default {
-    -fx-background-color: -cs-brown-700;
+    -fx-background-color: -cs-primary;
     -fx-text-fill: white;
     -fx-font-weight: bold;
     -fx-background-insets: 0;
@@ -131,12 +141,12 @@
 
 .primary-button:hover,
 .button:default:hover {
-    -fx-background-color: -cs-brown-600;
+    -fx-background-color: -cs-primary-hover;
 }
 
 .primary-button:pressed,
 .button:default:pressed {
-    -fx-background-color: -cs-brown-800;
+    -fx-background-color: -cs-primary-pressed;
 }
 
 .primary-button:disabled,
@@ -145,13 +155,13 @@
 }
 
 .danger-button {
-    -fx-background-color: -cs-bad;
+    -fx-background-color: -cs-danger;
     -fx-text-fill: white;
     -fx-background-insets: 0;
 }
 
 .danger-button:hover {
-    -fx-background-color: #B8462F;
+    -fx-background-color: -cs-danger-hover;
 }
 
 .link-button {
@@ -254,7 +264,7 @@
 
 .chip.plain {
     -fx-background-color: -cs-sand;
-    -fx-text-fill: -cs-brown-700;
+    -fx-text-fill: -cs-heading-soft;
 }
 
 /* ------------------------------------------------------------- tables and lists */
@@ -281,7 +291,7 @@
 }
 
 .table-view .column-header .label {
-    -fx-text-fill: -cs-brown-700;
+    -fx-text-fill: -cs-heading-soft;
     -fx-font-weight: bold;
     -fx-alignment: center-left;
     -fx-padding: 0 0 0 4;
@@ -316,7 +326,7 @@
 }
 
 .tab-pane > .tab-header-area > .headers-region > .tab:selected .tab-label {
-    -fx-text-fill: -cs-brown-800;
+    -fx-text-fill: -cs-heading;
 }
 
 .tab-pane > .tab-header-area > .tab-header-background {
@@ -397,5 +407,5 @@
 }
 
 .keyboard-button .keyboard-icon {
-    -fx-fill: -cs-brown-700;
+    -fx-fill: -cs-heading-soft;
 }

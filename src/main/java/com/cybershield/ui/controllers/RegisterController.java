@@ -1,6 +1,7 @@
 package com.cybershield.ui.controllers;
 
 import com.cybershield.services.AuthenticationService;
+import com.cybershield.ui.Theme;
 import com.cybershield.ui.Ui;
 
 import javafx.application.Platform;
@@ -90,6 +91,8 @@ public class RegisterController {
 
             usernameField.getScene().setRoot(login.root());
 
+            Theme.style(usernameField.getScene());
+
         }, error -> {
 
             createButton.setDisable(false);
@@ -104,6 +107,8 @@ public class RegisterController {
     private void backToSignIn() {
 
         usernameField.getScene().setRoot(Ui.<LoginController>load("/fxml/login.fxml").root());
+
+        Theme.style(usernameField.getScene());
 
     }
 

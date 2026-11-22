@@ -18,7 +18,7 @@
 .vault-side .side-title {
     -fx-font-size: 16px;
     -fx-font-weight: bold;
-    -fx-text-fill: -cs-brown-800;
+    -fx-text-fill: -cs-heading;
 }
 
 .vault-side .side-point {

@@ -60,8 +60,6 @@ public final class OpeningAnimation {
     // Logo canvas units to pixels.
     private static final double SCALE = 1.45;
 
-    private static final Color PAPER = Color.web("#FAF6F0");
-
     private static final Color GOLD = Color.web("#E2A93B");
 
     private static final Color GOLD_LIGHT = Color.web("#F6D27A");
@@ -251,7 +249,7 @@ public final class OpeningAnimation {
         key.setTranslateX(startX - centerX);
         key.setTranslateY(startY - centerY);
 
-        Rectangle flash = new Rectangle(WIDTH, HEIGHT, PAPER);
+        Rectangle flash = new Rectangle(WIDTH, HEIGHT, Theme.paper());
         flash.setOpacity(0);
         flash.setMouseTransparent(true);
 

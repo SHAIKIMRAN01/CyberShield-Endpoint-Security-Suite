@@ -1,0 +1,67 @@
+/*
+ * CyberShield's dark theme: the colour names of theme.css with deep brown values. It is
+ * added after theme.css on each window's root (see ui/Theme.java), so every screen and
+ * stylesheet follows; the sidebar and the sign-in screen's brand panel stay brown.
+ *
+ * Contrast on the page colour: ink 14:1, muted 7:1, headings 13:1, caramel 6:1; white
+ * on the primary button 5.5:1 (WCAG AA and better).
+ */
+
+.root {
+
+    /* palette */
+    -cs-paper: #1D1611;
+    -cs-card: #271E18;
+    -cs-sand: #322720;
+    -cs-sand-dark: #3D3027;
+    -cs-line: #4A3B30;
+    -cs-brown-950: #0F0A07;
+    -cs-brown-900: #140E0A;
+    -cs-brown-800: #2C2018;
+    -cs-brown-700: #6E4529;
+    -cs-brown-600: #8E5E3B;
+    -cs-brown-500: #A57A58;
+    -cs-brown-200: #4F3E32;
+    -cs-caramel: #D08A4C;
+    -cs-ink: #EFE5DA;
+    -cs-muted: #B7A491;
+    -cs-on-brown: #F6EEE4;
+    -cs-on-brown-muted: #C2AD98;
+    -cs-good: #7FC48A;
+    -cs-good-bg: #1F3323;
+    -cs-bad: #E07A63;
+    -cs-bad-bg: #3D1F18;
+    -cs-warn: #E0B25C;
+    -cs-warn-bg: #3A2E14;
+
+    /* roles */
+    -cs-heading: #F0DCC6;
+    -cs-heading-soft: #DCC4AB;
+    -cs-primary: #8E5E3B;
+    -cs-primary-hover: #9E6B45;
+    -cs-primary-pressed: #7A4F31;
+    -cs-danger: #B4432F;
+    -cs-danger-hover: #C4513B;
+
+    /* Modena's own colours, so built-in controls match */
+    -fx-base: #3A2E25;
+    -fx-background: -cs-paper;
+    -fx-control-inner-background: -cs-card;
+    -fx-control-inner-background-alt: #2B211A;
+    -fx-accent: #7A4F31;
+    -fx-default-button: -cs-primary;
+    -fx-focus-color: -cs-caramel;
+    -fx-faint-focus-color: #D08A4C33;
+    -fx-dark-text-color: #1D1611;
+    -fx-mid-text-color: #C9B8A6;
+    -fx-light-text-color: #EFE5DA;
+    -fx-selection-bar-non-focused: -cs-sand-dark;
+
+    -fx-background-color: -cs-paper;
+
+}
+
+/* Modena draws the hint in an empty field darker than the field: on a dark field, lighter. */
+.text-input {
+    -fx-prompt-text-fill: #9A8775;
+}

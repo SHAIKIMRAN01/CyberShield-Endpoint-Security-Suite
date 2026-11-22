@@ -106,7 +106,7 @@
 }
 
 .menu-button .menu-icon {
-    -fx-fill: -cs-brown-800;
+    -fx-fill: -cs-heading;
 }
 
 /* ------------------------------------------------------------- header and status bar */
@@ -123,7 +123,7 @@
 }
 
 .header-bar .user-name {
-    -fx-text-fill: -cs-brown-800;
+    -fx-text-fill: -cs-heading;
     -fx-font-weight: bold;
 }
 
@@ -140,7 +140,7 @@
 }
 
 .status-bar .status-strong {
-    -fx-text-fill: -cs-brown-800;
+    -fx-text-fill: -cs-heading;
     -fx-font-weight: bold;
 }
 
@@ -163,7 +163,7 @@
 .home .greeting {
     -fx-font-size: 24px;
     -fx-font-weight: bold;
-    -fx-text-fill: -cs-brown-800;
+    -fx-text-fill: -cs-heading;
 }
 
 .home-card {
@@ -179,7 +179,7 @@
 .quick-card .card-title {
     -fx-font-size: 14px;
     -fx-font-weight: bold;
-    -fx-text-fill: -cs-brown-700;
+    -fx-text-fill: -cs-heading-soft;
 }
 
 .vault-banner {

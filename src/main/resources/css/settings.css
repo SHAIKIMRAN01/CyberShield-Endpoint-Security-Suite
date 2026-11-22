@@ -26,7 +26,7 @@
 
 .settings-tab .tab-title {
     -fx-font-weight: bold;
-    -fx-text-fill: -cs-brown-800;
+    -fx-text-fill: -cs-heading;
 }
 
 .settings-tab .tab-text {
@@ -38,9 +38,71 @@
     -fx-padding: 22 26 22 26;
 }
 
+/* Appearance: a small picture of each theme, in its own colours whichever is on. */
+.theme-choice {
+    -fx-content-display: top;
+    -fx-graphic-text-gap: 8;
+    -fx-font-weight: bold;
+}
+
+.theme-swatch {
+    -fx-padding: 6;
+    -fx-background-radius: 8;
+    -fx-border-radius: 8;
+    -fx-border-width: 1;
+}
+
+.theme-swatch.light {
+    -fx-background-color: #FAF6F0;
+    -fx-border-color: #DDD0BE;
+}
+
+.theme-swatch.dark {
+    -fx-background-color: #1D1611;
+    -fx-border-color: #4A3B30;
+}
+
+.theme-swatch .swatch-side {
+    -fx-min-width: 22;
+    -fx-pref-width: 22;
+    -fx-min-height: 64;
+    -fx-background-radius: 4;
+}
+
+.theme-swatch.light .swatch-side { -fx-background-color: #2E1F16; }
+.theme-swatch.dark .swatch-side { -fx-background-color: #140E0A; }
+
+.theme-swatch .swatch-page {
+    -fx-padding: 6;
+    -fx-background-radius: 4;
+}
+
+.theme-swatch.light .swatch-page { -fx-background-color: #FFFDF9; }
+.theme-swatch.dark .swatch-page { -fx-background-color: #271E18; }
+
+.theme-swatch .swatch-heading,
+.theme-swatch .swatch-line,
+.theme-swatch .swatch-button {
+    -fx-min-height: 7;
+    -fx-pref-height: 7;
+    -fx-background-radius: 3;
+}
+
+.theme-swatch .swatch-heading { -fx-min-width: 54; -fx-pref-width: 54; }
+.theme-swatch .swatch-line { -fx-min-width: 80; -fx-pref-width: 80; }
+.theme-swatch .swatch-button { -fx-min-width: 32; -fx-pref-width: 32; -fx-min-height: 12; -fx-pref-height: 12; }
+
+.theme-swatch.light .swatch-heading { -fx-background-color: #3D2A1E; }
+.theme-swatch.light .swatch-line { -fx-background-color: #6B5849; }
+.theme-swatch.light .swatch-button { -fx-background-color: #5A3B27; }
+
+.theme-swatch.dark .swatch-heading { -fx-background-color: #F0DCC6; }
+.theme-swatch.dark .swatch-line { -fx-background-color: #B7A491; }
+.theme-swatch.dark .swatch-button { -fx-background-color: #8E5E3B; }
+
 .settings-panel .backup-status {
     -fx-font-weight: bold;
-    -fx-text-fill: -cs-brown-800;
+    -fx-text-fill: -cs-heading;
 }
 
 .settings-panel .password-field {
