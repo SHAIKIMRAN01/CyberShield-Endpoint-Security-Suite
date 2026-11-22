@@ -113,6 +113,10 @@
 
             <Label fx:id="statusUser"/>
 
+            <Region HBox.hgrow="ALWAYS"/>
+
+            <Label fx:id="statusNote" styleClass="status-note"/>
+
         </HBox>
 
     </bottom>

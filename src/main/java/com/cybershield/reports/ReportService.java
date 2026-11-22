@@ -24,7 +24,9 @@ import java.nio.file.InvalidPathException;
 import java.nio.file.Path;
 import java.nio.file.StandardCopyOption;
 import java.sql.SQLException;
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
@@ -32,18 +34,25 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 
 /**
  * The security summary of the signed-in account: its score, password health, vault,
- * protected files, sign-ins and activity, saved as a PDF and kept in a list. A report
- * holds scores, counts and times only, never a password, note text, website name or
- * file name, so it can be kept or shared. Everything here needs the vault unlocked,
- * because password health is worked out from the decrypted passwords.
+ * protected files, sign-ins and activity, saved as a PDF and kept in a list; and the
+ * sign-in history of chosen days. A report holds scores, counts and times only, never a
+ * password, note text, website name or file name, so it can be kept or shared.
+ * Everything here needs the vault unlocked, because password health is worked out from
+ * the decrypted passwords.
  */
 public class ReportService {
 
     public static final String TYPE_SUMMARY = "SECURITY_SUMMARY";
+
+    /** A summary made by itself at the start of a month (see MonthlyReports). */
+    public static final String TYPE_MONTHLY = "MONTHLY_SUMMARY";
+
+    public static final String TYPE_SIGN_INS = "SIGN_IN_HISTORY";
 
     /** How far back sign-ins and activity go: as far as the activity log keeps them. */
     public static final int DAYS = ActivityLog.KEEP_DAYS;
@@ -55,6 +64,13 @@ public class ReportService {
             "Holds scores, counts and times only: no passwords, note text, website names or file names.";
 
     private static final DateTimeFormatter FILE_STAMP = DateTimeFormatter.ofPattern("yyyy-MM-dd HHmm");
+
+    private static final DateTimeFormatter FILE_DAY = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+
+    private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH);
+
+    /** More attempts than 30 days can hold: the history is read whole. */
+    private static final int ALL_ATTEMPTS = 100_000;
 
     /** Takes a deleted report's PDF away: to the Recycle Bin in the app, deleted outright in the tests. */
     public interface Remover {
@@ -101,6 +117,28 @@ public class ReportService {
     }
 
     public record Saved(ReportDAO.Row row, Summary summary) {
+    }
+
+    /** Every sign-in attempt on the chosen days, newest first, for the sign-in history report. */
+    public record SignInHistory(String account, String createdAt, LocalDate from, LocalDate to,
+                                int succeeded, int wrongPassword, int refused, List<SignIn> attempts) {
+
+        public int failed() {
+            return wrongPassword + refused;
+        }
+
+        /** "1 Nov 2026 to 22 Nov 2026", or the one day. */
+        public String days() {
+            return from.equals(to) ? DAY.format(from) : DAY.format(from) + " to " + DAY.format(to);
+        }
+
+    }
+
+    /** Writes a report's PDF into the file it is given. */
+    private interface PdfWriter {
+
+        void write(Path file) throws IOException;
+
     }
 
     private final ReportDAO dao = new ReportDAO();
@@ -192,6 +230,68 @@ public class ReportService {
 
     }
 
+    // =====================================================
+    // SIGN-IN HISTORY
+    // =====================================================
+
+    /** The first day whose sign-ins are still kept: they go after {@link #DAYS} days. */
+    public static LocalDate firstKeptDay() {
+
+        return LocalDate.now().minusDays(DAYS);
+
+    }
+
+    /**
+     * Every sign-in attempt from the start of from to the end of to, in this computer's
+     * time zone, newest first. @throws IllegalStateException while the vault is locked
+     */
+    public SignInHistory signIns(LocalDate from, LocalDate to) throws SQLException {
+
+        if (to.isBefore(from)) {
+            throw new IllegalArgumentException("The first day comes after the last.");
+        }
+
+        int userId = VaultSession.current().userId();
+
+        User user = new UserDAO().findById(userId);
+
+        ZoneId zone = ZoneId.systemDefault();
+
+        List<LoginHistoryDAO.Entry> attempts = new LoginHistoryDAO().recent(userId, ALL_ATTEMPTS).stream()
+                .filter(entry -> {
+                    LocalDate day = localDay(entry.signedInAt(), zone);
+                    return day != null && !day.isBefore(from) && !day.isAfter(to);
+                })
+                .toList();
+
+        int succeeded = (int) attempts.stream().filter(entry -> LoginHistoryDAO.SUCCESS.equals(entry.status())).count();
+
+        int wrong = (int) attempts.stream().filter(entry -> LoginHistoryDAO.FAILED.equals(entry.status())).count();
+
+        return new SignInHistory(
+                user == null ? "Account " + userId : user.getUsername(),
+                DisplayFormat.dateTime(System.currentTimeMillis()),
+                from,
+                to,
+                succeeded,
+                wrong,
+                attempts.size() - succeeded - wrong,
+                attempts.stream().map(ReportService::signIn).toList());
+
+    }
+
+    /** The day, in zone, of a UTC time from the database. */
+    private static LocalDate localDay(String utcTimestamp, ZoneId zone) {
+
+        try {
+            return utcTimestamp == null ? null
+                    : LocalDateTime.parse(utcTimestamp.trim().replace(' ', 'T')).atOffset(ZoneOffset.UTC).atZoneSameInstant(zone).toLocalDate();
+        } catch (DateTimeParseException e) {
+            return null;
+        }
+
+    }
+
     private static SignIn signIn(LoginHistoryDAO.Entry entry) {
 
         boolean succeeded = LoginHistoryDAO.SUCCESS.equals(entry.status());
@@ -219,7 +319,29 @@ public class ReportService {
     /** Makes the summary, saves it as a PDF at target (replacing a file already there) and lists it. */
     public Saved create(Path target) throws IOException, SQLException {
 
+        return create(target, TYPE_SUMMARY);
+
+    }
+
+    /** The same, listed as type: the monthly report is a summary made by itself. */
+    Saved create(Path target, String type) throws IOException, SQLException {
+
         Summary summary = summarize();
+
+        return new Saved(save(target, type, part -> writePdf(summary, part)), summary);
+
+    }
+
+    /** Saves the sign-in history of the days from to to as a PDF at target, and lists it. */
+    public ReportDAO.Row createSignInReport(Path target, LocalDate from, LocalDate to) throws IOException, SQLException {
+
+        SignInHistory history = signIns(from, to);
+
+        return save(target, TYPE_SIGN_INS, part -> writeSignInPdf(history, part));
+
+    }
+
+    private ReportDAO.Row save(Path target, String type, PdfWriter writer) throws IOException, SQLException {
 
         int userId = VaultSession.current().userId();
 
@@ -232,7 +354,7 @@ public class ReportService {
 
         try {
 
-            writePdf(summary, part);
+            writer.write(part);
 
             Files.move(part, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
 
@@ -251,14 +373,12 @@ public class ReportService {
 
         String name = file.getFileName().toString();
 
-        long id = dao.insert(userId, name, TYPE_SUMMARY, file.toString());
+        long id = dao.insert(userId, name, type, file.toString());
 
         ActivityLog.record(ActivityLog.Action.REPORT_CREATED, name);
 
-        ReportDAO.Row row = dao.forUser(userId).stream().filter(saved -> saved.id() == id).findFirst()
-                .orElse(new ReportDAO.Row(id, name, null, TYPE_SUMMARY, file.toString()));
-
-        return new Saved(row, summary);
+        return dao.forUser(userId).stream().filter(saved -> saved.id() == id).findFirst()
+                .orElse(new ReportDAO.Row(id, name, null, type, file.toString()));
 
     }
 
@@ -294,6 +414,13 @@ public class ReportService {
     public static String defaultFileName() {
 
         return "CyberShield security report " + LocalDateTime.now().format(FILE_STAMP) + ".pdf";
+
+    }
+
+    /** "CyberShield sign-ins 2026-11-01 to 2026-11-22.pdf", or one day's. */
+    public static String signInFileName(LocalDate from, LocalDate to) {
+
+        return "CyberShield sign-ins " + FILE_DAY.format(from) + (from.equals(to) ? "" : " to " + FILE_DAY.format(to)) + ".pdf";
 
     }
 
@@ -435,6 +562,56 @@ public class ReportService {
             }
 
             pdf.paragraph("Each sign-in's own list of what was done is in Settings, under Sign-in history.", ReportPdf.MUTED);
+
+            pdf.save(target, "Made by CyberShield. " + PRIVACY_NOTE);
+
+        }
+
+    }
+
+    static void writeSignInPdf(SignInHistory h, Path target) throws IOException {
+
+        try (ReportPdf pdf = new ReportPdf("CyberShield sign-in history",
+                "CyberShield sign-in history  ·  " + h.account() + "  ·  " + h.days())) {
+
+            pdf.addPage();
+
+            pdf.banner("CYBERSHIELD", "Sign-in history", List.of(
+                    "Account: " + h.account(),
+                    (h.from().equals(h.to()) ? "" : "From ") + h.days(),
+                    "Made " + h.createdAt()));
+
+            pdf.figureRow(new String[][] {
+                    {"Signed in", String.valueOf(h.succeeded()), h.succeeded() == 1 ? "Successful sign-in" : "Successful sign-ins"},
+                    {"Wrong password", String.valueOf(h.wrongPassword()),
+                            h.wrongPassword() == 0 ? "No failed attempts" : plural(h.wrongPassword(), "attempt", "attempts") + " with a wrong password"},
+                    {"Refused", String.valueOf(h.refused()), "Tried while sign-in was paused after failed attempts"},
+            });
+
+            if (h.failed() > 0) {
+                pdf.paragraph("If a failed attempt wasn't you, someone tried to get into this account: change its password in Settings,"
+                        + " and lock the vault when you leave the computer.", ReportPdf.WARN);
+            }
+
+            pdf.heading("Every attempt, newest first");
+
+            if (h.attempts().isEmpty()) {
+
+                pdf.paragraph("No sign-ins on these days.", ReportPdf.MUTED);
+
+            } else {
+
+                List<String[]> rows = new ArrayList<>();
+
+                for (SignIn signIn : h.attempts()) {
+                    rows.add(new String[] {signIn.when(), signIn.result(), signIn.device(), signIn.signedOut()});
+                }
+
+                pdf.table(new String[] {"When", "Result", "Device", "Signed out"}, new float[] {0.25f, 0.2f, 0.25f, 0.3f}, rows);
+
+            }
+
+            pdf.paragraph("Sign-ins are kept for " + DAYS + " days. What was done in each one is in its sign-in report, under Reports.", ReportPdf.MUTED);
 
             pdf.save(target, "Made by CyberShield. " + PRIVACY_NOTE);
 

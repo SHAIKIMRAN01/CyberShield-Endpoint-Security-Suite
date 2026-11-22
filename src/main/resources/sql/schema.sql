@@ -286,6 +286,23 @@ CREATE TABLE IF NOT EXISTS reports
     file_path TEXT
 );
 
+-- The automatic monthly report, per account: on or off, the folder it is
+-- saved in, and the month (yyyy-MM) the last one was made for.
+CREATE TABLE IF NOT EXISTS report_schedule
+(
+    user_id INTEGER PRIMARY KEY,
+
+    monthly INTEGER NOT NULL DEFAULT 0,
+
+    folder TEXT,
+
+    last_month TEXT,
+
+    FOREIGN KEY(user_id)
+        REFERENCES users(id)
+        ON DELETE CASCADE
+);
+
 ----------------------------------------------------
 -- FILE VAULT
 -- A protected item is one selected file or folder.

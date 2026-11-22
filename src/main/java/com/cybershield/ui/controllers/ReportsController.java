@@ -1,6 +1,7 @@
 package com.cybershield.ui.controllers;
 
 import com.cybershield.logger.AppLogger;
+import com.cybershield.reports.MonthlyReports;
 import com.cybershield.reports.ReportDAO;
 import com.cybershield.reports.ReportService;
 import com.cybershield.reports.SessionReports;
@@ -9,11 +10,15 @@ import com.cybershield.services.SecurityScore;
 import com.cybershield.ui.Ui;
 import com.cybershield.utils.DisplayFormat;
 import com.cybershield.vault.VaultService;
+import com.cybershield.vault.VaultSession;
 
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
+import javafx.scene.control.DateCell;
+import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.ProgressBar;
@@ -27,6 +32,7 @@ import javafx.scene.Scene;
 import javafx.scene.layout.BorderPane;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
@@ -36,15 +42,20 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.sql.SQLException;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 import java.util.function.Function;
 
 /**
- * Reports: the account's security summary on screen, saved as a PDF on request, and the
- * list of reports made so far. Opens behind the vault, because password health needs the
- * passwords decrypted; the report itself never contains them.
+ * Reports: the account's security summary on screen, saved as a PDF on request or each
+ * month by itself; the sign-ins of chosen days; and the list of reports made so far.
+ * Opens behind the vault, because password health needs the passwords decrypted; the
+ * report itself never contains them.
  */
 public class ReportsController implements LockableScreen {
 
@@ -73,6 +84,24 @@ public class ReportsController implements LockableScreen {
     @FXML private TableColumn<ReportService.SignIn, String> signedOutColumn;
     @FXML private Label vaultLine;
     @FXML private Label filesLine;
+
+    @FXML private Tab historyTab;
+    @FXML private DatePicker fromPicker;
+    @FXML private DatePicker toPicker;
+    @FXML private Label historyCounts;
+    @FXML private TableView<ReportService.SignIn> historyTable;
+    @FXML private TableColumn<ReportService.SignIn, String> historyWhenColumn;
+    @FXML private TableColumn<ReportService.SignIn, String> historyResultColumn;
+    @FXML private TableColumn<ReportService.SignIn, String> historyDeviceColumn;
+    @FXML private TableColumn<ReportService.SignIn, String> historySignedOutColumn;
+    @FXML private Button saveHistoryButton;
+    @FXML private Label historyMessage;
+    @FXML private Label historyNote;
+
+    @FXML private CheckBox monthlyCheck;
+    @FXML private Label monthlyFolderLabel;
+    @FXML private Button monthlyFolderButton;
+    @FXML private Label monthlyMessage;
 
     @FXML private TableView<ReportDAO.Row> reportTable;
     @FXML private TableColumn<ReportDAO.Row, String> nameColumn;
@@ -108,6 +137,21 @@ public class ReportsController implements LockableScreen {
     private final ReportService reports = new ReportService();
 
     private final SessionReports sessionReports = new SessionReports();
+
+    private final MonthlyReports monthly = new MonthlyReports();
+
+    private static final DateTimeFormatter DAY = DateTimeFormatter.ofPattern("d MMM yyyy", Locale.ENGLISH);
+
+    // The newest sign-in read asked for: an older one finishing later is dropped.
+    private int historyRequest;
+
+    // While both days are set at once, the pickers don't each start a read.
+    private boolean settingDays;
+
+    private Path monthlyFolder;
+
+    // While the saved choice is shown, ticking the box doesn't save it again.
+    private boolean showingMonthly;
 
     private enum Ask { SHARE, DELETE, DELETE_ALL }
 
@@ -153,6 +197,21 @@ public class ReportsController implements LockableScreen {
         });
 
         showSessionSelection(null);
+
+        column(historyWhenColumn, ReportService.SignIn::when);
+        column(historyResultColumn, ReportService.SignIn::result);
+        column(historyDeviceColumn, ReportService.SignIn::device);
+        column(historySignedOutColumn, ReportService.SignIn::signedOut);
+
+        setUpDays();
+
+        monthlyCheck.selectedProperty().addListener((observable, before, on) -> {
+            if (!showingMonthly) {
+                setMonthly(on, monthlyFolder, false);
+            }
+        });
+
+        loadMonthly();
 
         refresh();
 
@@ -268,12 +327,18 @@ public class ReportsController implements LockableScreen {
 
     }
 
+    private static Path withPdf(Path chosen) {
+
+        return chosen.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".pdf")
+                ? chosen
+                : chosen.resolveSibling(chosen.getFileName() + ".pdf");
+
+    }
+
     /** Also used by the tests, in place of the save dialog. */
     void createReportAt(Path chosen) {
 
-        Path target = chosen.getFileName().toString().toLowerCase(Locale.ROOT).endsWith(".pdf")
-                ? chosen
-                : chosen.resolveSibling(chosen.getFileName() + ".pdf");
+        Path target = withPdf(chosen);
 
         createButton.setDisable(true);
 
@@ -306,6 +371,370 @@ public class ReportsController implements LockableScreen {
             Ui.message(createMessage, "The report couldn't be saved: " + reason(error), "bad");
 
         });
+
+    }
+
+    // =====================================================
+    // SIGN-INS BY DATE
+    // =====================================================
+
+    private void setUpDays() {
+
+        // Only the days whose sign-ins are kept can be picked, up to today.
+        javafx.util.Callback<DatePicker, DateCell> keptDays = picker -> new DateCell() {
+
+            @Override
+            public void updateItem(LocalDate day, boolean empty) {
+
+                super.updateItem(day, empty);
+
+                setDisable(empty || day == null || day.isBefore(ReportService.firstKeptDay()) || day.isAfter(LocalDate.now()));
+
+            }
+
+        };
+
+        fromPicker.setDayCellFactory(keptDays);
+        toPicker.setDayCellFactory(keptDays);
+
+        settingDays = true;
+        fromPicker.setValue(LocalDate.now().minusDays(6));
+        toPicker.setValue(LocalDate.now());
+        settingDays = false;
+
+        fromPicker.valueProperty().addListener((observable, before, day) -> daysChanged(true));
+        toPicker.valueProperty().addListener((observable, before, day) -> daysChanged(false));
+
+        historyNote.setText("Sign-ins are kept for " + ReportService.DAYS + " days, so the first day can be "
+                + DAY.format(ReportService.firstKeptDay()) + " at the earliest. The PDF holds times, results and the computer's name only.");
+
+        loadSignIns();
+
+    }
+
+    private void daysChanged(boolean fromMoved) {
+
+        if (settingDays) {
+            return;
+        }
+
+        LocalDate from = fromPicker.getValue();
+
+        LocalDate to = toPicker.getValue();
+
+        if (from == null || to == null) {
+            return;
+        }
+
+        // Moving one day past the other moves the other along, which reads again.
+        if (to.isBefore(from)) {
+
+            if (fromMoved) {
+                toPicker.setValue(from);
+            } else {
+                fromPicker.setValue(to);
+            }
+
+            return;
+
+        }
+
+        loadSignIns();
+
+    }
+
+    @FXML
+    private void showLastWeek() {
+
+        chooseDays(LocalDate.now().minusDays(6), LocalDate.now());
+
+    }
+
+    @FXML
+    private void showLastMonth() {
+
+        chooseDays(ReportService.firstKeptDay(), LocalDate.now());
+
+    }
+
+    /** Also used by the tests. */
+    void chooseDays(LocalDate from, LocalDate to) {
+
+        settingDays = true;
+
+        fromPicker.setValue(from);
+        toPicker.setValue(to.isBefore(from) ? from : to);
+
+        settingDays = false;
+
+        loadSignIns();
+
+    }
+
+    private void loadSignIns() {
+
+        LocalDate from = fromPicker.getValue();
+
+        LocalDate to = toPicker.getValue();
+
+        int request = ++historyRequest;
+
+        historyCounts.setText("Reading…");
+
+        Ui.background("sign-ins-by-date", () -> {
+
+            try {
+                return reports.signIns(from, to);
+            } catch (SQLException e) {
+                throw new IllegalStateException(e.getMessage(), e);
+            }
+
+        }, history -> {
+
+            if (request != historyRequest) {
+                return;
+            }
+
+            historyTable.setItems(FXCollections.observableArrayList(history.attempts()));
+
+            historyCounts.setText(history.days() + ":  " + counted(history.succeeded(), "sign-in", "sign-ins", "no sign-ins")
+                    + ", " + counted(history.wrongPassword(), "wrong password", "wrong passwords", "no wrong passwords")
+                    + ", " + counted(history.refused(), "refused", "refused", "none refused") + ".");
+
+        }, error -> {
+
+            if (request != historyRequest) {
+                return;
+            }
+
+            historyCounts.setText("");
+
+            Ui.message(historyMessage, "The sign-ins couldn't be read: " + reason(error), "bad");
+
+        });
+
+    }
+
+    private static String counted(int count, String one, String many, String none) {
+
+        return count == 0 ? none : count + " " + (count == 1 ? one : many);
+
+    }
+
+    @FXML
+    private void saveSignInReport() {
+
+        FileChooser chooser = new FileChooser();
+
+        chooser.setTitle("Save the sign-in history");
+
+        chooser.getExtensionFilters().add(new FileChooser.ExtensionFilter("PDF files", "*.pdf"));
+
+        chooser.setInitialFileName(ReportService.signInFileName(fromPicker.getValue(), toPicker.getValue()));
+
+        Path folder = reports.suggestedFolder();
+
+        if (folder != null && Files.isDirectory(folder)) {
+            chooser.setInitialDirectory(folder.toFile());
+        }
+
+        File file = chooser.showSaveDialog(saveHistoryButton.getScene().getWindow());
+
+        if (file != null) {
+            saveSignInReportAt(file.toPath());
+        }
+
+    }
+
+    /** Also used by the tests, in place of the save dialog. */
+    void saveSignInReportAt(Path chosen) {
+
+        Path target = withPdf(chosen);
+
+        LocalDate from = fromPicker.getValue();
+
+        LocalDate to = toPicker.getValue();
+
+        saveHistoryButton.setDisable(true);
+
+        Ui.message(historyMessage, "Making the report…", null);
+
+        Ui.background("sign-in-history-report", () -> {
+
+            try {
+                return reports.createSignInReport(target, from, to);
+            } catch (IOException | SQLException e) {
+                throw new IllegalStateException(e.getMessage(), e);
+            }
+
+        }, row -> {
+
+            saveHistoryButton.setDisable(false);
+
+            showHistory(row.id());
+
+            Ui.message(historyMessage, "Saved " + row.name() + ". It is listed under Saved reports.", "good");
+
+        }, error -> {
+
+            saveHistoryButton.setDisable(false);
+
+            Ui.message(historyMessage, "The report couldn't be saved: " + reason(error), "bad");
+
+        });
+
+    }
+
+    // =====================================================
+    // THE MONTHLY REPORT
+    // =====================================================
+
+    private void loadMonthly() {
+
+        try {
+
+            MonthlyReports.Schedule schedule = monthly.load(VaultSession.current().userId());
+
+            showMonthly(schedule);
+
+            String problem = MonthlyReports.lastProblem();
+
+            if (schedule.on() && problem != null && !YearMonth.now().equals(schedule.lastMonth())) {
+                Ui.message(monthlyMessage, "This month's report couldn't be saved: " + problem + ". It is tried again at the next unlock.", "warn");
+            }
+
+        } catch (SQLException | RuntimeException e) {
+
+            AppLogger.error("Couldn't read the monthly report setting: " + e.getMessage());
+
+            Ui.message(monthlyMessage, "The monthly report setting couldn't be read.", "bad");
+
+        }
+
+    }
+
+    private void showMonthly(MonthlyReports.Schedule schedule) {
+
+        monthlyFolder = schedule.folder();
+
+        showingMonthly = true;
+        monthlyCheck.setSelected(schedule.on());
+        showingMonthly = false;
+
+        monthlyFolderLabel.setText((schedule.on() ? "Made" : "When on, it is made") + " the first time the vault is unlocked in a month,"
+                + " saved in " + MonthlyReports.shownFolder(schedule.folder()) + " and listed here."
+                + (schedule.lastMonth() == null ? "" : " Last one: " + MonthlyReports.shown(schedule.lastMonth()) + "."));
+
+    }
+
+    @FXML
+    private void changeMonthlyFolder() {
+
+        DirectoryChooser chooser = new DirectoryChooser();
+
+        chooser.setTitle("Where the monthly reports go");
+
+        if (monthlyFolder != null && Files.isDirectory(monthlyFolder)) {
+            chooser.setInitialDirectory(monthlyFolder.toFile());
+        }
+
+        File folder = chooser.showDialog(monthlyFolderButton.getScene().getWindow());
+
+        if (folder != null) {
+            useMonthlyFolder(folder.toPath());
+        }
+
+    }
+
+    /** Also used by the tests, in place of the folder dialog. */
+    void useMonthlyFolder(Path folder) {
+
+        setMonthly(monthlyCheck.isSelected(), folder, true);
+
+    }
+
+    /** Saves the choice; turning it on makes this month's report at once if it isn't made yet. */
+    private void setMonthly(boolean on, Path folder, boolean folderChanged) {
+
+        int userId = VaultSession.current().userId();
+
+        monthlyCheck.setDisable(true);
+
+        monthlyFolderButton.setDisable(true);
+
+        Ui.message(monthlyMessage, on ? "Saving…" : "", null);
+
+        Ui.background("monthly-report", () -> {
+
+            try {
+
+                monthly.save(userId, on, folder);
+
+                return on ? Optional.ofNullable(monthly.makeIfDue(YearMonth.now())) : Optional.<ReportDAO.Row>empty();
+
+            } catch (IOException | SQLException e) {
+                throw new IllegalStateException(e.getMessage(), e);
+            }
+
+        }, made -> {
+
+            monthlyCheck.setDisable(false);
+
+            monthlyFolderButton.setDisable(false);
+
+            reloadMonthly();
+
+            if (made.isPresent()) {
+
+                showHistory(made.get().id());
+
+                Ui.message(monthlyMessage, "On. This month's report is saved: " + made.get().name() + ".", "good");
+
+            } else if (folderChanged) {
+
+                Ui.message(monthlyMessage, "Monthly reports now go to " + MonthlyReports.shownFolder(folder) + ".", "good");
+
+            } else {
+
+                Ui.message(monthlyMessage, on ? "On. This month's report was already made; the next comes next month."
+                        : "Off. No more reports are made by themselves.", on ? "good" : null);
+
+            }
+
+        }, error -> {
+
+            monthlyCheck.setDisable(false);
+
+            monthlyFolderButton.setDisable(false);
+
+            reloadMonthly();
+
+            Ui.message(monthlyMessage, (on ? "This month's report couldn't be saved: " : "Couldn't change it: ") + reason(error)
+                    + (on && monthlyCheck.isSelected() ? ". It is tried again at the next unlock." : ""), "bad");
+
+        });
+
+    }
+
+    /** Shows the choice as saved, without saving it again. */
+    private void reloadMonthly() {
+
+        try {
+            showMonthly(monthly.load(VaultSession.current().userId()));
+        } catch (SQLException | RuntimeException e) {
+            AppLogger.error("Couldn't read the monthly report setting: " + e.getMessage());
+        }
+
+    }
+
+    /** A report made at unlock while this screen is open: list it. */
+    public void monthlyReportMade(ReportDAO.Row row) {
+
+        reloadMonthly();
+
+        showHistory(row.id());
+
+        Ui.message(monthlyMessage, "This month's report is saved: " + row.name() + ".", "good");
 
     }
 

@@ -144,6 +144,11 @@
     -fx-font-weight: bold;
 }
 
+.status-bar .status-note {
+    -fx-text-fill: -cs-good;
+    -fx-font-weight: bold;
+}
+
 .content-area {
     -fx-background-color: -cs-paper;
 }

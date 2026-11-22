@@ -28,6 +28,20 @@
     -fx-text-fill: -cs-brown-800;
 }
 
+.reports .history-counts {
+    -fx-font-weight: bold;
+    -fx-text-fill: -cs-brown-800;
+}
+
+.reports .monthly-box {
+    -fx-padding: 10 12 10 12;
+}
+
+.reports .monthly-check {
+    -fx-font-weight: bold;
+    -fx-text-fill: -cs-brown-800;
+}
+
 .reports .confirm-box {
     -fx-background-color: -cs-bad-bg;
     -fx-background-radius: 8;

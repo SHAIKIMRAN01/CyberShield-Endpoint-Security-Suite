@@ -21,6 +21,7 @@ import org.junit.jupiter.api.io.TempDir;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -251,6 +252,63 @@ class ReportServiceTest {
             assertTrue(text.contains("Page " + pages + " of " + pages));
             assertTrue(text.contains("..."), "long cells are cut short: " + text.substring(0, Math.min(400, text.length())));
 
+        }
+
+    }
+
+    @Test
+    void theSignInHistoryCoversTheChosenDaysOnly() throws Exception {
+
+        // Two attempts ten days ago, on another computer: one signed in, one refused while sign-in waited.
+        TestSupport.execute("INSERT INTO login_history (user_id, login_time, logout_time, device_name, status)"
+                + " VALUES (?, datetime('now', '-10 days'), datetime('now', '-10 days', '+1 seconds'), 'OLD-PC', 'SUCCESS')", alice);
+        TestSupport.execute("INSERT INTO login_history (user_id, login_time, device_name, status)"
+                + " VALUES (?, datetime('now', '-10 days'), 'OLD-PC', 'LOCKED')", alice);
+
+        LocalDate today = LocalDate.now();
+
+        ReportService.SignInHistory todays = reports.signIns(today, today);
+
+        assertEquals(1, todays.succeeded());
+        assertEquals(1, todays.wrongPassword());
+        assertEquals(0, todays.refused());
+        assertEquals(2, todays.attempts().size());
+        assertEquals("Signed in now", todays.attempts().get(0).signedOut(), "newest first");
+        assertEquals("Wrong password", todays.attempts().get(1).result());
+
+        ReportService.SignInHistory earlier = reports.signIns(today.minusDays(11), today.minusDays(9));
+
+        assertEquals(2, earlier.attempts().size());
+        assertEquals(1, earlier.succeeded());
+        assertEquals(1, earlier.refused());
+        assertEquals("OLD-PC", earlier.attempts().get(0).device());
+
+        assertTrue(reports.signIns(today.minusDays(8), today.minusDays(1)).attempts().isEmpty(), "nothing on the days between");
+
+        assertEquals(4, reports.signIns(ReportService.firstKeptDay(), today).attempts().size());
+
+        assertThrows(IllegalArgumentException.class, () -> reports.signIns(today, today.minusDays(1)));
+
+        Path pdf = tempDir.resolve(ReportService.signInFileName(today.minusDays(11), today));
+
+        ReportDAO.Row row = reports.createSignInReport(pdf, today.minusDays(11), today);
+
+        assertEquals(ReportService.TYPE_SIGN_INS, row.type());
+        assertEquals(pdf.getFileName().toString(), row.name());
+        assertTrue(row.name().startsWith("CyberShield sign-ins " + today.minusDays(11)), row.name());
+        assertEquals(1, reports.history().size(), "listed with the other reports");
+
+        String text = textOf(pdf);
+
+        assertTrue(text.contains("Sign-in history"));
+        assertTrue(text.contains("Account: alice"));
+        assertTrue(text.contains("OLD-PC"));
+        assertTrue(text.contains("Refused: waiting"));
+        assertTrue(text.contains("Wrong password"));
+        assertTrue(text.contains("someone tried to get into this account"), "failed attempts come with advice");
+
+        for (String secret : SECRETS) {
+            assertFalse(text.contains(secret), "the report contains " + secret);
         }
 
     }

@@ -63,6 +63,12 @@ public class DashboardController {
     @FXML
     private Label statusUser;
 
+    // A short note, such as "This month's security report is saved", that goes after a while.
+    @FXML
+    private Label statusNote;
+
+    private final javafx.animation.PauseTransition noteTimer = new javafx.animation.PauseTransition(Duration.seconds(12));
+
     @FXML
     private StackPane contentPane;
 
@@ -542,6 +548,7 @@ public class DashboardController {
             vault.setOnUnlocked(() -> {
                 showVaultState(AutoLock.getInstance().secondsLeftProperty().get());
                 com.cybershield.reports.SessionReports.catchUpInBackground();
+                makeMonthlyReportIfDue();
                 afterUnlock.run();
             });
 
@@ -555,6 +562,7 @@ public class DashboardController {
                     newVault.setOnUnlocked(() -> {
                         showVaultState(AutoLock.getInstance().secondsLeftProperty().get());
                         com.cybershield.reports.SessionReports.catchUpInBackground();
+                        makeMonthlyReportIfDue();
                         afterUnlock.run();
                     });
                 }
@@ -562,6 +570,36 @@ public class DashboardController {
             });
 
         }
+
+    }
+
+    /** The first unlock of a month makes that month's report, if the account turned it on. */
+    private void makeMonthlyReportIfDue() {
+
+        com.cybershield.reports.MonthlyReports.makeIfDueInBackground(row -> javafx.application.Platform.runLater(() -> {
+
+            showNote("This month's security report is saved.");
+
+            if (currentScreen instanceof ReportsController reports) {
+                reports.monthlyReportMade(row);
+            }
+
+        }));
+
+    }
+
+    /** Shows a note in the status bar for a few seconds. */
+    void showNote(String text) {
+
+        if (statusNote == null) {
+            return;
+        }
+
+        statusNote.setText(text);
+
+        noteTimer.setOnFinished(event -> statusNote.setText(""));
+
+        noteTimer.playFromStart();
 
     }
 
