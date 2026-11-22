@@ -3,6 +3,8 @@ package com.cybershield.ui.controllers;
 import com.cybershield.dao.ActivityDAO;
 import com.cybershield.dao.LoginHistoryDAO;
 import com.cybershield.dao.SettingsDAO;
+import com.cybershield.files.FileVaultDAO;
+import com.cybershield.files.FileVaultService;
 import com.cybershield.logger.AppLogger;
 import com.cybershield.models.User;
 import com.cybershield.security.SessionManager;
@@ -13,9 +15,11 @@ import com.cybershield.utils.DisplayFormat;
 import com.cybershield.vault.AutoLock;
 import com.cybershield.vault.Vault;
 import com.cybershield.vault.VaultService;
+import com.cybershield.vault.VaultSession;
 
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
@@ -27,12 +31,18 @@ import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
+import javafx.stage.DirectoryChooser;
 
+import java.io.File;
+import java.nio.file.Path;
 import java.sql.SQLException;
 import java.text.NumberFormat;
 import java.util.List;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
-/** Settings of the signed-in account: auto-lock, clipboard, both passwords, and its sign-in history. */
+/** Settings of the signed-in account: auto-lock, clipboard, both passwords, its sign-in history, and backups. */
 public class SettingsController {
 
     private static final int HISTORY_ROWS = 100;
@@ -48,6 +58,36 @@ public class SettingsController {
 
     @FXML
     private Button historyTab;
+
+    @FXML
+    private Button backupTab;
+
+    @FXML
+    private VBox backupPanel;
+
+    @FXML
+    private Label backupStatus;
+
+    @FXML
+    private Button backUpButton;
+
+    @FXML
+    private Button restoreButton;
+
+    @FXML
+    private Button unlockForBackupButton;
+
+    @FXML
+    private HBox backupProgressBox;
+
+    @FXML
+    private ProgressBar backupProgress;
+
+    @FXML
+    private Label backupProgressLabel;
+
+    @FXML
+    private Label backupMessage;
 
     @FXML
     private VBox securityPanel;
@@ -181,6 +221,22 @@ public class SettingsController {
 
     private int userId;
 
+    // The file store a backup copies: the app's own, or the tests' own.
+    private FileVaultService fileStore = new FileVaultService();
+
+    private Runnable onUnlockVault = () -> { };
+
+    private final AtomicBoolean stopBackup = new AtomicBoolean();
+
+    private boolean backupRunning;
+
+    /** A backup or restore, given the job's listener. */
+    private interface BackupJob<T> {
+
+        T run(FileVaultService.JobListener listener) throws Exception;
+
+    }
+
     @FXML
     public void initialize() {
 
@@ -248,14 +304,253 @@ public class SettingsController {
 
     private void show(Button tab, VBox panel) {
 
-        for (Button each : List.of(securityTab, accountTab, masterTab, historyTab)) {
+        for (Button each : List.of(securityTab, accountTab, masterTab, historyTab, backupTab)) {
             each.getStyleClass().remove("active");
         }
 
         tab.getStyleClass().add("active");
 
-        for (VBox each : List.of(securityPanel, accountPanel, masterPanel, historyPanel)) {
+        for (VBox each : List.of(securityPanel, accountPanel, masterPanel, historyPanel, backupPanel)) {
             each.setVisible(each == panel);
+        }
+
+    }
+
+    @FXML
+    public void showBackup() {
+
+        refreshBackupStatus();
+
+        show(backupTab, backupPanel);
+
+    }
+
+    // =====================================================
+    // BACKUP AND RESTORE
+    // =====================================================
+
+    /** The dashboard's way to unlock the vault and come back to this section. */
+    public void setOnUnlockVault(Runnable onUnlockVault) {
+
+        this.onUnlockVault = onUnlockVault;
+
+    }
+
+    /** For the tests: back up a made-up store, never the app's own. */
+    void useFileStore(FileVaultService store) {
+
+        this.fileStore = store;
+
+    }
+
+    private void refreshBackupStatus() {
+
+        boolean open = VaultSession.isUnlocked();
+
+        for (Button button : List.of(backUpButton, restoreButton)) {
+            button.setVisible(open);
+            button.setManaged(open);
+            button.setDisable(backupRunning);
+        }
+
+        unlockForBackupButton.setVisible(!open);
+        unlockForBackupButton.setManaged(!open);
+
+        String last;
+
+        try {
+
+            ActivityDAO.Event backup = activity.latest(userId, ActivityLog.Action.STORE_BACKED_UP.name());
+
+            last = backup == null ? "No backup in the last " + ActivityLog.KEEP_DAYS + " days."
+                    : "Last backup: " + DisplayFormat.timestamp(backup.occurredAt()) + ".";
+
+        } catch (SQLException e) {
+
+            last = "";
+
+        }
+
+        if (!open) {
+            backupStatus.setText("The vault is locked: unlock it to back up or restore. " + last);
+            return;
+        }
+
+        String lastBackup = last;
+
+        Ui.background("backup-status", () -> {
+
+            try {
+                return new FileVaultDAO().counts(VaultSession.current().id());
+            } catch (SQLException e) {
+                throw new IllegalStateException(e.getMessage(), e);
+            }
+
+        }, counts -> backupStatus.setText(counts.items() + (counts.items() == 1 ? " protected item, " : " protected items, ")
+                + counts.files() + (counts.files() == 1 ? " file. " : " files. ") + lastBackup),
+                error -> backupStatus.setText(lastBackup));
+
+    }
+
+    @FXML
+    private void unlockForBackup() {
+
+        onUnlockVault.run();
+
+    }
+
+    @FXML
+    private void backUp() {
+
+        DirectoryChooser chooser = new DirectoryChooser();
+
+        chooser.setTitle("Choose where to put the backup, for example a USB drive");
+
+        File folder = chooser.showDialog(backupPanel.getScene().getWindow());
+
+        if (folder != null) {
+            backUpTo(folder.toPath());
+        }
+
+    }
+
+    /** Also used by the tests, in place of the folder dialog. */
+    void backUpTo(Path destination) {
+
+        runBackupJob(listener -> fileStore.backUp(destination, listener),
+                "Stopped. The backup folder it started is incomplete: delete it, or back up again.", result -> Ui.message(backupMessage,
+                "Backed up " + result.files() + (result.files() == 1 ? " file" : " files") + " to " + result.folder() + ".", "good"));
+
+    }
+
+    @FXML
+    private void restoreBackup() {
+
+        DirectoryChooser chooser = new DirectoryChooser();
+
+        chooser.setTitle("Choose a CyberShield backup folder");
+
+        File folder = chooser.showDialog(backupPanel.getScene().getWindow());
+
+        if (folder != null) {
+            restoreBackupFrom(folder.toPath());
+        }
+
+    }
+
+    /** Also used by the tests, in place of the folder dialog. */
+    void restoreBackupFrom(Path folder) {
+
+        runBackupJob(listener -> fileStore.restoreBackup(folder, listener),
+                "Stopped. What was brought back so far stays listed; restore again for the rest.", result -> Ui.message(backupMessage, result.itemsAdded() == 0
+                ? "Nothing to bring back: every item in the backup is already listed."
+                : "Brought back " + result.itemsAdded() + (result.itemsAdded() == 1 ? " item" : " items")
+                + (result.alreadyThere() > 0 ? "; " + result.alreadyThere() + " were already listed." : ".")
+                + " See them in File Security.", "good"));
+
+    }
+
+    @FXML
+    private void stopBackupJob() {
+
+        stopBackup.set(true);
+
+    }
+
+    private <T> void runBackupJob(BackupJob<T> job, String stoppedText, Consumer<T> done) {
+
+        if (backupRunning) {
+            return;
+        }
+
+        if (!VaultSession.isUnlocked()) {
+            refreshBackupStatus();
+            Ui.message(backupMessage, "The vault locked itself. Unlock it, then try again.", "bad");
+            return;
+        }
+
+        stopBackup.set(false);
+
+        Task<T> task = new Task<>() {
+
+            @Override
+            protected T call() throws Exception {
+
+                return job.run(new FileVaultService.JobListener() {
+
+                    @Override
+                    public void progress(long done, long total) {
+                        updateProgress(done, total);
+                    }
+
+                    @Override
+                    public void message(String text) {
+                        updateMessage(text);
+                    }
+
+                    @Override
+                    public boolean isCancelled() {
+                        return stopBackup.get();
+                    }
+
+                });
+
+            }
+
+        };
+
+        backupProgress.progressProperty().bind(task.progressProperty());
+        backupProgressLabel.textProperty().bind(task.messageProperty());
+
+        setBackupBusy(true);
+
+        Ui.message(backupMessage, "", null);
+
+        task.setOnSucceeded(event -> {
+
+            setBackupBusy(false);
+
+            done.accept(task.getValue());
+
+            refreshBackupStatus();
+
+        });
+
+        task.setOnFailed(event -> {
+
+            setBackupBusy(false);
+
+            Throwable error = task.getException();
+
+            Ui.message(backupMessage, error instanceof CancellationException
+                    ? stoppedText
+                    : "It stopped: " + (error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage()), "bad");
+
+            refreshBackupStatus();
+
+        });
+
+        Thread thread = new Thread(task, "cybershield-settings-backup");
+
+        thread.setDaemon(true);
+
+        thread.start();
+
+    }
+
+    private void setBackupBusy(boolean busy) {
+
+        backupRunning = busy;
+
+        backupProgressBox.setVisible(busy);
+        backupProgressBox.setManaged(busy);
+
+        backUpButton.setDisable(busy);
+        restoreButton.setDisable(busy);
+
+        if (!busy) {
+            backupProgress.progressProperty().unbind();
+            backupProgressLabel.textProperty().unbind();
         }
 
     }

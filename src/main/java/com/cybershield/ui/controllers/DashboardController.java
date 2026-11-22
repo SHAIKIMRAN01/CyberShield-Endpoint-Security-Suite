@@ -369,7 +369,20 @@ public class DashboardController {
 
         Ui.Loaded<SettingsController> settings = Ui.load("/fxml/settings/settings.fxml");
 
+        // Backups need the vault: unlock it, then come back to the backup section.
+        settings.controller().setOnUnlockVault(() -> openVaultScreen(null, this::openBackupSettings));
+
         replaceContent(settings.root(), settings.controller());
+
+    }
+
+    private void openBackupSettings() {
+
+        openSettings();
+
+        if (currentScreen instanceof SettingsController settings) {
+            settings.showBackup();
+        }
 
     }
 

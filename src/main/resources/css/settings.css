@@ -38,6 +38,11 @@
     -fx-padding: 22 26 22 26;
 }
 
+.settings-panel .backup-status {
+    -fx-font-weight: bold;
+    -fx-text-fill: -cs-brown-800;
+}
+
 .settings-panel .password-field {
     -fx-max-width: 420;
 }

@@ -72,6 +72,15 @@
             </graphic>
         </Button>
 
+        <Button fx:id="backupTab" styleClass="settings-tab" maxWidth="Infinity" maxHeight="-Infinity" onAction="#showBackup">
+            <graphic>
+                <VBox spacing="2">
+                    <Label text="Backup and restore" styleClass="tab-title"/>
+                    <Label text="Your protected files, on another drive" styleClass="tab-text"/>
+                </VBox>
+            </graphic>
+        </Button>
+
     </VBox>
 
     <StackPane GridPane.columnIndex="1">
@@ -246,6 +255,36 @@
             </HBox>
 
             <Label fx:id="clearMessage" styleClass="message" wrapText="true" visible="false" managed="false"/>
+
+        </VBox>
+
+        <!-- BACKUP AND RESTORE -->
+        <VBox fx:id="backupPanel" styleClass="card,settings-panel" spacing="10" maxHeight="-Infinity" StackPane.alignment="TOP_LEFT" visible="false">
+
+            <Label text="Backup and restore" styleClass="section-heading"/>
+
+            <Label text="A backup copies your protected files, still encrypted, with your vault's key into a new folder on the drive you choose: a USB stick or an external disk is best. Only your master password opens it."
+                   styleClass="hint" wrapText="true" minHeight="-Infinity"/>
+
+            <Label fx:id="backupStatus" styleClass="backup-status" wrapText="true" minHeight="-Infinity"/>
+
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Button fx:id="backUpButton" text="Back up…" styleClass="primary-button" onAction="#backUp" minWidth="-Infinity"/>
+                <Button fx:id="restoreButton" text="Restore from a backup…" onAction="#restoreBackup" minWidth="-Infinity"/>
+                <Button fx:id="unlockForBackupButton" text="Unlock the vault" styleClass="primary-button" onAction="#unlockForBackup"
+                        minWidth="-Infinity" visible="false" managed="false"/>
+            </HBox>
+
+            <HBox fx:id="backupProgressBox" spacing="8" alignment="CENTER_LEFT" visible="false" managed="false">
+                <ProgressBar fx:id="backupProgress" progress="0" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                <Label fx:id="backupProgressLabel" styleClass="hint" minWidth="-Infinity"/>
+                <Button text="Stop" onAction="#stopBackupJob" minWidth="-Infinity"/>
+            </HBox>
+
+            <Label fx:id="backupMessage" styleClass="message" wrapText="true" visible="false" managed="false" minHeight="-Infinity"/>
+
+            <Label text="Restoring brings back the files that are no longer listed in File Security; those still listed are left alone. Saved logins and secure notes stay in CyberShield's own database and aren't part of this backup."
+                   styleClass="hint" wrapText="true" minHeight="-Infinity"/>
 
         </VBox>
 
