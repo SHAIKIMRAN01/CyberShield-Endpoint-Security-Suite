@@ -60,7 +60,7 @@
 
             <Label text="TOOLS" styleClass="nav-group"/>
 
-            <Button fx:id="stegoButton" text="Steganography" styleClass="nav-button,soon" onAction="#openSteganography"/>
+            <Button fx:id="stegoButton" text="Steganography" styleClass="nav-button" onAction="#openSteganography"/>
 
             <Button fx:id="privacyButton" text="Privacy Tools" styleClass="nav-button,soon" onAction="#openPrivacyTools"/>
 

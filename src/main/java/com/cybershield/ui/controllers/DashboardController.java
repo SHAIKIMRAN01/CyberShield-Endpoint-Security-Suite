@@ -410,12 +410,11 @@ public class DashboardController {
     }
 
     @FXML
-    private void openSteganography() {
+    public void openSteganography() {
 
         select(stegoButton, "Steganography");
 
-        showComingSoon(Ui.ICON_IMAGE, "Steganography", 4,
-                "Hide a short message or a small file inside an ordinary picture, and get it back with a password.");
+        showView("/fxml/stego/steganography.fxml");
 
     }
 

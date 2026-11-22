@@ -85,15 +85,53 @@ public final class SharedCipher {
 
     public static String encryptText(String text, String password) {
 
+        return TEXT_PREFIX + Base64.getEncoder().encodeToString(sealBytes(text.getBytes(StandardCharsets.UTF_8), password));
+
+    }
+
+    /** The extra bytes sealing adds: rounds, salt, IV and tag. */
+    public static final int SEAL_OVERHEAD = 4 + SALT_BYTES + 12 + TAG_BYTES;
+
+    /**
+     * Seals bytes with a password: rounds (4) | salt (16) | IV (12) | ciphertext | tag (16).
+     * Used for text here, and by Steganography for what it hides in pictures.
+     */
+    public static byte[] sealBytes(byte[] data, String password) {
+
         byte[] salt = random(SALT_BYTES);
 
         int rounds = CryptoConstants.PBKDF2_ITERATIONS;
 
-        byte[] sealed = AESUtil.encryptBytes(text.getBytes(StandardCharsets.UTF_8), KeyDerivation.deriveKey(password, salt, rounds));
+        byte[] sealed = AESUtil.encryptBytes(data, KeyDerivation.deriveKey(password, salt, rounds));
 
-        byte[] packed = ByteBuffer.allocate(4 + SALT_BYTES + sealed.length).putInt(rounds).put(salt).put(sealed).array();
+        return ByteBuffer.allocate(4 + SALT_BYTES + sealed.length).putInt(rounds).put(salt).put(sealed).array();
 
-        return TEXT_PREFIX + Base64.getEncoder().encodeToString(packed);
+    }
+
+    /** Opens what sealBytes made. A wrong password or any change is refused. */
+    public static byte[] openBytes(byte[] packed, String password) throws IOException {
+
+        if (packed.length < SEAL_OVERHEAD) {
+            throw new IOException("The sealed data is cut short.");
+        }
+
+        ByteBuffer in = ByteBuffer.wrap(packed);
+
+        int rounds = checkedRounds(in.getInt());
+
+        byte[] salt = new byte[SALT_BYTES];
+
+        in.get(salt);
+
+        byte[] sealed = new byte[in.remaining()];
+
+        in.get(sealed);
+
+        try {
+            return AESUtil.decryptBytes(sealed, KeyDerivation.deriveKey(password, salt, rounds));
+        } catch (RuntimeException wrong) {
+            throw new WrongPasswordException();
+        }
 
     }
 
@@ -114,27 +152,11 @@ public final class SharedCipher {
             throw new IOException("The encrypted text is damaged.");
         }
 
-        if (packed.length < 4 + SALT_BYTES + 12 + TAG_BYTES) {
+        if (packed.length < SEAL_OVERHEAD) {
             throw new IOException("The encrypted text is cut short.");
         }
 
-        ByteBuffer in = ByteBuffer.wrap(packed);
-
-        int rounds = checkedRounds(in.getInt());
-
-        byte[] salt = new byte[SALT_BYTES];
-
-        in.get(salt);
-
-        byte[] sealed = new byte[in.remaining()];
-
-        in.get(sealed);
-
-        try {
-            return new String(AESUtil.decryptBytes(sealed, KeyDerivation.deriveKey(password, salt, rounds)), StandardCharsets.UTF_8);
-        } catch (RuntimeException wrong) {
-            throw new WrongPasswordException();
-        }
+        return new String(openBytes(packed, password), StandardCharsets.UTF_8);
 
     }
 

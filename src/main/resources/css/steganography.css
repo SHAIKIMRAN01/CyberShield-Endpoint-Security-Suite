@@ -1,0 +1,27 @@
+/* Steganography (fxml/stego/steganography.fxml). Shares the tool list style with encryption.css. */
+
+.stego .picture-box {
+    -fx-background-color: -cs-sand;
+    -fx-background-radius: 8;
+    -fx-padding: 6;
+    -fx-min-height: 160;
+    -fx-pref-height: 200;
+}
+
+.stego .room-bar {
+    -fx-pref-height: 8px;
+}
+
+.stego .room-bar > .track,
+.stego .room-bar > .bar {
+    -fx-background-insets: 0;
+}
+
+.stego .room-bar > .bar {
+    -fx-background-color: -cs-caramel;
+    -fx-padding: 0.3em;
+}
+
+.stego .room-bar.full > .bar {
+    -fx-background-color: -cs-bad;
+}

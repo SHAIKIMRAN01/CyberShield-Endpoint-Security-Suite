@@ -57,6 +57,8 @@ public final class ActivityLog {
         REPORT_DELETED("Deleted a report"),
         SESSION_REPORT_SHARED("Shared a sign-in report"),
         SESSION_REPORT_DELETED("Deleted sign-in reports"),
+        STEGO_HIDDEN("Hid something in a picture"),
+        STEGO_REVEALED("Revealed something from a picture"),
         SETTINGS_SAVED("Changed auto-lock or clipboard settings"),
         ACCOUNT_PASSWORD_CHANGED("Changed the account password"),
         MASTER_PASSWORD_CHANGED("Changed the master password"),

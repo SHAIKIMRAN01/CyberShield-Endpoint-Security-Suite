@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- Steganography. Rule of thirds: the two tools in the left third, the chosen one in the other two. -->
+
+<?import java.net.URL?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.control.RadioButton?>
+<?import javafx.scene.control.TextArea?>
+<?import javafx.scene.control.ToggleButton?>
+<?import javafx.scene.control.ToggleGroup?>
+<?import javafx.scene.image.ImageView?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.RowConstraints?>
+<?import javafx.scene.layout.StackPane?>
+<?import javafx.scene.layout.VBox?>
+
+<GridPane xmlns="http://javafx.com/javafx/21"
+          xmlns:fx="http://javafx.com/fxml"
+          fx:controller="com.cybershield.ui.controllers.SteganographyController"
+          styleClass="encryption,stego"
+          hgap="22">
+
+    <stylesheets>
+        <URL value="@../../css/encryption.css"/>
+        <URL value="@../../css/steganography.css"/>
+    </stylesheets>
+
+    <columnConstraints>
+        <ColumnConstraints percentWidth="33.333"/>
+        <ColumnConstraints percentWidth="66.667"/>
+    </columnConstraints>
+
+    <rowConstraints>
+        <RowConstraints vgrow="ALWAYS"/>
+    </rowConstraints>
+
+    <!-- TOOLS -->
+    <VBox spacing="6" GridPane.columnIndex="0">
+
+        <Button fx:id="hideTab" styleClass="tool-tab" maxWidth="Infinity" maxHeight="-Infinity" onAction="#showHide">
+            <graphic>
+                <VBox spacing="2">
+                    <Label text="Hide in a picture" styleClass="tab-title"/>
+                    <Label text="A message or a small file" styleClass="tab-text"/>
+                </VBox>
+            </graphic>
+        </Button>
+
+        <Button fx:id="revealTab" styleClass="tool-tab" maxWidth="Infinity" maxHeight="-Infinity" onAction="#showReveal">
+            <graphic>
+                <VBox spacing="2">
+                    <Label text="Reveal from a picture" styleClass="tab-title"/>
+                    <Label text="With the same password" styleClass="tab-text"/>
+                </VBox>
+            </graphic>
+        </Button>
+
+        <Region VBox.vgrow="ALWAYS"/>
+
+        <Label text="Only the lowest bit of some colour values changes, so the picture looks the same. What is hidden is locked with your password first. Keep the picture as PNG: saving it as JPEG, or sending it through apps that shrink photos, wipes the message."
+               styleClass="hint" wrapText="true" minHeight="-Infinity"/>
+
+    </VBox>
+
+    <StackPane GridPane.columnIndex="1">
+
+        <!-- HIDE -->
+        <VBox fx:id="hidePanel" styleClass="card,tool-panel" spacing="8" StackPane.alignment="TOP_LEFT" maxHeight="-Infinity">
+
+            <Label text="Hide in a picture" styleClass="section-heading"/>
+
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Button fx:id="chooseCoverButton" text="Choose a picture…" onAction="#chooseCover" minWidth="-Infinity"/>
+                <Label fx:id="coverLabel" text="PNG, BMP or JPEG" styleClass="hint" wrapText="true" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+            </HBox>
+
+            <HBox spacing="18" alignment="CENTER_LEFT">
+                <fx:define>
+                    <ToggleGroup fx:id="whatGroup"/>
+                </fx:define>
+                <RadioButton fx:id="hideTextChoice" text="A message" toggleGroup="$whatGroup" selected="true"/>
+                <RadioButton fx:id="hideFileChoice" text="A small file" toggleGroup="$whatGroup"/>
+            </HBox>
+
+            <TextArea fx:id="messageArea" wrapText="true" prefRowCount="4" promptText="Type the message to hide"/>
+
+            <HBox fx:id="fileRow" spacing="10" alignment="CENTER_LEFT" visible="false" managed="false">
+                <Button text="Choose a file…" onAction="#chooseHiddenFile" minWidth="-Infinity"/>
+                <Label fx:id="hiddenFileLabel" text="No file chosen" styleClass="hint" wrapText="true" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+            </HBox>
+
+            <HBox spacing="8">
+                <PasswordField fx:id="hidePassword" promptText="A password (8 or more characters)" HBox.hgrow="ALWAYS"/>
+                <PasswordField fx:id="hidePasswordAgain" promptText="The same password again" HBox.hgrow="ALWAYS"/>
+            </HBox>
+
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <ProgressBar fx:id="roomBar" progress="0" maxWidth="Infinity" HBox.hgrow="ALWAYS" styleClass="room-bar"/>
+                <Label fx:id="roomLabel" text="Choose a picture to see the room" styleClass="hint" minWidth="-Infinity"/>
+            </HBox>
+
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Button fx:id="hideButton" text="Hide and save as PNG…" styleClass="primary-button" onAction="#hide" minWidth="-Infinity"/>
+                <Label fx:id="hideMessage" styleClass="message" wrapText="true" HBox.hgrow="ALWAYS" maxWidth="Infinity" minHeight="-Infinity"/>
+            </HBox>
+
+            <!-- Before and after, side by side -->
+            <GridPane fx:id="previewGrid" hgap="12" visible="false" managed="false">
+                <columnConstraints>
+                    <ColumnConstraints percentWidth="50"/>
+                    <ColumnConstraints percentWidth="50"/>
+                </columnConstraints>
+                <VBox spacing="4" GridPane.columnIndex="0">
+                    <HBox minHeight="28" alignment="CENTER_LEFT">
+                        <Label text="Before" styleClass="field-label"/>
+                    </HBox>
+                    <StackPane fx:id="beforeBox" styleClass="picture-box">
+                        <ImageView fx:id="beforeView" preserveRatio="true" smooth="true"/>
+                    </StackPane>
+                </VBox>
+                <VBox spacing="4" GridPane.columnIndex="1">
+                    <HBox spacing="8" minHeight="28" alignment="CENTER_LEFT">
+                        <Label text="After" styleClass="field-label"/>
+                        <Region HBox.hgrow="ALWAYS"/>
+                        <ToggleButton fx:id="changesToggle" text="Show what changed" onAction="#toggleChanges"/>
+                    </HBox>
+                    <StackPane fx:id="afterBox" styleClass="picture-box">
+                        <ImageView fx:id="afterView" preserveRatio="true" smooth="true"/>
+                    </StackPane>
+                </VBox>
+            </GridPane>
+
+            <Label fx:id="previewNote" styleClass="hint" wrapText="true" minHeight="-Infinity"/>
+
+        </VBox>
+
+        <!-- REVEAL -->
+        <VBox fx:id="revealPanel" styleClass="card,tool-panel" spacing="8" StackPane.alignment="TOP_LEFT" maxHeight="-Infinity" visible="false">
+
+            <Label text="Reveal from a picture" styleClass="section-heading"/>
+
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Button text="Choose a picture…" onAction="#chooseHiddenPicture" minWidth="-Infinity"/>
+                <Label fx:id="revealPictureLabel" text="The PNG something was hidden in" styleClass="hint" wrapText="true" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+            </HBox>
+
+            <PasswordField fx:id="revealPassword" promptText="The password it was hidden with"/>
+
+            <HBox spacing="10" alignment="CENTER_LEFT">
+                <Button fx:id="revealButton" text="Reveal" styleClass="primary-button" onAction="#reveal" minWidth="-Infinity"/>
+                <Label fx:id="revealMessage" styleClass="message" wrapText="true" HBox.hgrow="ALWAYS" maxWidth="Infinity" minHeight="-Infinity"/>
+            </HBox>
+
+            <TextArea fx:id="revealedText" editable="false" wrapText="true" prefRowCount="6" visible="false" managed="false"/>
+
+            <HBox fx:id="revealedTextActions" spacing="8" alignment="CENTER_LEFT" visible="false" managed="false">
+                <Button text="Copy the message" onAction="#copyRevealed" minWidth="-Infinity"/>
+                <Label text="The clipboard clears itself after the time set in Settings." styleClass="hint"/>
+            </HBox>
+
+            <HBox fx:id="revealedFileRow" spacing="10" alignment="CENTER_LEFT" visible="false" managed="false">
+                <Label fx:id="revealedFileLabel" wrapText="true" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+                <Button text="Save the file…" styleClass="primary-button" onAction="#saveRevealedFile" minWidth="-Infinity"/>
+            </HBox>
+
+        </VBox>
+
+    </StackPane>
+
+</GridPane>
