@@ -177,37 +177,67 @@ class FileSecurityScreenTest {
 
         var file = service.listFiles(item).get(0);
 
-        ByteBuffer buffer = service.readFileForPlayback(file, 512L << 20);
+        // JavaFX's own decoders on Windows (Media Foundation) sometimes fail to start a video
+        // that is fine: on the development PC about one run in four, with "media invalid".
+        // The bytes handed over are the same every time, so a fault of ours fails every try;
+        // up to three fresh tries keep this test about our code, not that decoder.
+        MediaPreview preview = null;
 
-        CountDownLatch ready = new CountDownLatch(1);
+        List<String> problems = new java.util.ArrayList<>();
 
-        AtomicReference<String> problem = new AtomicReference<>();
+        for (int attempt = 1; attempt <= 3 && preview == null; attempt++) {
 
-        MediaPreview preview = onFx(() -> {
+            // Each try gets its own copy: a preview wipes its bytes when it is closed.
+            ByteBuffer buffer = service.readFileForPlayback(file, 512L << 20);
 
-            MediaPreview opened = MediaPreview.open(buffer, "mp4");
+            CountDownLatch ready = new CountDownLatch(1);
 
-            MediaPlayer player = opened.player();
+            AtomicReference<String> problem = new AtomicReference<>();
 
-            player.setOnReady(ready::countDown);
+            MediaPreview opened = onFx(() -> {
 
-            player.setOnError(() -> {
-                problem.set(String.valueOf(player.getError()));
-                ready.countDown();
+                MediaPreview made = MediaPreview.open(buffer, "mp4");
+
+                MediaPlayer player = made.player();
+
+                player.setOnReady(ready::countDown);
+
+                player.setOnError(() -> {
+                    problem.set(String.valueOf(player.getError()));
+                    ready.countDown();
+                });
+
+                return made;
+
             });
 
-            return opened;
+            boolean inTime = ready.await(20, TimeUnit.SECONDS);
 
-        });
+            if (inTime && problem.get() == null) {
 
-        assertTrue(ready.await(20, TimeUnit.SECONDS), "the video got ready in time");
+                preview = opened;
 
-        assertEquals(null, problem.get(), "JavaFX could play the decrypted MP4");
+            } else {
+
+                problems.add(inTime ? problem.get() : "not ready after 20 seconds");
+
+                onFx(() -> {
+                    opened.dispose();
+                    return null;
+                });
+
+            }
+
+        }
+
+        assertNotNull(preview, "JavaFX could play the decrypted MP4 in one of three tries: " + problems);
+
+        MediaPreview playing = preview;
 
         double[] facts = onFx(() -> new double[] {
-                preview.player().getMedia().getWidth(),
-                preview.player().getMedia().getHeight(),
-                preview.player().getMedia().getDuration().toSeconds()
+                playing.player().getMedia().getWidth(),
+                playing.player().getMedia().getHeight(),
+                playing.player().getMedia().getDuration().toSeconds()
         });
 
         assertEquals(320, facts[0], "its picture is 320 pixels wide");
@@ -216,10 +246,10 @@ class FileSecurityScreenTest {
 
         assertTrue(facts[2] > 0, "it has a length");
 
-        assertNotNull(onFx(preview::fullScreenCopy), "videos can be shown full screen");
+        assertNotNull(onFx(playing::fullScreenCopy), "videos can be shown full screen");
 
         onFx(() -> {
-            preview.dispose();
+            playing.dispose();
             return null;
         });
 

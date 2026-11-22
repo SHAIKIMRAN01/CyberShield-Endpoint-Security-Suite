@@ -188,25 +188,42 @@ class Mp4SoundTest {
         }
 
         // The fallback when FFmpeg can't run: JavaFX's player from memory.
-        Previews.Prepared prepared = Previews.prepareMediaInMemory(PreviewKind.of(file.extension()), service, file);
+        // JavaFX's own decoders on Windows (Media Foundation) sometimes fail to start a video
+        // that is fine: on the development PC about one run in four, with "media invalid".
+        // The bytes handed over are the same every time, so a fault of ours fails every try;
+        // up to three fresh tries keep this test about our code, not that decoder.
+        MediaPreview preview = null;
 
-        MediaPreview preview = (MediaPreview) onFx(prepared::create);
+        for (int attempt = 1; attempt <= 3 && preview == null; attempt++) {
 
-        boolean split = !MediaPreview.aacPlays();
+            Previews.Prepared prepared = Previews.prepareMediaInMemory(PreviewKind.of(file.extension()), service, file);
 
-        assertEquals(split, preview.soundPlayer() != null,
-                "where AAC can't be decoded by JavaFX, the sound plays from a decoded copy");
+            MediaPreview opened = (MediaPreview) onFx(prepared::create);
 
-        assertTrue(ready(preview.player()), "the picture is ready to play");
+            boolean split = !MediaPreview.aacPlays();
 
-        if (split) {
-            assertTrue(ready(preview.soundPlayer()), "the sound is ready to play");
+            assertEquals(split, opened.soundPlayer() != null,
+                    "where AAC can't be decoded by JavaFX, the sound plays from a decoded copy");
+
+            if (ready(opened.player()) && (!split || ready(opened.soundPlayer()))) {
+                preview = opened;
+            } else {
+                onFx(() -> {
+                    opened.dispose();
+                    return null;
+                });
+            }
+
         }
 
-        assertEquals(320.0, onFx(() -> (double) preview.player().getMedia().getWidth()));
+        assertNotNull(preview, "the picture (and the sound) got ready to play in one of three tries");
+
+        MediaPreview ready = preview;
+
+        assertEquals(320.0, onFx(() -> (double) ready.player().getMedia().getWidth()));
 
         onFx(() -> {
-            preview.dispose();
+            ready.dispose();
             return null;
         });
 
