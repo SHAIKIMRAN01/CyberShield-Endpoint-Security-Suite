@@ -167,8 +167,28 @@ class Mp4SoundTest {
 
         var file = service.listFiles(item).get(0);
 
-        // The same path the File Security viewer takes.
-        Previews.Prepared prepared = Previews.prepare(PreviewKind.of(file.extension()), service, file);
+        // The same path the File Security viewer takes: streamed through FFmpeg, sound included.
+        if (StreamPlayer.available()) {
+
+            FilePreview streamed = onFx(Previews.prepare(PreviewKind.of(file.extension()), service, file)::create);
+
+            assertTrue(streamed instanceof StreamPreview, "the viewer streams the video");
+
+            StreamPlayer player = ((StreamPreview) streamed).player();
+
+            assertTrue(player.hasVideo());
+            assertEquals(320.0, player.image().getWidth());
+            assertTrue(player.hasSound() || player.note() != null, "its AAC sound plays, unless the PC has no sound output");
+
+            onFx(() -> {
+                streamed.dispose();
+                return null;
+            });
+
+        }
+
+        // The fallback when FFmpeg can't run: JavaFX's player from memory.
+        Previews.Prepared prepared = Previews.prepareMediaInMemory(PreviewKind.of(file.extension()), service, file);
 
         MediaPreview preview = (MediaPreview) onFx(prepared::create);
 

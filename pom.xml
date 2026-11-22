@@ -24,6 +24,8 @@
 
         <junit.version>6.0.3</junit.version>
 
+        <javacpp.version>1.5.14</javacpp.version>
+
     </properties>
 
     <dependencies>
@@ -64,6 +66,44 @@
             <groupId>com.gitlab.9lukas5</groupId>
             <artifactId>jaad</artifactId>
             <version>0.8.8</version>
+        </dependency>
+
+        <!-- FFmpeg through JavaCV: the viewer plays any video or song with it, read from the
+             encrypted store a block at a time, so size doesn't matter and nothing decrypted
+             touches the disk. Only the Windows 64-bit libraries are included. -->
+
+        <dependency>
+            <groupId>org.bytedeco</groupId>
+            <artifactId>javacv</artifactId>
+            <version>${javacpp.version}</version>
+            <exclusions>
+                <exclusion><groupId>org.bytedeco</groupId><artifactId>opencv</artifactId></exclusion>
+                <exclusion><groupId>org.bytedeco</groupId><artifactId>openblas</artifactId></exclusion>
+                <exclusion><groupId>org.bytedeco</groupId><artifactId>flycapture</artifactId></exclusion>
+                <exclusion><groupId>org.bytedeco</groupId><artifactId>libdc1394</artifactId></exclusion>
+                <exclusion><groupId>org.bytedeco</groupId><artifactId>libfreenect</artifactId></exclusion>
+                <exclusion><groupId>org.bytedeco</groupId><artifactId>libfreenect2</artifactId></exclusion>
+                <exclusion><groupId>org.bytedeco</groupId><artifactId>librealsense</artifactId></exclusion>
+                <exclusion><groupId>org.bytedeco</groupId><artifactId>librealsense2</artifactId></exclusion>
+                <exclusion><groupId>org.bytedeco</groupId><artifactId>videoinput</artifactId></exclusion>
+                <exclusion><groupId>org.bytedeco</groupId><artifactId>artoolkitplus</artifactId></exclusion>
+                <exclusion><groupId>org.bytedeco</groupId><artifactId>leptonica</artifactId></exclusion>
+                <exclusion><groupId>org.bytedeco</groupId><artifactId>tesseract</artifactId></exclusion>
+            </exclusions>
+        </dependency>
+
+        <dependency>
+            <groupId>org.bytedeco</groupId>
+            <artifactId>ffmpeg</artifactId>
+            <version>8.1.2-${javacpp.version}</version>
+            <classifier>windows-x86_64</classifier>
+        </dependency>
+
+        <dependency>
+            <groupId>org.bytedeco</groupId>
+            <artifactId>javacpp</artifactId>
+            <version>${javacpp.version}</version>
+            <classifier>windows-x86_64</classifier>
         </dependency>
 
         <!-- SQLite -->
@@ -174,6 +214,8 @@
                              memory through JavaFX's media cache (see MediaPreview). -->
                         <option>--add-exports</option>
                         <option>javafx.media/com.sun.media.jfxmedia.locator=ALL-UNNAMED</option>
+                        <!-- FFmpeg and SQLite load native libraries; this keeps Java quiet about it. -->
+                        <option>--enable-native-access=ALL-UNNAMED</option>
                     </options>
 
                 </configuration>

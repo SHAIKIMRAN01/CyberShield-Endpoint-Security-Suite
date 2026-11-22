@@ -105,25 +105,15 @@ public final class Previews {
 
             case MEDIA: {
 
-                ByteBuffer buffer = service.readFileForPlayback(file, kind.sizeLimit());
+                if (StreamPlayer.available()) {
 
-                try {
+                    StreamPlayer player = StreamPlayer.open(() -> service.openForStreaming(file).stream());
 
-                    Prepared split = splitAacIfNeeded(buffer, file.extension());
-
-                    if (split != null) {
-                        return split;
-                    }
-
-                } catch (IOException | RuntimeException e) {
-
-                    MediaPreview.wipe(buffer);
-
-                    throw e;
+                    return prepared(() -> new StreamPreview(player), player::close);
 
                 }
 
-                return prepared(() -> MediaPreview.open(buffer, file.extension()), () -> MediaPreview.wipe(buffer));
+                return prepareMediaInMemory(kind, service, file);
 
             }
 
@@ -132,6 +122,35 @@ public final class Previews {
                 throw new IllegalArgumentException("There is no viewer for " + kind);
 
         }
+
+    }
+
+    /**
+     * The fallback when FFmpeg can't run: JavaFX's player, with the whole file decrypted into
+     * memory (up to the media size limit) and AAC sound decoded in Java where JavaFX can't.
+     */
+    static Prepared prepareMediaInMemory(PreviewKind kind, FileVaultService service, FileVaultService.VaultFile file)
+            throws IOException {
+
+        ByteBuffer buffer = service.readFileForPlayback(file, kind.sizeLimit());
+
+        try {
+
+            Prepared split = splitAacIfNeeded(buffer, file.extension());
+
+            if (split != null) {
+                return split;
+            }
+
+        } catch (IOException | RuntimeException e) {
+
+            MediaPreview.wipe(buffer);
+
+            throw e;
+
+        }
+
+        return prepared(() -> MediaPreview.open(buffer, file.extension()), () -> MediaPreview.wipe(buffer));
 
     }
 

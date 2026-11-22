@@ -1268,7 +1268,7 @@ public class FileSecurityController implements LockableScreen {
             return;
         }
 
-        if (file.size() > kind.sizeLimit()) {
+        if (!kind.streams() && file.size() > kind.sizeLimit()) {
             setPreviewMessage("This file is too large to open here (" + DisplayFormat.size(file.size())
                     + "). You can export a copy or restore it.");
             return;

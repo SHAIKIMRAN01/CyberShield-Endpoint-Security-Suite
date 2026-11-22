@@ -1394,6 +1394,17 @@ public class FileVaultService {
     }
 
     /**
+     * Opens a protected file for reading a piece at a time: each 1 MiB chunk is decrypted
+     * in memory when it is read and checked, so media of any size can play. Nothing is
+     * written to disk. The vault must be unlocked to open it.
+     */
+    public com.cybershield.encryption.EncryptedFileReader openForStreaming(VaultFile file) throws IOException {
+
+        return com.cybershield.encryption.EncryptedFileReader.open(storeDir.resolve(file.id()), encryption);
+
+    }
+
+    /**
      * Saves a decrypted copy of one file at target, replacing anything there.
      * The file stays protected in the vault.
      */

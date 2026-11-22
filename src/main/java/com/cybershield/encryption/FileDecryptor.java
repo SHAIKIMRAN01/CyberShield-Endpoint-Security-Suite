@@ -54,7 +54,8 @@ public final class FileDecryptor {
 
     }
 
-    private record Opened(byte[] header, SecretKey fileKey, FileMetadata metadata, int chunkSize) {
+    /** A file whose header and details have been read and checked: what EncryptedFileReader starts from. */
+    record Opened(byte[] header, SecretKey fileKey, FileMetadata metadata, int chunkSize) {
     }
 
     /** Creates the in-memory destination once the plain-text size is known. */
@@ -345,7 +346,7 @@ public final class FileDecryptor {
 
     }
 
-    private static Opened open(InputStream in, EncryptionService vaultKey) throws IOException {
+    static Opened open(InputStream in, EncryptionService vaultKey) throws IOException {
 
         byte[] header = readHeader(in);
 
