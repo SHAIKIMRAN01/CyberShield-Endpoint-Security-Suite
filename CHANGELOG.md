@@ -1,5 +1,39 @@
 # Changelog
 
+## Unreleased: Phases 2 and 3
+
+### Added
+- **Secure Notes:** notes encrypted with the vault key (title and text) in a searchable list, with an editor that saves a second after you stop typing. Delete asks first. Copied text clears itself from the clipboard after the time set in Settings. Notes leave the screen when the vault locks.
+- **Password Vault:**
+  - every field is encrypted (website, username, password, notes, category); logins saved before are converted the first time the vault opens;
+  - Delete asks first;
+  - categories and favourites, sorting (favourites first, A–Z, recently changed, weakest first) and a "Needs attention" filter;
+  - password health marks weak, reused and year-old passwords;
+  - the generator has length, digit and symbol options.
+- **Home screen:** a security score from 0 to 100 with the hints worth most, and quick actions: lock now, protect files, new login, new note.
+- **Encryption Center** (no vault needed):
+  - encrypt text or files with a password, to share them; files become portable `.cshield` files;
+  - SHA-256 and SHA-512 checksums of text or files, compared with an expected value;
+  - a password strength checker and generator.
+- **File Security tools:**
+  - check every protected file;
+  - back the store up to another drive (encrypted; the master password opens it) and restore from it;
+  - rebuild a lost list from the store.
+  - A running job's progress shows again after leaving the screen and coming back.
+- **Reports:** a security summary on screen and as a PDF: score, password health, vault locks, protected files with the last check and backup, 30 days of sign-ins, and a count of everything done. It holds no passwords, note text, website names or file names. Saved reports are listed per account with Open, Show in folder and Delete (to the Recycle Bin).
+- **What each sign-in did:** files opened, logins and notes changed, tools used, listed under each sign-in in Settings. Names are encrypted with the vault key. Activity and sign-ins older than 30 days are removed automatically, and clearing them sooner needs the master password.
+- **Photo rotation:** turn photos left and right in the viewer; photos follow the camera's orientation.
+- **Tests:** 130 JUnit tests now.
+
+### Fixed
+- **Video and music sound:** MP4 videos and M4A songs with AAC sound now play on PCs where JavaFX can't decode AAC. The sound is decoded in Java (JAAD) and kept in step with the picture. Sound over about 50 minutes is too big to decode in memory: such a video plays muted, with a note.
+- **Shaking zoom:** a photo fitted to the window no longer shakes at some zoom levels (seen between 14% and 17%). The scroll bars were appearing and disappearing in a loop.
+- **Cut-off lines:** wrapped hints in Settings and Reports now show in full.
+
+### Changed
+- **Database upgrades on start:** a new `activity_log` table; `password_entries` gets `category`, `favourite` and `fields_encrypted`; `reports` gets `user_id`.
+- **New library:** JAAD 0.8.8, an AAC decoder (public domain).
+
 ## Unreleased: Phase 0 and Phase 1
 
 ### Added

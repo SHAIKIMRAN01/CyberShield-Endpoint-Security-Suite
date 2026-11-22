@@ -9,36 +9,60 @@ A Windows desktop app that keeps passwords and files private on a shared PC. Eve
 **Accounts**
 - Register and sign in. Mistakes show under the form, and Enter signs in.
 - After 5 failed attempts the account waits 30 seconds. The wait doubles with each further failure, up to 15 minutes. Unknown usernames get the same answers and waits, so they don't reveal which accounts exist.
-- Every sign-in attempt is recorded (time, computer, result, sign-out time) and listed in Settings.
+- Every sign-in attempt is recorded (time, computer, result, sign-out time), together with what that sign-in did: files opened, logins and notes changed, tools used. Names in it are encrypted with the vault key. It is all kept for 30 days, and clearing it sooner needs the master password.
+
+**Home**
+- The vault state, saved logins, protected files and the last sign-in at a glance.
+- A security score from 0 to 100 with the hints that would raise it most, and quick actions.
 
 **Vault (one per account)**
 - A master password opens the account's vault, and the vault locks itself after a few idle minutes.
 - Changing the master password is instant: only the lock on the vault key changes, not the data.
 
 **Password Vault**
-- Save, edit, delete and search logins.
-- Password generator and strength meter.
+- Save, edit, search and delete logins (Delete asks first). Every field is encrypted.
+- Categories and favourites, and sorting by favourites, name, last change or weakest first.
+- Password health marks weak, reused and year-old passwords.
+- Generator with length, digit and symbol options, and a strength meter.
 - Copy with an automatic clipboard clear (the delay is set in Settings).
+
+**Secure Notes**
+- Notes encrypted with the vault key, in a searchable list with an editor that saves as you type.
+- Copied text clears itself from the clipboard like passwords, and notes leave the screen when the vault locks.
 
 **File Security**
 - Pick files and folders from anywhere: browse, tick, drag and drop, or Add files / Add folder.
 - They are encrypted into a hidden store and the originals are wiped. Restore puts them back exactly: names, times and attributes.
-- A private viewer shows photos, text and code, PDFs, video and music inside CyberShield only, with copying blocked.
+- A private viewer shows photos, text and code, PDFs, video and music inside CyberShield only, with copying blocked. Photos turn left and right and follow the camera's orientation. AAC sound (most MP4 videos, M4A songs) plays even where JavaFX can't decode it.
+- Tools: check every stored file, back the store up to another drive and restore it, and rebuild a lost list from the store.
+
+**Encryption Center** (works without the vault)
+- Encrypt text or a file with a password, to share it. Files become `.cshield` files that open on any PC running CyberShield.
+- SHA-256 and SHA-512 checksums of text or files, compared with an expected value.
+- A password strength checker and generator.
+
+**Reports**
+- A security summary on screen and as a PDF: the score, password health, vault locks, protected files, 30 days of sign-ins and a count of everything done.
+- A report never contains passwords, note text, website names or file names. Saved reports are listed with Open, Show in folder and Delete.
 
 **Settings**
 - Auto-lock minutes and clipboard clear time, per account.
 - Change the account password or the master password.
-- Sign-in history.
+- Sign-in history, with what each sign-in did.
 
-**Coming next** (see the roadmap below): Secure Notes, Encryption Center, Steganography, Privacy Tools, Reports.
+**Coming next** (see the roadmap below): Steganography and Privacy Tools.
 
 ## Screenshots
 
 | Sign in | Password Vault |
 |---|---|
 | ![Sign in](docs/screenshots/sign-in.png) | ![Password Vault](docs/screenshots/password-vault.png) |
-| **File Security** | **Settings** |
-| ![File Security](docs/screenshots/file-security.png) | ![Settings](docs/screenshots/settings.png) |
+| **Secure Notes** | **Encryption Center** |
+| ![Secure Notes](docs/screenshots/secure-notes.png) | ![Encryption Center](docs/screenshots/encryption-center.png) |
+| **File Security** | **File Security tools** |
+| ![File Security](docs/screenshots/file-security.png) | ![File Security tools](docs/screenshots/file-security-tools.png) |
+| **Settings** | |
+| ![Settings](docs/screenshots/settings.png) | |
 
 ## Requirements
 
@@ -65,10 +89,12 @@ mvn test
 ```
 
 The tests cover:
-- encryption and the protected-file format, including tampering;
+- encryption and the protected-file format, including tampering, and the Encryption Center's shared text, files and checksums;
 - vaults: creating, unlocking, changing the master password, the PBKDF2 upgrade, and taking over the old shared vault;
-- sign-in, waits and history, and registration rules;
-- File Security: protect, restore, the safety rules, export and the viewer's decoding;
+- sign-in, waits, history and the activity log with its 30-day limit, and registration rules;
+- Password Vault and Secure Notes: every field encrypted, older logins converted, password health, privacy between accounts;
+- File Security: protect, restore, the safety rules, export, the viewer (AAC sound, photo turns, zoom), the check, recovery and backups;
+- the security score, and reports (no secrets in the PDF);
 - settings, and every screen opening.
 
 Each test uses its own database and file store in a temp folder, so the real data is never touched. `ScreensTest` opens the screens with JavaFX (in windows that are never shown), so it needs a desktop session.
@@ -86,6 +112,9 @@ mvn test -Dtest=ScreensTest -Dcybershield.snapshots=target/screens
 | Accounts, encrypted logins, settings, sign-in history | `database/cybershield.db` in the folder the app runs from |
 | Encrypted protected files (hidden and system folder) | `%LOCALAPPDATA%\CyberShield\FileVault` |
 | A copy of each vault's wrapped key, for recovery | `%LOCALAPPDATA%\CyberShield\FileVault\keys` |
+| What each sign-in did (names encrypted), removed after 30 days | the database |
+| Backups of protected files | the folder you choose, as `CyberShield backup <date and time>` |
+| Reports | the PDF wherever you save it; the list of them in the database |
 
 The database is not in git (see `.gitignore`).
 
@@ -105,11 +134,17 @@ The database is not in git (see `.gitignore`).
 - The header is authenticated with every block, so changed, reordered, moved or cut-off blocks are refused.
 - An original is replaced only after its encrypted copy has been written, flushed to disk and read back. It is then overwritten and deleted.
 
-**If the database is lost**, the master password and the key file in `keys\` still open the files. A recovery tool is on the roadmap.
+**If the database is lost**, the master password and the key file in `keys\` still open the files: File Security → Tools → Recover the list finds them in the store and lists them again.
+
+**Backups** copy the encrypted files as they are, with an encrypted list of them and the vault's key file. Nothing is decrypted, so only the master password opens a backup.
+
+**Shared encryption** (Encryption Center) uses AES-256-GCM with a key derived from the chosen password (PBKDF2-HMAC-SHA512, 210,000 rounds, random salt). Files are sealed in 1 MiB chunks, so a changed or cut-off file is refused, and a wrong password leaves nothing behind.
 
 **Limits**
 - Overwriting a file doesn't guarantee it is gone from an SSD.
 - Video playback uses an internal JavaFX class, so re-test it when JavaFX is upgraded.
+- AAC sound is decoded in memory. Over about 50 minutes it is too big: such a video plays muted, with a note, and such a song needs Export a copy.
+- A report is a plain PDF on purpose: it holds no secrets.
 
 ### Upgrading from v1
 
@@ -128,12 +163,14 @@ src/main/java/com/cybershield/
   app/          entry point
   config/       paths and constants
   database/     schema set-up and upgrades
-  dao/          users, sign-in history, settings
-  encryption/   AES-GCM, PBKDF2, the CSF1 file format
-  files/        File Security: protect, hide, restore, view
-  password/     Password Vault data
+  dao/          users, sign-in history, activity, settings
+  encryption/   AES-GCM, PBKDF2, the CSF1 file format, shared files, checksums
+  files/        File Security: protect, hide, restore, check, back up, recover
+  notes/        Secure Notes data
+  password/     Password Vault data and password health
+  reports/      security reports and their PDF
   security/     BCrypt, session
-  services/     sign-in and registration, the open vault key
+  services/     sign-in and registration, activity log, security score, the open vault key
   vault/        per-account vaults, auto-lock, key backup
   ui/           screens (controllers) and the file viewer
   utils/        validation, generator, formatting
@@ -150,9 +187,9 @@ src/test/java/  JUnit tests
 |---|---|---|---|
 | 0 · Stabilise | 1–2 | Tests, README, SessionManager fix, header contrast | Done |
 | 1 · Accounts & Settings | 2–6 | Registration, sign-in history and waits, one vault per account, Settings, master password change | Done |
-| 2 · Core modules | 6–11 | Secure Notes, every Password Vault field encrypted, home screen score | Next |
-| 3 · Tools & reports | 11–15 | Encryption Center, PDF reports, File Security backup and recovery | |
-| 4 · Extras | 16–20 | Steganography, Privacy Tools | |
+| 2 · Core modules | 6–11 | Secure Notes, every Password Vault field encrypted, home screen score | Done |
+| 3 · Tools & reports | 11–15 | Encryption Center, PDF reports, File Security backup and recovery | Done |
+| 4 · Extras | 16–20 | Steganography, Privacy Tools | Next |
 | 5 · Polish & release | 20–21 | Light and dark themes, installer, automatic builds | |
 
 ## License
