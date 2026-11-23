@@ -230,6 +230,10 @@ class StreamPlayerTest {
 
         assumeTrue(toolkitReady && StreamPlayer.available(), "JavaFX or FFmpeg can't run here");
 
+        // A song has only sound: on a machine with no sound output (e.g. a CI runner) there is
+        // nothing to play, and opening it fails on purpose. Skip rather than fail there.
+        assumeTrue(hasSoundOutput(), "this PC has no sound output, so an audio-only song can't play");
+
         Path song = dir.resolve("song.m4a");
 
         try (FFmpegFrameRecorder recorder = new FFmpegFrameRecorder(song.toFile(), 2)) {
@@ -484,6 +488,19 @@ class StreamPlayerTest {
             return onFx(button::getText);
         } catch (Exception e) {
             return "";
+        }
+
+    }
+
+    /** Whether this machine can play PCM audio at all. False on a headless CI runner with no sound card. */
+    private static boolean hasSoundOutput() {
+
+        try {
+            javax.sound.sampled.AudioFormat format = new javax.sound.sampled.AudioFormat(RATE, 16, 2, true, false);
+            return javax.sound.sampled.AudioSystem.isLineSupported(
+                    new javax.sound.sampled.DataLine.Info(javax.sound.sampled.SourceDataLine.class, format));
+        } catch (RuntimeException noAudioSystem) {
+            return false;
         }
 
     }
