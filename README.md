@@ -93,6 +93,8 @@ A Windows desktop app that keeps passwords and files private on a shared PC. Eve
 - Maven 3.9 or newer.
 - For the installer only: WiX Toolset 3.14, which jpackage uses to make the .msi (see below).
 
+**Platforms.** CyberShield is a Windows desktop app and does not run on macOS or Linux (it uses Windows file attributes and junctions, and FFmpeg's Windows 64-bit libraries). You can test it on your own Windows 10/11 PC, in a Windows virtual machine, or on GitHub Actions — every push runs the full test suite on Windows with both Java 21 and Java 25 (`.github/workflows/build.yml`). The tests use their own temp folders and never touch your real accounts or files.
+
 ## Run
 
 ```
