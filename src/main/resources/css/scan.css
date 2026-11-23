@@ -1,0 +1,44 @@
+/*
+  Security Scan. Reuses the Home card look (application.css); this only adds the
+  progress strip and the colours for each severity in the results table.
+*/
+
+.scan .progress-strip {
+    -fx-padding: 12 16 12 16;
+}
+
+.scan .table-view {
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+    -fx-border-color: -cs-line;
+    -fx-border-width: 1;
+}
+
+/* The first column: a short, coloured word for how much a row matters. */
+.level-tag {
+    -fx-font-weight: bold;
+}
+
+.level-risk {
+    -fx-text-fill: -cs-bad;
+}
+
+.level-warn,
+.level-review {
+    -fx-text-fill: -cs-warn;
+}
+
+.level-good {
+    -fx-text-fill: -cs-good;
+}
+
+.level-note,
+.level-info,
+.level-unknown {
+    -fx-text-fill: -cs-muted;
+}
+
+/* Wrapped Text in the Details and Where columns follows the theme's ink colour. */
+.scan .cell-text {
+    -fx-fill: -cs-ink;
+}

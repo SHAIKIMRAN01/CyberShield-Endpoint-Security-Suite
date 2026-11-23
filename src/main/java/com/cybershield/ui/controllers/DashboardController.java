@@ -95,6 +95,9 @@ public class DashboardController {
     private Button privacyButton;
 
     @FXML
+    private Button scanButton;
+
+    @FXML
     private Button reportsButton;
 
     @FXML
@@ -149,7 +152,7 @@ public class DashboardController {
     public void initialize() {
 
         navButtons = List.of(homeButton, passwordButton, notesButton, filesButton, encryptionButton,
-                stegoButton, privacyButton, reportsButton, settingsButton);
+                stegoButton, privacyButton, scanButton, reportsButton, settingsButton);
 
         setIcon(homeButton, Ui.ICON_HOME);
         setIcon(passwordButton, Ui.ICON_KEY);
@@ -158,6 +161,7 @@ public class DashboardController {
         setIcon(encryptionButton, Ui.ICON_LOCK);
         setIcon(stegoButton, Ui.ICON_IMAGE);
         setIcon(privacyButton, Ui.ICON_EYE);
+        setIcon(scanButton, Ui.ICON_SCAN);
         setIcon(reportsButton, Ui.ICON_CHART);
         setIcon(settingsButton, Ui.ICON_SLIDERS);
         setIcon(signOutButton, Ui.ICON_SIGN_OUT);
@@ -444,6 +448,15 @@ public class DashboardController {
         select(privacyButton, "Privacy Tools");
 
         showView("/fxml/privacy/privacy.fxml");
+
+    }
+
+    @FXML
+    public void openSecurityScan() {
+
+        select(scanButton, "Security Scan");
+
+        showView("/fxml/scan/security_scan.fxml");
 
     }
 

@@ -37,4 +37,8 @@ public final class ScreenDriver {
         ((ReportsController) dashboard.currentScreen()).chooseDays(from, to);
     }
 
+    public static void securityScan(DashboardController dashboard, List<ScanController.Row> rows, String summary) {
+        ((ScanController) dashboard.currentScreen()).showForDemo(rows, summary);
+    }
+
 }

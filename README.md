@@ -66,6 +66,11 @@ A Windows desktop app that keeps passwords and files private on a shared PC. Eve
 - Clean Windows traces: recent items, jump lists, the thumbnail cache and temporary files older than a day. It looks first and removes only what you tick; files in use are skipped.
 - An on-screen keyboard beside the password on the sign-in and vault screens, against keyloggers. Mix the keys puts them in a new order.
 
+**Security Scan** (works without the vault)
+- A quick scan reads how the laptop is set up to protect itself — antivirus, firewall, drive encryption, automatic sign-in, lock-on-wake, camera/microphone/location access and start-up programs — and says what's good, what's worth a look and what it couldn't read (which needs an administrator), with advice for each. It reads Windows' own settings and changes nothing.
+- A deep scan also walks your whole user folder and points out files worth a second look: a program dressed up as a document (photo.jpg.exe), a hidden program, an installer left in Downloads or a temp folder, a loose script, or something set to run at start-up — each with a SHA-256 fingerprint you can check yourself. These are honest heuristics, not virus detection: CyberShield is not an antivirus and never claims a file is malware.
+- Everything is read-only; nothing is opened, moved or changed, and a scan can be stopped at any time.
+
 **Settings**
 - Light or dark theme, per account. It changes at once, and the sign-in screen shows the theme the last account used.
 - Auto-lock minutes and clipboard clear time, per account.
@@ -84,6 +89,8 @@ A Windows desktop app that keeps passwords and files private on a shared PC. Eve
 | ![File Security](docs/screenshots/file-security.png) | ![File Security tools](docs/screenshots/file-security-tools.png) |
 | **Steganography** | **Privacy Tools** |
 | ![Steganography](docs/screenshots/steganography.png) | ![Privacy Tools](docs/screenshots/privacy-tools.png) |
+| **Security Scan** | **Security Scan (dark)** |
+| ![Security Scan](docs/screenshots/security-scan.png) | ![Security Scan dark](docs/screenshots/dark-security-scan.png) |
 | **Settings** | **Dark theme** |
 | ![Settings](docs/screenshots/settings.png) | ![Dark theme](docs/screenshots/dark-home.png) |
 
@@ -151,6 +158,7 @@ The tests cover:
 - the security score, and reports (no secrets in the PDF), sign-ins by date and the monthly report;
 - steganography: messages and files in and out of pictures, wrong passwords, too-big messages, and JPEG wiping the bits;
 - Privacy Tools, on made-up files and folders only: shredding (refused places, junctions, open files, stopping), photo details in JPEG and PNG, the traces cleaner, the on-screen keyboard;
+- Security Scan: the risky-file rules (disguises, hidden programs, by place, scripts, large files) on made-up names and a temp folder, the posture judgement on made-up settings (good, risky, and "couldn't read" without a guess), the reading of Windows' output, and how findings become rows and advice;
 - settings, backups from Settings, and every screen opening.
 
 Each test uses its own database and file store in a temp folder, so the real data is never touched. `ScreensTest` opens the screens with JavaFX (in windows that are never shown), so it needs a desktop session.

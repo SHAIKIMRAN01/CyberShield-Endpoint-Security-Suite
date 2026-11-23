@@ -12,6 +12,7 @@ import com.cybershield.reports.ReportService;
 import com.cybershield.security.SessionManager;
 import com.cybershield.services.AuthenticationService;
 import com.cybershield.ui.controllers.DashboardController;
+import com.cybershield.ui.controllers.ScanController;
 import com.cybershield.ui.controllers.ScreenDriver;
 import com.cybershield.vault.VaultService;
 
@@ -300,6 +301,14 @@ class ScreensTest {
         run(() -> ((Button) scene.lookup("#keyboardTab")).fire());
         snapshot("29-privacy-keyboard", scene);
 
+        // Security Scan: the resting screen, then with a made-up set of results (never this PC's own)
+        run(dashboard.controller()::openSecurityScan);
+        assertNotNull(scene.lookup("#resultsTable"), "Security Scan opens");
+        snapshot("43-security-scan", scene);
+        run(() -> ScreenDriver.securityScan(dashboard.controller(), demoScanRows(),
+                "Found 1 setting to look at · 1 file worth a look · 1 file to be aware of. See below."));
+        snapshot("44-security-scan-results", scene);
+
         // Settings: backup and restore, with the vault unlocked
         run(dashboard.controller()::openSettings);
         run(() -> ((Button) scene.lookup("#backupTab")).fire());
@@ -344,6 +353,10 @@ class ScreensTest {
         snapshot("38-dark-privacy", scene);
         run(() -> ((Button) scene.lookup("#reportsButton")).fire());
         snapshot("39-dark-reports", scene);
+        run(dashboard.controller()::openSecurityScan);
+        run(() -> ScreenDriver.securityScan(dashboard.controller(), demoScanRows(),
+                "Found 1 setting to look at · 1 file worth a look · 1 file to be aware of. See below."));
+        snapshot("45-dark-security-scan", scene);
         snapshot("40-dark-sign-in", onFx(() -> Theme.style(new Scene(Ui.load("/fxml/login.fxml").root(), 960, 600))));
         run(dashboard.controller()::openSettings);
         run(() -> ((Button) scene.lookup("#appearanceTab")).fire());
@@ -491,6 +504,27 @@ class ScreensTest {
 
         ImageIO.write(picture, "png", out.toFile());
 
+    }
+
+    /** A made-up set of scan results for the screenshots, so no real file or setting is shown. */
+    private static List<ScanController.Row> demoScanRows() {
+        return List.of(
+                new ScanController.Row("Needs attention", "Firewall",
+                        "The firewall is off, so the laptop is more open on networks."
+                                + "    \u2192  Turn the Windows Defender Firewall back on for all network types.",
+                        "Windows setting"),
+                new ScanController.Row("Worth a look", "Hidden file type",
+                        "Named like a document but is really a program \u2014 e.g. photo.jpg.exe. A common disguise."
+                                + "    \u00B7  SHA-256 eb201af5aaf0d60629d3d2a61e466cfc0fedb517add831ecac5235e1daa963d6",
+                        "C:\\Users\\sam\\Downloads\\invoice.pdf.exe"),
+                new ScanController.Row("Good to know", "Installer in Downloads",
+                        "A program or installer sitting in Downloads. Fine if you put it there \u2014 delete it once used.",
+                        "C:\\Users\\sam\\Downloads\\setup.exe"),
+                new ScanController.Row("Good", "Antivirus", "Antivirus is on.", "Windows setting"),
+                new ScanController.Row("For information", "Start-up programs",
+                        "3 programs run at sign-in: OneDrive, Spotify, Updater."
+                                + "    \u2192  Disable any you don't recognise in Task Manager \u203A Start-up apps.",
+                        "Windows setting"));
     }
 
     private static byte[] sampleImage() throws Exception {

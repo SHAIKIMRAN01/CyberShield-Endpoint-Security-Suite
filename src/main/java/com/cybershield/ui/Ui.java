@@ -59,6 +59,11 @@ public final class Ui {
             "M3 5.5 H21 V7.5 H3 Z M3 11 H21 V13 H3 Z M3 16.5 H21 V18.5 H3 Z "
                     + "M7.5 3.5 H10.5 V9.5 H7.5 Z M14 9 H17 V15 H14 Z M5.5 14.5 H8.5 V20.5 H5.5 Z";
 
+    // A magnifier: the usual sign for scanning or searching.
+    public static final String ICON_SCAN =
+            "M10 2.5 A7.5 7.5 0 1 0 10.01 2.5 Z M10 5.5 A4.5 4.5 0 1 0 10.01 5.5 Z "
+                    + "M15 16.4 L16.4 15 L21.8 20.4 L20.4 21.8 Z";
+
     // Three bars: the usual sign for a menu or sidebar.
     public static final String ICON_MENU =
             "M4.2 4.8 H19.8 A1.3 1.3 0 0 1 19.8 7.4 H4.2 A1.3 1.3 0 0 1 4.2 4.8 Z "

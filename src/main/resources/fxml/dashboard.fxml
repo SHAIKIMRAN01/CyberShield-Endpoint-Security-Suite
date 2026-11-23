@@ -64,6 +64,8 @@
 
             <Button fx:id="privacyButton" text="Privacy Tools" styleClass="nav-button" onAction="#openPrivacyTools"/>
 
+            <Button fx:id="scanButton" text="Security Scan" styleClass="nav-button" onAction="#openSecurityScan"/>
+
             <Button fx:id="reportsButton" text="Reports" styleClass="nav-button" onAction="#openReports"/>
 
             <Label text="ACCOUNT" styleClass="nav-group"/>

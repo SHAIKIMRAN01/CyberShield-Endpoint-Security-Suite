@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  Security Scan. Top to bottom: a short heading, two scan cards (quick and deep)
+  sharing the width, a progress strip that only shows while a scan runs, a one-line
+  summary, then the results table that fills the rest of the height.
+-->
+
+<?import java.net.URL?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.cybershield.ui.controllers.ScanController"
+      styleClass="home,scan"
+      spacing="16">
+
+    <stylesheets>
+        <URL value="@../../css/scan.css"/>
+    </stylesheets>
+
+    <VBox spacing="4">
+        <Label text="Security Scan" styleClass="greeting"/>
+        <Label text="See how this laptop is protected and spot files worth a second look. Nothing is opened or changed — this only looks and reports."
+               styleClass="subtitle" wrapText="true"/>
+    </VBox>
+
+    <!-- THE TWO SCANS -->
+    <GridPane hgap="18">
+
+        <columnConstraints>
+            <ColumnConstraints percentWidth="50"/>
+            <ColumnConstraints percentWidth="50"/>
+        </columnConstraints>
+
+        <VBox styleClass="card,home-card" spacing="6" GridPane.columnIndex="0">
+            <Label text="Quick scan" styleClass="card-title"/>
+            <Label text="Security settings — antivirus, firewall, sign-in, camera and more — and a fast look through Downloads, the desktop, temporary folders and start-up. A few seconds."
+                   styleClass="hint" wrapText="true"/>
+            <Region VBox.vgrow="ALWAYS" minHeight="6"/>
+            <Button fx:id="quickScanButton" text="Run quick scan" styleClass="primary-button"
+                    onAction="#runQuickScan" maxWidth="Infinity"/>
+        </VBox>
+
+        <VBox styleClass="card,home-card" spacing="6" GridPane.columnIndex="1">
+            <Label text="Deep scan" styleClass="card-title"/>
+            <Label text="Everything in the quick scan, plus a thorough walk through your whole user folder, with a SHA-256 fingerprint for each flagged file. Takes longer."
+                   styleClass="hint" wrapText="true"/>
+            <Region VBox.vgrow="ALWAYS" minHeight="6"/>
+            <Button fx:id="deepScanButton" text="Run deep scan"
+                    onAction="#runDeepScan" maxWidth="Infinity"/>
+        </VBox>
+
+    </GridPane>
+
+    <!-- PROGRESS (only while a scan runs) -->
+    <HBox fx:id="progressBox" styleClass="card,progress-strip" spacing="12" alignment="CENTER_LEFT"
+          managed="false" visible="false">
+        <ProgressBar fx:id="progressBar" progress="-1" prefWidth="220"/>
+        <Label fx:id="statusLabel" styleClass="hint" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+        <Button fx:id="stopButton" text="Stop" onAction="#stopScan"/>
+    </HBox>
+
+    <!-- SUMMARY -->
+    <Label fx:id="summaryLabel" styleClass="section-heading" wrapText="true" managed="false" visible="false"/>
+
+    <!-- RESULTS -->
+    <TableView fx:id="resultsTable" VBox.vgrow="ALWAYS">
+        <columns>
+            <TableColumn fx:id="levelColumn" text="" prefWidth="130" minWidth="110"/>
+            <TableColumn fx:id="findingColumn" text="Finding" prefWidth="190" minWidth="140"/>
+            <TableColumn fx:id="detailColumn" text="Details" prefWidth="360" minWidth="200"/>
+            <TableColumn fx:id="whereColumn" text="Where" prefWidth="260" minWidth="150"/>
+        </columns>
+    </TableView>
+
+</VBox>

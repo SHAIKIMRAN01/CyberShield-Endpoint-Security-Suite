@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased: Security Scan
+
+### Added
+- **Security Scan** (new sidebar entry under Tools; works without the vault). A **quick scan** reads how the laptop is set up to protect itself — antivirus, firewall, drive encryption, automatic sign-in, lock-on-wake, camera/microphone/location access and start-up programs — and marks each good, worth a look, needs attention, or "couldn't check" (never a guess), with advice. A **deep scan** also walks the whole user folder and flags files worth a second look: a program disguised as a document (photo.jpg.exe), a hidden program, an installer left in Downloads or a temp folder, a loose script, or a start-up item, each with a SHA-256 fingerprint. It is read-only — nothing is opened, moved or changed — and can be stopped at any time. Honest heuristics, not virus detection: CyberShield never claims a file is malware.
+- The reading of Windows' settings is one short, read-only PowerShell pass; anything that needs an administrator (such as BitLocker) is reported as "couldn't check" rather than guessed.
+
+### Changed
+- **Tests:** 247 JUnit tests now, including the risky-file rules on made-up names and a temp folder, the posture judgement on made-up settings, and the new screen opening.
+
 ## Unreleased: a password generator and file-password recovery
 
 ### Added
