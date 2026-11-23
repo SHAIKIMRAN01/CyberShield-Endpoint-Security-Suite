@@ -1,7 +1,8 @@
 # Builds CyberShield and runs every test on each push and pull request. It runs on
 # Windows, because the app is Windows-only (FFmpeg's Windows libraries, Windows file
 # attributes and junctions), on Java 21 (the oldest it supports) and Java 25 (the one
-# the installer will bundle).
+# the installer bundles). A version tag (v1.2.3) or a manual run also builds the
+# Windows installer.
 
 name: Build
 
@@ -52,3 +53,45 @@ jobs:
           path: target/surefire-reports
           retention-days: 14
 
+  installer:
+    name: Windows installer
+    needs: test
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '25'
+          cache: maven
+
+      # The same WiX Toolset 3.14.1 the installer was first built with, checked byte for byte.
+      - name: Get WiX Toolset 3.14.1
+        shell: pwsh
+        run: |
+          $zip = Join-Path $env:RUNNER_TEMP 'wix314-binaries.zip'
+          Invoke-WebRequest -Uri 'https://github.com/wixtoolset/wix3/releases/download/wix3141rtm/wix314-binaries.zip' -OutFile $zip
+          $hash = (Get-FileHash $zip -Algorithm SHA256).Hash
+          if ($hash -ne '6AC824E1642D6F7277D0ED7EA09411A508F6116BA6FAE0AA5F2C7DAA2FF43D31') {
+            throw "The WiX download isn't the expected file (SHA-256 $hash)."
+          }
+          Expand-Archive $zip -DestinationPath (Join-Path $env:RUNNER_TEMP 'wix314')
+
+      # The tests already passed in the test job.
+      - name: Build the installer
+        shell: pwsh
+        run: ./scripts/build-installer.ps1 -Jdk $env:JAVA_HOME -WixDir (Join-Path $env:RUNNER_TEMP 'wix314') -SkipTests
+
+      - name: Keep the installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: CyberShield-installer
+          path: target/installer/*.msi
+          retention-days: 30

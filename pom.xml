@@ -180,6 +180,43 @@
 
             </plugin>
 
+            <!-- The app's own jar: its classes and resources. -->
+            <plugin>
+
+                <groupId>org.apache.maven.plugins</groupId>
+
+                <artifactId>maven-jar-plugin</artifactId>
+
+                <version>3.4.1</version>
+
+            </plugin>
+
+            <!-- Every library the app needs at run time, copied to target/libs for the
+                 Windows installer (scripts/build-installer.ps1). -->
+            <plugin>
+
+                <groupId>org.apache.maven.plugins</groupId>
+
+                <artifactId>maven-dependency-plugin</artifactId>
+
+                <version>3.7.0</version>
+
+                <executions>
+                    <execution>
+                        <id>copy-libraries</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/libs</outputDirectory>
+                            <includeScope>runtime</includeScope>
+                        </configuration>
+                    </execution>
+                </executions>
+
+            </plugin>
+
             <plugin>
 
                 <groupId>org.openjfx</groupId>
