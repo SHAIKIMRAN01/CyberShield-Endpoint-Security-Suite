@@ -1,5 +1,15 @@
 # Changelog
 
+## Unreleased: a password generator and file-password recovery
+
+### Added
+- **Password generator with three modes** (Encryption Center → Password generator): random characters (choose upper/lower/digits/symbols, length, and "no look-alikes"); a memorable passphrase of words from a built-in list, optionally capitalised and with a number; or a numeric PIN. Each shows how many passwords it could make and the strength in bits. A new 426-word passphrase list.
+- **Recover a file password** (Encryption Center → Recover a file password), for a file **you own**: it tries the passwords people actually choose — your own hints (names, pets, places, dates, phone numbers) in their common forms, plus a short list of the most common passwords — so it recovers a password you picked and forgot, but not a long random one. Works on `.cshield` files and password-protected PDFs, with a background run, progress and Stop. You can import your own contacts (vCard or CSV) as hints. The screen is clear it is for files you own; there is no "crack any file" mode and no third-party wordlists.
+- `SharedCipher.fileOpensWith` checks a `.cshield` password from the file's header alone, without decrypting it.
+
+### Changed
+- **Tests:** 216 JUnit tests now, including that a long random password is never "recovered".
+
 ## Unreleased: Phase 5, the dark theme and the Windows installer
 
 ### Added

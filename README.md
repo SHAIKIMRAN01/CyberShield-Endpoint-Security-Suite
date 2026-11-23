@@ -44,7 +44,8 @@ A Windows desktop app that keeps passwords and files private on a shared PC. Eve
 **Encryption Center** (works without the vault)
 - Encrypt text or a file with a password, to share it. Files become `.cshield` files that open on any PC running CyberShield.
 - SHA-256 and SHA-512 checksums of text or files, compared with an expected value.
-- A password strength checker and generator.
+- A password strength checker, and a generator with three modes: random characters (your choice of upper, lower, digits, symbols and length, with an option to leave out look-alikes), a memorable passphrase of words, or a numeric PIN. It shows how many passwords each setting could make.
+- Recover a forgotten password to a file **you own** — a `.cshield` file or a password-protected PDF. It tries the passwords people actually choose, from your own hints (a name, a pet, a date, a phone number) and a short common-password list, so it recovers a password you picked, not a long random one. You can import your own contacts (vCard or CSV) as hints.
 
 **Reports**
 - A security summary on screen and as a PDF: the score, password health, vault locks, protected files, 30 days of sign-ins and a count of everything done.
