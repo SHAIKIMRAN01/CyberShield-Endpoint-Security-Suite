@@ -4,6 +4,7 @@ import com.cybershield.TestSupport;
 import com.cybershield.files.FileVaultService;
 import com.cybershield.ui.Ui;
 import com.cybershield.ui.viewer.FilePreview;
+import com.cybershield.ui.viewer.JavaFxPlayback;
 import com.cybershield.ui.viewer.MediaPreview;
 import com.cybershield.ui.viewer.PreviewKind;
 import com.cybershield.ui.viewer.Previews;
@@ -161,6 +162,9 @@ class FileSecurityScreenTest {
     void anMp4VideoPlaysFromTheEncryptedStore() throws Exception {
 
         assumeTrue(toolkitReady, "JavaFX can't start here");
+
+        // Only where JavaFX can play an H.264 file at all: build servers may have no video decoders.
+        assumeTrue(JavaFxPlayback.canPlayVideo(), "JavaFX can't play H.264 video on this computer");
 
         // An original 1.6-second H.264 clip (video only, 320 x 240) made for this test.
         Path video = Files.createDirectories(tempDir.resolve("videos")).resolve("colours.mp4");

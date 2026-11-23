@@ -1,0 +1,54 @@
+# Builds CyberShield and runs every test on each push and pull request. It runs on
+# Windows, because the app is Windows-only (FFmpeg's Windows libraries, Windows file
+# attributes and junctions), on Java 21 (the oldest it supports) and Java 25 (the one
+# the installer will bundle).
+
+name: Build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+
+  test:
+    name: Test on Java ${{ matrix.java }}
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    strategy:
+      fail-fast: false
+      matrix:
+        java: [ '21', '25' ]
+
+    steps:
+
+      - name: Check out
+        uses: actions/checkout@v4
+
+      - name: Set up Java ${{ matrix.java }}
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+          cache: maven
+
+      - name: Build and run the tests
+        run: mvn --batch-mode --no-transfer-progress verify
+
+      - name: Keep the test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports-java-${{ matrix.java }}
+          path: target/surefire-reports
+          retention-days: 14
+

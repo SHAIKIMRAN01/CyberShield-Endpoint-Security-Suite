@@ -187,7 +187,14 @@ class Mp4SoundTest {
 
         }
 
-        // The fallback when FFmpeg can't run: JavaFX's player from memory.
+        // The fallback when FFmpeg can't run: JavaFX's player from memory. Only where JavaFX can
+        // play such media at all: build servers may have no video decoders or no sound device.
+        assumeTrue(JavaFxPlayback.canPlayVideo(), "JavaFX can't play H.264 video on this computer");
+
+        if (!MediaPreview.aacPlays()) {
+            assumeTrue(JavaFxPlayback.canPlaySound(), "JavaFX can't play sound on this computer");
+        }
+
         // JavaFX's own decoders on Windows (Media Foundation) sometimes fail to start a video
         // that is fine: on the development PC about one run in four, with "media invalid".
         // The bytes handed over are the same every time, so a fault of ours fails every try;
