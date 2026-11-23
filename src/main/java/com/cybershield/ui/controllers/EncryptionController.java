@@ -3,6 +3,9 @@ package com.cybershield.ui.controllers;
 import com.cybershield.dao.SettingsDAO;
 import com.cybershield.encryption.Checksums;
 import com.cybershield.encryption.SharedCipher;
+import com.cybershield.recovery.Candidates;
+import com.cybershield.recovery.ContactsImport;
+import com.cybershield.recovery.PasswordRecovery;
 import com.cybershield.services.ActivityLog;
 import com.cybershield.ui.Ui;
 import com.cybershield.utils.PasswordGenerator;
@@ -11,6 +14,7 @@ import com.cybershield.utils.ValidationUtil;
 
 import javafx.application.Platform;
 import javafx.collections.FXCollections;
+import javafx.concurrent.Task;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
@@ -18,17 +22,22 @@ import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.ProgressBar;
+import javafx.scene.control.RadioButton;
 import javafx.scene.control.Spinner;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
+import javafx.scene.control.ToggleGroup;
+import javafx.scene.layout.Region;
 import javafx.scene.layout.VBox;
 import javafx.stage.FileChooser;
 
 import java.io.File;
 import java.io.IOException;
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * The Encryption Center: password-based tools for sharing, separate from the vault.
@@ -77,6 +86,50 @@ public class EncryptionController {
     @FXML private TextField generated;
     @FXML private Label strengthMessage;
 
+    // Password generator
+    @FXML private Button generatorTab;
+    @FXML private VBox generatorPanel;
+    @FXML private ToggleGroup modeGroup;
+    @FXML private RadioButton randomMode;
+    @FXML private RadioButton wordsMode;
+    @FXML private RadioButton pinMode;
+    @FXML private Region randomControls;
+    @FXML private Region wordControls;
+    @FXML private Region pinControls;
+    @FXML private Spinner<Integer> randomLength;
+    @FXML private CheckBox useUpper;
+    @FXML private CheckBox useLower;
+    @FXML private CheckBox useDigits;
+    @FXML private CheckBox useSymbols;
+    @FXML private CheckBox avoidLookalikes;
+    @FXML private Spinner<Integer> wordCount;
+    @FXML private ComboBox<String> wordSeparator;
+    @FXML private CheckBox capitalizeWords;
+    @FXML private CheckBox addNumber;
+    @FXML private Spinner<Integer> pinLength;
+    @FXML private TextField generatedPassword;
+    @FXML private Label generatorStrength;
+
+    // Recover a file password
+    @FXML private Button recoveryTab;
+    @FXML private VBox recoveryPanel;
+    @FXML private Label recoveryFileLabel;
+    @FXML private TextArea recoveryHints;
+    @FXML private CheckBox includeCommon;
+    @FXML private Region recoveryProgressBox;
+    @FXML private ProgressBar recoveryProgress;
+    @FXML private Label recoveryProgressLabel;
+    @FXML private Button startRecoveryButton;
+    @FXML private TextField recoveredPassword;
+    @FXML private Button copyRecoveredButton;
+    @FXML private Label recoveryMessage;
+
+    private Path recoveryFile;
+
+    private final AtomicBoolean stopRecovery = new AtomicBoolean();
+
+    private boolean recovering;
+
     private Path chosenFile;
 
     @FXML
@@ -91,8 +144,27 @@ public class EncryptionController {
 
         showStrength("");
 
+        wordSeparator.setItems(FXCollections.observableArrayList("-", ".", "_", "space"));
+        wordSeparator.getSelectionModel().select("-");
+
+        modeGroup.selectedToggleProperty().addListener((observable, before, mode) -> updateGeneratorControls());
+        updateGeneratorControls();
+
         showText();
 
+    }
+
+    private void updateGeneratorControls() {
+
+        show(randomControls, randomMode.isSelected());
+        show(wordControls, wordsMode.isSelected());
+        show(pinControls, pinMode.isSelected());
+
+    }
+
+    private static void show(Region node, boolean visible) {
+        node.setVisible(visible);
+        node.setManaged(visible);
     }
 
     // =====================================================
@@ -119,15 +191,25 @@ public class EncryptionController {
         show(strengthTab, strengthPanel);
     }
 
+    @FXML
+    private void showGenerator() {
+        show(generatorTab, generatorPanel);
+    }
+
+    @FXML
+    private void showRecovery() {
+        show(recoveryTab, recoveryPanel);
+    }
+
     private void show(Button tab, VBox panel) {
 
-        for (Button each : List.of(textTab, fileTab, hashTab, strengthTab)) {
+        for (Button each : List.of(textTab, fileTab, hashTab, strengthTab, generatorTab, recoveryTab)) {
             each.getStyleClass().remove("active");
         }
 
         tab.getStyleClass().add("active");
 
-        for (VBox each : List.of(textPanel, filePanel, hashPanel, strengthPanel)) {
+        for (VBox each : List.of(textPanel, filePanel, hashPanel, strengthPanel, generatorPanel, recoveryPanel)) {
             each.setVisible(each == panel);
         }
 
@@ -514,6 +596,328 @@ public class EncryptionController {
         Ui.copyAndClearLater(generated.getText(), seconds);
 
         Ui.message(strengthMessage, "Copied. The clipboard clears in " + seconds + " seconds.", "good");
+
+    }
+
+    // =====================================================
+    // PASSWORD GENERATOR (3 modes)
+    // =====================================================
+
+    @FXML
+    private void generatePassword() {
+
+        String password;
+
+        BigInteger combinations;
+
+        try {
+
+            if (wordsMode.isSelected()) {
+
+                int count = wordCount.getValue();
+                char separator = "space".equals(wordSeparator.getValue()) ? ' ' : wordSeparator.getValue().charAt(0);
+
+                password = PasswordGenerator.passphrase(count, separator, capitalizeWords.isSelected(), addNumber.isSelected());
+                combinations = PasswordGenerator.passphraseCombinations(count, addNumber.isSelected());
+
+            } else if (pinMode.isSelected()) {
+
+                int length = pinLength.getValue();
+
+                password = PasswordGenerator.pin(length);
+                combinations = PasswordGenerator.pinCombinations(length);
+
+            } else {
+
+                int length = randomLength.getValue();
+
+                password = PasswordGenerator.random(length, useUpper.isSelected(), useLower.isSelected(),
+                        useDigits.isSelected(), useSymbols.isSelected(), avoidLookalikes.isSelected());
+                combinations = PasswordGenerator.randomCombinations(length, useUpper.isSelected(), useLower.isSelected(),
+                        useDigits.isSelected(), useSymbols.isSelected(), avoidLookalikes.isSelected());
+
+            }
+
+        } catch (IllegalArgumentException | NullPointerException e) {
+
+            generatedPassword.clear();
+            Ui.message(generatorStrength, "Choose at least one kind of character.", "bad");
+            return;
+
+        }
+
+        generatedPassword.setText(password);
+
+        double bits = PasswordGenerator.entropyBits(combinations);
+
+        Ui.message(generatorStrength, "About " + approximate(combinations) + " possible passwords  ·  "
+                + Math.round(bits) + " bits  ·  " + strengthWord(bits) + ".", "good");
+
+    }
+
+    @FXML
+    private void copyGeneratedPassword() {
+
+        if (generatedPassword.getText().isEmpty()) {
+            Ui.message(generatorStrength, "Generate a password first.", null);
+            return;
+        }
+
+        int seconds = new SettingsDAO().clipboardClearSeconds();
+
+        Ui.copyAndClearLater(generatedPassword.getText(), seconds);
+
+        Ui.message(generatorStrength, "Copied. The clipboard clears in " + seconds + " seconds.", "good");
+
+    }
+
+    private static String approximate(BigInteger number) {
+
+        if (number.bitLength() <= 30) {
+            return String.format("%,d", number.longValue());
+        }
+
+        return String.format("%.1e", number.doubleValue()).replace("e+0", " × 10^").replace("e+", " × 10^");
+
+    }
+
+    private static String strengthWord(double bits) {
+        return bits < 40 ? "weak" : bits < 60 ? "fair" : bits < 80 ? "strong" : "very strong";
+    }
+
+    // =====================================================
+    // RECOVER A FILE PASSWORD (a file you own)
+    // =====================================================
+
+    private ContactsImport.Hints importedContacts;
+
+    @FXML
+    private void chooseRecoveryFile() {
+
+        FileChooser chooser = new FileChooser();
+
+        chooser.setTitle("Choose a file you own to recover the password for");
+        chooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("CyberShield files and PDFs", "*.cshield", "*.pdf"),
+                new FileChooser.ExtensionFilter("All files", "*.*"));
+
+        File file = chooser.showOpenDialog(recoveryPanel.getScene().getWindow());
+
+        if (file != null) {
+            useRecoveryFile(file.toPath());
+        }
+
+    }
+
+    /** Also used by the tests. */
+    void useRecoveryFile(Path file) {
+
+        recoveryFile = file;
+
+        recoveryFileLabel.setText(file.getFileName().toString());
+
+        showRecovered(false);
+
+        Ui.message(recoveryMessage, "", null);
+
+    }
+
+    @FXML
+    private void importContacts() {
+
+        FileChooser chooser = new FileChooser();
+
+        chooser.setTitle("Choose your own contacts file (vCard or CSV)");
+        chooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("Contacts (vCard, CSV)", "*.vcf", "*.csv", "*.txt"),
+                new FileChooser.ExtensionFilter("All files", "*.*"));
+
+        File file = chooser.showOpenDialog(recoveryPanel.getScene().getWindow());
+
+        if (file != null) {
+            importContactsFrom(file.toPath());
+        }
+
+    }
+
+    /** Also used by the tests. */
+    void importContactsFrom(Path file) {
+
+        Ui.message(recoveryMessage, "Reading your contacts…", null);
+
+        Ui.background("import-contacts", () -> {
+            try {
+                return ContactsImport.read(file);
+            } catch (IOException e) {
+                throw new java.io.UncheckedIOException(e.getMessage(), e);
+            }
+        }, hints -> {
+
+            importedContacts = hints;
+
+            Ui.message(recoveryMessage, hints.isEmpty()
+                    ? "Nothing to use was found in that file."
+                    : "Added " + hints.words().size() + " names and " + hints.numbers().size() + " numbers from your contacts; they'll be tried too.",
+                    hints.isEmpty() ? "warn" : "good");
+
+        }, error -> Ui.message(recoveryMessage, "Couldn't read that file: " + error.getMessage(), "bad"));
+
+    }
+
+    @FXML
+    private void startRecovery() {
+
+        if (recovering) {
+            return;
+        }
+
+        if (recoveryFile == null) {
+            Ui.message(recoveryMessage, "Choose a file first.", "bad");
+            return;
+        }
+
+        Candidates.Builder builder = Candidates.builder().includeCommon(includeCommon.isSelected());
+
+        builder.hints(recoveryHints.getText());
+
+        if (importedContacts != null) {
+            importedContacts.words().forEach(builder::word);
+            importedContacts.numbers().forEach(builder::number);
+        }
+
+        if (builder.isEmpty()) {
+            Ui.message(recoveryMessage, "Add some hints, or leave the common-password list on.", "bad");
+            return;
+        }
+
+        Candidates candidates = builder.build();
+
+        Path file = recoveryFile;
+
+        stopRecovery.set(false);
+
+        showRecovered(false);
+
+        Task<PasswordRecovery.Result> task = new Task<>() {
+
+            @Override
+            protected PasswordRecovery.Result call() throws Exception {
+
+                PasswordRecovery.Target target = PasswordRecovery.targetFor(file);
+
+                if (!target.isProtected()) {
+                    throw new IllegalStateException("That file isn't password-protected, so there's nothing to recover.");
+                }
+
+                return PasswordRecovery.recover(target, candidates, new PasswordRecovery.Progress() {
+
+                    @Override
+                    public void update(long tried, long total) {
+                        updateProgress(tried, Math.max(1, total));
+                        updateMessage(String.format("%,d of about %,d tried", tried, total));
+                    }
+
+                    @Override
+                    public boolean isCancelled() {
+                        return stopRecovery.get();
+                    }
+
+                });
+
+            }
+
+        };
+
+        recoveryProgress.progressProperty().bind(task.progressProperty());
+        recoveryProgressLabel.textProperty().bind(task.messageProperty());
+
+        setRecovering(true);
+
+        Ui.message(recoveryMessage, "Trying the passwords people usually pick… this can take a while.", null);
+
+        task.setOnSucceeded(event -> {
+
+            setRecovering(false);
+
+            PasswordRecovery.Result result = task.getValue();
+
+            switch (result.outcome()) {
+
+                case FOUND -> {
+                    recoveredPassword.setText(result.password());
+                    showRecovered(true);
+                    Ui.message(recoveryMessage, "Found it, after " + String.format("%,d", result.tried()) + " tries.", "good");
+                }
+
+                case CANCELLED -> Ui.message(recoveryMessage, "Stopped after " + String.format("%,d", result.tried()) + " tries.", "warn");
+
+                case EXHAUSTED -> Ui.message(recoveryMessage, "No luck after " + String.format("%,d", result.tried())
+                        + " tries. If it's a password you chose, add more hints — a pet, a place, a date — or import your contacts."
+                        + " A long random password can't be recovered.", "warn");
+
+            }
+
+        });
+
+        task.setOnFailed(event -> {
+
+            setRecovering(false);
+
+            Throwable error = task.getException();
+
+            Ui.message(recoveryMessage, error instanceof IllegalStateException ? error.getMessage()
+                    : "Couldn't do that: " + (error.getMessage() == null ? error.getClass().getSimpleName() : error.getMessage()), "bad");
+
+        });
+
+        Thread thread = new Thread(task, "cybershield-password-recovery");
+
+        thread.setDaemon(true);
+
+        thread.start();
+
+    }
+
+    @FXML
+    private void cancelRecovery() {
+        stopRecovery.set(true);
+    }
+
+    @FXML
+    private void copyRecovered() {
+
+        if (recoveredPassword.getText().isEmpty()) {
+            return;
+        }
+
+        int seconds = new SettingsDAO().clipboardClearSeconds();
+
+        Ui.copyAndClearLater(recoveredPassword.getText(), seconds);
+
+        Ui.message(recoveryMessage, "Copied. The clipboard clears in " + seconds + " seconds.", "good");
+
+    }
+
+    private void setRecovering(boolean busy) {
+
+        recovering = busy;
+
+        show(recoveryProgressBox, busy);
+
+        startRecoveryButton.setDisable(busy);
+
+        if (!busy) {
+            recoveryProgress.progressProperty().unbind();
+            recoveryProgressLabel.textProperty().unbind();
+        }
+
+    }
+
+    private void showRecovered(boolean visible) {
+
+        show(recoveredPassword, visible);
+
+        show(copyRecoveredButton, visible);
 
     }
 

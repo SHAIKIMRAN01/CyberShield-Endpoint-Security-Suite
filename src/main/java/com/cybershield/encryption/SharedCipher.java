@@ -164,6 +164,66 @@ public final class SharedCipher {
     // FILES
     // =====================================================
 
+    /**
+     * Whether password opens this .cshield file. Only the header and the encrypted file
+     * name are read — one key derivation, a few bytes — and nothing is written, so it is
+     * cheap enough to try many passwords (for the Encryption Center's password recovery).
+     *
+     * @throws IOException if the file isn't a CyberShield .cshield file, or is too damaged to tell
+     */
+    public static boolean fileOpensWith(Path source, String password) throws IOException {
+
+        try (InputStream in = new BufferedInputStream(Files.newInputStream(source), 512)) {
+
+            byte[] header = in.readNBytes(HEADER_BYTES);
+
+            if (header.length < HEADER_BYTES || !java.util.Arrays.equals(header, 0, 4, FILE_MAGIC, 0, 4)) {
+                throw new IOException("This isn't a file encrypted by CyberShield's Encryption Center.");
+            }
+
+            ByteBuffer fields = ByteBuffer.wrap(header);
+
+            fields.position(4);
+
+            int rounds = checkedRounds(fields.getInt());
+
+            byte[] salt = new byte[SALT_BYTES];
+
+            fields.get(salt);
+
+            int chunk = fields.getInt();
+
+            if (chunk < 4096 || chunk > 16 * 1024 * 1024) {
+                throw new IOException("The encrypted file has a damaged header.");
+            }
+
+            byte[] lengthBytes = in.readNBytes(4);
+
+            int nameLength = lengthBytes.length == 4 ? ByteBuffer.wrap(lengthBytes).getInt() : -1;
+
+            if (nameLength <= TAG_BYTES || nameLength > 4096) {
+                throw new IOException("The encrypted file is damaged.");
+            }
+
+            byte[] sealedName = in.readNBytes(nameLength);
+
+            if (sealedName.length != nameLength) {
+                throw new IOException("The encrypted file is cut short.");
+            }
+
+            SecretKey key = KeyDerivation.deriveKey(password, salt, rounds);
+
+            try {
+                cipher(Cipher.DECRYPT_MODE, key, 1, 0, header, (byte) 'M').doFinal(sealedName);
+                return true;
+            } catch (GeneralSecurityException wrong) {
+                return false;
+            }
+
+        }
+
+    }
+
     /** Encrypts source into target (normally the source's name + .cshield). Nothing is left behind on failure. */
     public static void encryptFile(Path source, Path target, String password, Progress progress) throws IOException {
 

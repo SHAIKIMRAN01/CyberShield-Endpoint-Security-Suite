@@ -21,6 +21,7 @@ import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.Label;
 import javafx.scene.control.ListView;
+import javafx.scene.control.RadioButton;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.TabPane;
 import javafx.scene.control.TextArea;
@@ -204,6 +205,13 @@ class ScreensTest {
         run(dashboard.controller()::openEncryptionCenter);
         assertNotNull(scene.lookup("#strengthTab"));
         snapshot("15-encryption", scene);
+        run(() -> ((Button) scene.lookup("#generatorTab")).fire());
+        run(() -> ((RadioButton) scene.lookup("#wordsMode")).setSelected(true));
+        run(() -> ((Button) scene.lookup("#generateButton")).fire());
+        snapshot("41-encryption-generator", scene);
+        run(() -> ((Button) scene.lookup("#recoveryTab")).fire());
+        snapshot("42-encryption-recovery", scene);
+        run(() -> ((Button) scene.lookup("#strengthTab")).fire());
 
         // File Security's tools
         System.setProperty("user.home", home.toString());

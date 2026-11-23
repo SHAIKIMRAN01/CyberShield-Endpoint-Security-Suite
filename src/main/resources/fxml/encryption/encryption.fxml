@@ -8,9 +8,11 @@
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.PasswordField?>
 <?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.control.RadioButton?>
 <?import javafx.scene.control.Spinner?>
 <?import javafx.scene.control.TextArea?>
 <?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.ToggleGroup?>
 <?import javafx.scene.layout.ColumnConstraints?>
 <?import javafx.scene.layout.FlowPane?>
 <?import javafx.scene.layout.GridPane?>
@@ -71,6 +73,24 @@
                 <VBox spacing="2">
                     <Label text="Password strength" styleClass="tab-title"/>
                     <Label text="Check one, or generate one" styleClass="tab-text"/>
+                </VBox>
+            </graphic>
+        </Button>
+
+        <Button fx:id="generatorTab" styleClass="tool-tab" maxWidth="Infinity" maxHeight="-Infinity" onAction="#showGenerator">
+            <graphic>
+                <VBox spacing="2">
+                    <Label text="Password generator" styleClass="tab-title"/>
+                    <Label text="Random, words or a PIN" styleClass="tab-text"/>
+                </VBox>
+            </graphic>
+        </Button>
+
+        <Button fx:id="recoveryTab" styleClass="tool-tab" maxWidth="Infinity" maxHeight="-Infinity" onAction="#showRecovery">
+            <graphic>
+                <VBox spacing="2">
+                    <Label text="Recover a file password" styleClass="tab-title"/>
+                    <Label text="A file you own, forgotten" styleClass="tab-text"/>
                 </VBox>
             </graphic>
         </Button>
@@ -200,6 +220,98 @@
             </HBox>
 
             <Label fx:id="strengthMessage" styleClass="message" wrapText="true"/>
+
+        </VBox>
+
+        <!-- PASSWORD GENERATOR -->
+        <VBox fx:id="generatorPanel" styleClass="card,tool-panel" spacing="10" StackPane.alignment="TOP_LEFT" visible="false" maxHeight="-Infinity">
+
+            <fx:define>
+                <ToggleGroup fx:id="modeGroup"/>
+            </fx:define>
+
+            <Label text="Password generator" styleClass="section-heading"/>
+
+            <Label text="Make a strong password three ways. Nothing is saved — copy the one you want and use it."
+                   styleClass="hint" wrapText="true" minHeight="-Infinity"/>
+
+            <HBox spacing="16" alignment="CENTER_LEFT">
+                <RadioButton fx:id="randomMode" toggleGroup="$modeGroup" text="Random characters" selected="true"/>
+                <RadioButton fx:id="wordsMode" toggleGroup="$modeGroup" text="Memorable words"/>
+                <RadioButton fx:id="pinMode" toggleGroup="$modeGroup" text="PIN"/>
+            </HBox>
+
+            <FlowPane fx:id="randomControls" hgap="12" vgap="8" alignment="CENTER_LEFT">
+                <Label text="Length" styleClass="field-label"/>
+                <Spinner fx:id="randomLength" min="4" max="64" initialValue="16" editable="true" prefWidth="74"/>
+                <CheckBox fx:id="useUpper" text="A-Z" selected="true"/>
+                <CheckBox fx:id="useLower" text="a-z" selected="true"/>
+                <CheckBox fx:id="useDigits" text="0-9" selected="true"/>
+                <CheckBox fx:id="useSymbols" text="!@#" selected="true"/>
+                <CheckBox fx:id="avoidLookalikes" text="No look-alikes"/>
+            </FlowPane>
+
+            <FlowPane fx:id="wordControls" hgap="12" vgap="8" alignment="CENTER_LEFT" visible="false" managed="false">
+                <Label text="Words" styleClass="field-label"/>
+                <Spinner fx:id="wordCount" min="2" max="10" initialValue="4" editable="true" prefWidth="74"/>
+                <Label text="Joined by" styleClass="field-label"/>
+                <ComboBox fx:id="wordSeparator" prefWidth="96"/>
+                <CheckBox fx:id="capitalizeWords" text="Capitalise" selected="true"/>
+                <CheckBox fx:id="addNumber" text="Add a number" selected="true"/>
+            </FlowPane>
+
+            <FlowPane fx:id="pinControls" hgap="12" vgap="8" alignment="CENTER_LEFT" visible="false" managed="false">
+                <Label text="Digits" styleClass="field-label"/>
+                <Spinner fx:id="pinLength" min="3" max="12" initialValue="6" editable="true" prefWidth="74"/>
+            </FlowPane>
+
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Button fx:id="generateButton" text="Generate" styleClass="primary-button" onAction="#generatePassword" minWidth="-Infinity"/>
+                <TextField fx:id="generatedPassword" editable="false" styleClass="mono" HBox.hgrow="ALWAYS"/>
+                <Button text="Copy" onAction="#copyGeneratedPassword" minWidth="-Infinity"/>
+            </HBox>
+
+            <Label fx:id="generatorStrength" styleClass="message" wrapText="true" minHeight="-Infinity"/>
+
+        </VBox>
+
+        <!-- RECOVER A FILE PASSWORD -->
+        <VBox fx:id="recoveryPanel" styleClass="card,tool-panel" spacing="8" StackPane.alignment="TOP_LEFT" visible="false">
+
+            <Label text="Recover a file password" styleClass="section-heading"/>
+
+            <Label text="Forgot the password to a file you own? This tries the passwords people usually choose — your own hints, and a list of common ones — so it can recover a password you picked, but not a long random one. It works on CyberShield .cshield files and password-protected PDFs."
+                   styleClass="hint" wrapText="true" minHeight="-Infinity"/>
+
+            <Label text="Only use this on files that belong to you." styleClass="field-label" minHeight="-Infinity"/>
+
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Button text="Choose the file…" onAction="#chooseRecoveryFile" minWidth="-Infinity"/>
+                <Label fx:id="recoveryFileLabel" styleClass="hint" wrapText="true" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+            </HBox>
+
+            <Label text="Hints — words and numbers you might have used" styleClass="field-label"/>
+            <TextArea fx:id="recoveryHints" wrapText="true" prefRowCount="3"
+                      promptText="A name, a pet, a place, a birthday, a phone number…"/>
+
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Button text="Import your contacts…" onAction="#importContacts" minWidth="-Infinity"/>
+                <CheckBox fx:id="includeCommon" text="Also try the most common passwords" selected="true"/>
+            </HBox>
+
+            <HBox fx:id="recoveryProgressBox" spacing="8" alignment="CENTER_LEFT" visible="false" managed="false">
+                <ProgressBar fx:id="recoveryProgress" progress="0" maxWidth="Infinity" HBox.hgrow="ALWAYS"/>
+                <Label fx:id="recoveryProgressLabel" styleClass="hint" minWidth="-Infinity"/>
+                <Button text="Stop" onAction="#cancelRecovery" minWidth="-Infinity"/>
+            </HBox>
+
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <Button fx:id="startRecoveryButton" text="Start" styleClass="primary-button" onAction="#startRecovery" minWidth="-Infinity"/>
+                <TextField fx:id="recoveredPassword" editable="false" styleClass="mono" HBox.hgrow="ALWAYS" visible="false" managed="false"/>
+                <Button fx:id="copyRecoveredButton" text="Copy" onAction="#copyRecovered" minWidth="-Infinity" visible="false" managed="false"/>
+            </HBox>
+
+            <Label fx:id="recoveryMessage" styleClass="message" wrapText="true" minHeight="-Infinity"/>
 
         </VBox>
 
