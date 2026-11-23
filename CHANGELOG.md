@@ -1,5 +1,23 @@
 # Changelog
 
+## Unreleased: Phase 5, the dark theme and the Windows installer
+
+### Added
+- **Dark theme** (Settings → Appearance): light or dark, chosen per account and shown at once in every window. The sign-in screen shows the theme the last account used. `theme-dark.css` gives the colour names of `theme.css` deep brown values; every text colour in it is at least 4.5:1 against its background.
+- **Windows installer:** `scripts\build-installer.ps1` makes `CyberShield-1.0.0.msi` with jpackage and WiX 3.14: a per-user install (no administrator) into `%LOCALAPPDATA%\CyberShield App`, with its own Java 25 runtime trimmed to the modules the app uses, Start menu and desktop shortcuts, an uninstall entry, the app icon, and an upgrade code so newer versions replace older ones. Tried here: installed silently, started, removed cleanly.
+- **Automatic builds:** a GitHub Actions workflow builds and runs every test on Windows with Java 21 and 25 on each push and pull request; a version tag or a manual run also builds the installer. WiX is downloaded there and checked against its SHA-256.
+
+### Changed
+- **One data folder:** the database moves from `database\cybershield.db` beside the app to `%LOCALAPPDATA%\CyberShield\Data`, next to the protected-files store, so the installed app and a copy run from the project share it. On the first start an older database is copied across by SQLite itself (`VACUUM INTO`) through a `.part` file; the old file is kept, an existing database is never replaced, and a failed copy stops the start with a message instead of starting empty.
+- **Logging:** one line per event (INFO, WARN, ERROR) on the console and in `%LOCALAPPDATA%\CyberShield\logs\cybershield.log`, kept to five files of 1 MB. Paths in messages become `<path>`, accounts appear by number, errors keep their stack trace in the file, and unexpected errors on any thread are logged. Messages on screen point at the log file instead of a console. Log4j, declared but never used, is gone.
+- **Build:** Maven compiles with `--release 21`, and the jar and dependency plugins are pinned and copy the libraries for the installer.
+- **Database upgrades on start:** `user_settings.theme` and a new `app_settings` table.
+- **Tests:** 196 JUnit tests now. They also pass on the installer's Java runtime.
+
+### Fixed
+- **A flaky test:** JavaFX's own video player (the fallback when FFmpeg can't run) sometimes fails to start a good MP4 on Windows. The two tests that use it try up to three times, and skip where JavaFX can't play such a file at all.
+- **The schema loader** split statements on every semicolon, so one in a comment cut a statement in two. Comments go first now.
+
 ## Unreleased: Phase 4, Steganography and Privacy Tools
 
 ### Added

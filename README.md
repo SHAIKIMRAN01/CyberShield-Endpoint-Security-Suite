@@ -2,6 +2,8 @@
 
 # CyberShield Endpoint Security Suite
 
+[![Build](https://github.com/SHAIKIMRAN01/CyberShield-Endpoint-Security-Suite/actions/workflows/build.yml/badge.svg)](https://github.com/SHAIKIMRAN01/CyberShield-Endpoint-Security-Suite/actions/workflows/build.yml)
+
 A Windows desktop app that keeps passwords and files private on a shared PC. Every account has its own encrypted vault, and nothing leaves the computer. Built with Java 21, JavaFX 21 and SQLite.
 
 ![Home screen](docs/screenshots/home.png)
@@ -64,6 +66,7 @@ A Windows desktop app that keeps passwords and files private on a shared PC. Eve
 - An on-screen keyboard beside the password on the sign-in and vault screens, against keyloggers. Mix the keys puts them in a new order.
 
 **Settings**
+- Light or dark theme, per account. It changes at once, and the sign-in screen shows the theme the last account used.
 - Auto-lock minutes and clipboard clear time, per account.
 - Change the account password or the master password.
 - Sign-in history, with what each sign-in did.
@@ -80,14 +83,15 @@ A Windows desktop app that keeps passwords and files private on a shared PC. Eve
 | ![File Security](docs/screenshots/file-security.png) | ![File Security tools](docs/screenshots/file-security-tools.png) |
 | **Steganography** | **Privacy Tools** |
 | ![Steganography](docs/screenshots/steganography.png) | ![Privacy Tools](docs/screenshots/privacy-tools.png) |
-| **Settings** | |
-| ![Settings](docs/screenshots/settings.png) | |
+| **Settings** | **Dark theme** |
+| ![Settings](docs/screenshots/settings.png) | ![Dark theme](docs/screenshots/dark-home.png) |
 
 ## Requirements
 
 - Windows 10 or 11, 64-bit. File Security uses Windows file attributes, and the video player's FFmpeg libraries are the Windows 64-bit ones.
-- JDK 21 or newer.
+- JDK 21 or newer. Maven compiles for Java 21 (`--release 21`), so nothing newer is used by accident.
 - Maven 3.9 or newer.
+- For the installer only: WiX Toolset 3.14, which jpackage uses to make the .msi (see below).
 
 ## Run
 
@@ -101,11 +105,36 @@ From IntelliJ IDEA, open the project as a Maven project and run the `javafx:run`
 --add-exports javafx.media/com.sun.media.jfxmedia.locator=ALL-UNNAMED
 ```
 
+## Install
+
+`CyberShield-1.0.0.msi` installs CyberShield for the Windows user running it, with no administrator rights needed:
+- into `%LOCALAPPDATA%\CyberShield App`, with its own Java, so nothing else needs installing;
+- with a Start menu entry and a desktop shortcut;
+- removable from Settings → Apps → Installed apps.
+
+The app keeps its data in `%LOCALAPPDATA%\CyberShield`, a folder of its own (see below), so removing or upgrading the app leaves accounts, vaults and protected files alone. A newer installer replaces an older one in place.
+
+### Build the installer
+
+```
+.\scripts\build-installer.ps1 -Jdk "C:\Program Files\Java\jdk-25.0.2" -WixDir E:\project\tools\wix314
+```
+
+It runs the tests, makes a Java runtime with only the modules CyberShield needs (jlink), makes the app folder `target\installer\app-image\CyberShield` (it runs without installing), and packs that same folder into `target\installer\CyberShield-1.0.0.msi`. `-AppImageOnly` stops after the app folder and needs no WiX; `-SkipTests` skips the tests. WiX 3.14 is the `wix314-binaries.zip` of the official [WiX Toolset release](https://github.com/wixtoolset/wix3/releases/tag/wix3141rtm), unpacked into a folder; nothing is installed into Windows.
+
+The tests also run on the bundled runtime, which shows it lacks no module the app uses:
+
+```
+mvn test -Djvm=target\installer-runtime\bin\java.exe
+```
+
 ## Test
 
 ```
 mvn test
 ```
+
+GitHub Actions (`.github/workflows/build.yml`) builds and runs every test on each push and pull request, on Windows with Java 21 and Java 25. A version tag such as `v1.0.0`, or starting the workflow by hand, also builds the installer and keeps it with the run. Tests that need JavaFX's own media player check first that JavaFX can play such a file on that computer at all (build servers may have no video decoders or sound device) and are skipped where it can't.
 
 The tests cover:
 - encryption and the protected-file format, including tampering, and the Encryption Center's shared text, files and checksums;
@@ -133,7 +162,7 @@ mvn test -Dtest=ScreensTest -Dcybershield.snapshots=target/screens
 
 | What | Where |
 |---|---|
-| Accounts, encrypted logins, settings, sign-in history | `database/cybershield.db` in the folder the app runs from |
+| Accounts, encrypted logins, settings, sign-in history | `%LOCALAPPDATA%\CyberShield\Data\cybershield.db`. Older versions kept it in `database\cybershield.db` beside the app: it is copied across on the first start, and the old file stays as it was |
 | Encrypted protected files (hidden and system folder) | `%LOCALAPPDATA%\CyberShield\FileVault` |
 | A copy of each vault's wrapped key, for recovery | `%LOCALAPPDATA%\CyberShield\FileVault\keys` |
 | What each sign-in did (names encrypted), removed after 30 days | the database |
@@ -141,8 +170,10 @@ mvn test -Dtest=ScreensTest -Dcybershield.snapshots=target/screens
 | Reports | the PDF wherever you save it; the list of them in the database |
 | Monthly reports | `Documents\CyberShield reports`, or the folder you choose |
 | Pictures with something hidden | where you save them, as PNG |
+| The log | `%LOCALAPPDATA%\CyberShield\logs\cybershield.log`, kept to five files of 1 MB |
+| The installed app | `%LOCALAPPDATA%\CyberShield App` |
 
-The database is not in git (see `.gitignore`).
+The database is not in git (see `.gitignore`). The tests use their own temp folders for all of this.
 
 ## Security design
 
@@ -168,6 +199,8 @@ The database is not in git (see `.gitignore`).
 
 **Steganography** seals the message or file the same way before hiding it, then spreads it over the lowest bit of the red, green and blue values, behind a short header. Without the password the bits are just noise; a wrong password is refused.
 
+**The log** holds what happened and counts, never passwords, note text, website names or file names. Error messages from Java can name a file, so every folder or file path in a line is replaced with `<path>` before it is written, and accounts appear by number.
+
 **Shredding** renames each file to a random name, overwrites it with random data, flushes it to the disk, empties it and deletes it. The places File Security refuses (drives, the user folder, system and program folders, CyberShield's own files) are refused here too.
 
 **Limits**
@@ -187,18 +220,20 @@ In v1 all accounts shared one vault. The first time an account that has items in
 - **Logo:** a brown cartoon wolf guarding a treasure chest (`docs/logo.svg`), drawn from shapes in `ui/Logo.java`, so it is sharp from the window icon up.
 - **Opening:** a golden key flies into the chest's lock and turns, the wolf steps back, the lid opens and light fills the screen, then the sign-in screen appears. A click or any key skips it; `-Dcybershield.noIntro=true` turns it off.
 - **Sidebar:** the ☰ button (or Ctrl+B) shrinks it to its icons and back; ✕ closes it, and ☰ brings it back.
-- **One stylesheet:** the palette lives in `src/main/resources/css/theme.css`.
+- **One palette:** every colour has a name in `src/main/resources/css/theme.css` (`-cs-paper`, `-cs-ink`, `-cs-heading` and so on), and the other stylesheets use the names.
+- **Dark theme:** `theme-dark.css` gives the same names deep brown values and goes last on each window (`ui/Theme.java`). The sidebar and the sign-in screen's brand panel stay brown; every text colour is at least 4.5:1 against its background.
 
 ## Project layout
 
 ```
 src/main/java/com/cybershield/
   app/          entry point
-  config/       paths and constants
+  config/       the data folder, the database's place, constants
   database/     schema set-up and upgrades
   dao/          users, sign-in history, activity, settings
   encryption/   AES-GCM, PBKDF2, the CSF1 file format, shared files, checksums
   files/        File Security: protect, hide, restore, check, back up, recover
+  logger/       the log, on the console and in a file
   notes/        Secure Notes data
   password/     Password Vault data and password health
   privacy/      the shredder, photo details, the Windows traces cleaner
@@ -211,9 +246,12 @@ src/main/java/com/cybershield/
   utils/        validation, generator, formatting
 src/main/resources/
   fxml/         screen layouts
-  css/          theme.css and one stylesheet per screen
+  css/          theme.css, theme-dark.css and one stylesheet per screen
   sql/          schema.sql
+src/main/packaging/  the installer's icon
 src/test/java/  JUnit tests
+scripts/        build-installer.ps1
+.github/workflows/  automatic builds
 ```
 
 ## Roadmap
@@ -225,7 +263,8 @@ src/test/java/  JUnit tests
 | 2 · Core modules | 6–11 | Secure Notes, every Password Vault field encrypted, home screen score | Done |
 | 3 · Tools & reports | 11–15 | Encryption Center, PDF reports, File Security backup and recovery | Done |
 | 4 · Extras | 16–20 | Steganography, Privacy Tools, sign-ins by date, the monthly report, backups from Settings | Done |
-| 5 · Polish & release | 20–21 | Light and dark themes, installer, automatic builds | Next |
+| 5 · Polish & release | 20–21 | Dark theme, logging clean-up, automatic builds, Windows installer | Done |
+| Backlog | after 1.0 | The Advanced tasks: charts in reports, importing and exporting logins, password history, start-up options and languages | |
 
 ## License
 

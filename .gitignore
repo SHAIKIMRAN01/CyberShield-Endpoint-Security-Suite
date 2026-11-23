@@ -2,8 +2,8 @@
 target/
 
 # Local SQLite database: it holds user accounts and vault data, so keep it
-# out of git. database/.gitkeep keeps the folder itself, which the app needs
-# because SQLite won't create a missing directory.
+# out of git. The app keeps it in %LOCALAPPDATA%\CyberShield\Data now; older
+# versions kept it in database/, which these lines still keep out of git.
 database/*.db
 database/*.db-journal
 database/*.db-wal
