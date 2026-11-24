@@ -90,6 +90,23 @@ class FileScanTest {
     }
 
     @Test
+    void aDeviceScanFlagsProgramsScriptsAndAutorunFiles() {
+        // on a removable/external drive, programs and scripts are worth noting (USB is a spreading route)
+        assertEquals(Reason.PROGRAM_ON_DEVICE, reason("setup.exe", Area.REMOVABLE));
+        assertEquals(Reason.SCRIPT_FILE, reason("run.bat", Area.REMOVABLE));
+        assertEquals(Reason.AUTORUN, reason("autorun.inf", Area.REMOVABLE));
+        // the strong signals still apply on a device
+        assertEquals(Reason.DOUBLE_EXTENSION, reason("photo.jpg.exe", Area.REMOVABLE));
+        assertEquals(Reason.HIDDEN_PROGRAM,
+                FileScan.reasonFor("hidden.exe", Area.REMOVABLE, true, 1, NO_LARGE));
+        // an autorun file that is NOT on a device is just a config file, left alone
+        assertNull(reason("autorun.inf", Area.OTHER));
+        assertNull(reason("autorun.inf", Area.DOWNLOADS));
+        // an ordinary document on a device is not flagged
+        assertNull(reason("holiday.jpg", Area.REMOVABLE));
+    }
+
+    @Test
     void largeFilesAreInformationOnlyAndOnlyInAPersonsOwnFolders() {
         long twoGb = 2L * 1024 * 1024 * 1024;
         long oneGb = 1024L * 1024 * 1024;

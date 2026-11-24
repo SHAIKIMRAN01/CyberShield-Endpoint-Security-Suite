@@ -97,6 +97,25 @@ class ScanDisplayTest {
     }
 
     @Test
+    void aDeviceScanSummaryTalksAboutTheDeviceNotSettings() {
+        List<FileScan.Finding> files = List.of(
+                new FileScan.Finding(Path.of("E:\\autorun.inf"), FileScan.Area.REMOVABLE,
+                        FileScan.Reason.AUTORUN, 10, Instant.now(), null),
+                new FileScan.Finding(Path.of("E:\\setup.exe"), FileScan.Area.REMOVABLE,
+                        FileScan.Reason.PROGRAM_ON_DEVICE, 10, Instant.now(), null));
+
+        String summary = ScanController.summarise(List.of(), files, false, false, "E: — KINGSTON (USB drive)");
+        assertTrue(summary.contains("E: — KINGSTON (USB drive)"), summary);
+        assertTrue(summary.contains("1 file worth a look"), summary);    // AUTORUN is REVIEW-level
+        assertTrue(summary.contains("1 file to be aware of"), summary);  // PROGRAM_ON_DEVICE is NOTE-level
+
+        // a clean device reads plainly, and never mentions "settings"
+        String clean = ScanController.summarise(List.of(), List.of(), false, false, "E:");
+        assertTrue(clean.contains("Nothing stood out on E:"), clean);
+        assertFalse(clean.toLowerCase().contains("setting"));
+    }
+
+    @Test
     void everyLevelLabelMapsToAColourClass() {
         assertEquals("level-risk", ScanController.classForLabel("Needs attention"));
         assertEquals("level-warn", ScanController.classForLabel("Worth a look"));

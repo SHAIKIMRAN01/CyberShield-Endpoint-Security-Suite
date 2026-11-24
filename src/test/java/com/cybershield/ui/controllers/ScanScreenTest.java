@@ -75,6 +75,11 @@ class ScanScreenTest {
             assertNotNull(table.getPlaceholder(), "an empty table explains itself");
             assertEquals(4, table.getColumns().size());
 
+            // the device-scan controls are present and wait for a device
+            assertNotNull(root.lookup("#findDevicesButton"));
+            assertNotNull(root.lookup("#deviceCombo"));
+            assertTrue(((Button) root.lookup("#scanDeviceButton")).isDisabled(), "scan device waits for a device");
+
             // leaving the screen is harmless even with no scan running
             loaded.controller().dispose();
             return null;

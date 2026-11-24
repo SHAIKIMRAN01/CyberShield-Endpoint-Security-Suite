@@ -1,6 +1,7 @@
 package com.cybershield.ui.controllers;
 
 import com.cybershield.logger.AppLogger;
+import com.cybershield.scan.Drives;
 import com.cybershield.scan.FileScan;
 import com.cybershield.scan.SecurityCheck;
 import com.cybershield.scan.WindowsFacts;
@@ -11,6 +12,7 @@ import javafx.beans.property.SimpleStringProperty;
 import javafx.fxml.FXML;
 import javafx.scene.Node;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.Label;
 import javafx.scene.control.ProgressBar;
 import javafx.scene.control.TableCell;
@@ -20,6 +22,7 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.Region;
 import javafx.scene.text.Text;
 import javafx.util.Callback;
+import javafx.util.StringConverter;
 
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -48,6 +51,9 @@ public class ScanController implements LockableScreen {
     @FXML private TableColumn<Row, String> findingColumn;
     @FXML private TableColumn<Row, String> detailColumn;
     @FXML private TableColumn<Row, String> whereColumn;
+    @FXML private Button findDevicesButton;
+    @FXML private ComboBox<Drives.Drive> deviceCombo;
+    @FXML private Button scanDeviceButton;
 
     private final AtomicBoolean cancelled = new AtomicBoolean(false);
 
@@ -91,18 +97,65 @@ public class ScanController implements LockableScreen {
         detailColumn.setCellFactory(wrapping());
         whereColumn.setCellFactory(wrapping());
 
+        deviceCombo.setPromptText("Press Find devices first");
+        deviceCombo.setConverter(new StringConverter<>() {
+            @Override
+            public String toString(Drives.Drive drive) {
+                return drive == null ? "" : drive.display();
+            }
+
+            @Override
+            public Drives.Drive fromString(String text) {
+                return null;
+            }
+        });
+        deviceCombo.valueProperty().addListener((o, was, is) -> scanDeviceButton.setDisable(is == null || scanning));
+
         show(progressBox, false);
         show(summaryLabel, false);
     }
 
     @FXML
     private void runQuickScan() {
-        startScan(false);
+        startScan(FileScan.quickRoots(), FileScan.Options.quick(), true, "quick scan");
     }
 
     @FXML
     private void runDeepScan() {
-        startScan(true);
+        startScan(FileScan.deepRoots(), FileScan.Options.deep(), true, "deep scan");
+    }
+
+    @FXML
+    private void findDevices() {
+        if (scanning) {
+            return;
+        }
+        findDevicesButton.setDisable(true);
+        findDevicesButton.setText("Finding…");
+        Ui.background("find-devices", Drives::external, this::showDevices, error -> showDevices(List.of()));
+    }
+
+    private void showDevices(List<Drives.Drive> devices) {
+        findDevicesButton.setDisable(false);
+        findDevicesButton.setText("Find devices");
+        deviceCombo.getItems().setAll(devices);
+        if (devices.isEmpty()) {
+            deviceCombo.setPromptText("No external devices found — plug one in and try again");
+            scanDeviceButton.setDisable(true);
+        } else {
+            deviceCombo.setPromptText("Choose a device");
+            deviceCombo.getSelectionModel().select(0);
+        }
+    }
+
+    @FXML
+    private void scanDevice() {
+        Drives.Drive drive = deviceCombo.getValue();
+        if (drive == null) {
+            return;
+        }
+        startScan(List.of(new FileScan.Root(drive.root(), FileScan.Area.REMOVABLE)),
+                FileScan.Options.deep(), false, drive.display());
     }
 
     @FXML
@@ -112,7 +165,7 @@ public class ScanController implements LockableScreen {
         statusLabel.setText("Stopping…");
     }
 
-    private void startScan(boolean deep) {
+    private void startScan(List<FileScan.Root> roots, FileScan.Options options, boolean includePosture, String what) {
 
         if (scanning) {
             return;
@@ -124,9 +177,8 @@ public class ScanController implements LockableScreen {
         show(summaryLabel, false);
         show(progressBox, true);
         progressBar.setProgress(-1);
-        statusLabel.setText("Reading security settings…");
-        quickScanButton.setDisable(true);
-        deepScanButton.setDisable(true);
+        statusLabel.setText(includePosture ? "Reading security settings…" : "Looking through " + what + "…");
+        setScanControlsDisabled(true);
         stopButton.setDisable(false);
 
         FileScan.Progress progress = new FileScan.Progress() {
@@ -145,28 +197,31 @@ public class ScanController implements LockableScreen {
             }
         };
 
-        Ui.background("security-scan", () -> runScan(deep, progress), this::showReport, this::showFailure);
+        Ui.background("security-scan", () -> runScan(roots, options, includePosture, what, progress),
+                this::showReport, this::showFailure);
     }
 
-    /** Runs off the UI thread. Reads settings and walks files; changes nothing. */
-    private Report runScan(boolean deep, FileScan.Progress progress) {
+    /** Runs off the UI thread. Reads settings (unless a device scan) and walks files; changes nothing. */
+    private Report runScan(List<FileScan.Root> roots, FileScan.Options options, boolean includePosture,
+                           String what, FileScan.Progress progress) {
 
-        List<SecurityCheck.Finding> posture = new SecurityCheck().check(WindowsFacts.read());
+        List<SecurityCheck.Finding> posture = includePosture
+                ? new SecurityCheck().check(WindowsFacts.read())
+                : List.of();
 
         if (cancelled.get()) {
             return new Report(List.of(), "Scan stopped before it finished.");
         }
 
-        Platform.runLater(() -> {
-            if (scanning) {
-                statusLabel.setText("Looking through your files…");
-            }
-        });
+        if (includePosture) {
+            Platform.runLater(() -> {
+                if (scanning) {
+                    statusLabel.setText("Looking through your files…");
+                }
+            });
+        }
 
-        List<FileScan.Finding> files = new FileScan().scan(
-                deep ? FileScan.deepRoots() : FileScan.quickRoots(),
-                deep ? FileScan.Options.deep() : FileScan.Options.quick(),
-                progress);
+        List<FileScan.Finding> files = new FileScan().scan(roots, options, progress);
 
         List<Row> rows = new ArrayList<>();
 
@@ -179,11 +234,11 @@ public class ScanController implements LockableScreen {
                         .thenComparing(f -> f.path().toString()))
                 .forEach(f -> rows.add(fileRow(f)));
 
-        AppLogger.info("Security scan finished (" + (deep ? "deep" : "quick") + "): "
+        AppLogger.info("Security scan finished (" + what + "): "
                 + SecurityCheck.summarise(posture).needsAttention() + " settings to look at, "
                 + files.size() + " file findings.");
 
-        return new Report(rows, summarise(posture, files, cancelled.get()));
+        return new Report(rows, summarise(posture, files, cancelled.get(), includePosture, what));
     }
 
     private void showReport(Report report) {
@@ -192,8 +247,7 @@ public class ScanController implements LockableScreen {
         resultsTable.getItems().setAll(report.rows());
         summaryLabel.setText(report.summary());
         show(summaryLabel, true);
-        quickScanButton.setDisable(false);
-        deepScanButton.setDisable(false);
+        setScanControlsDisabled(false);
     }
 
     private void showFailure(Throwable error) {
@@ -201,13 +255,24 @@ public class ScanController implements LockableScreen {
         show(progressBox, false);
         summaryLabel.setText("The scan couldn't finish. Details are in CyberShield's log file.");
         show(summaryLabel, true);
-        quickScanButton.setDisable(false);
-        deepScanButton.setDisable(false);
+        setScanControlsDisabled(false);
         AppLogger.error("Security scan failed", error);
     }
 
-    /** Test hook: show canned results without reading the machine (for the screenshot walk). */
+    private void setScanControlsDisabled(boolean disabled) {
+        quickScanButton.setDisable(disabled);
+        deepScanButton.setDisable(disabled);
+        findDevicesButton.setDisable(disabled);
+        deviceCombo.setDisable(disabled);
+        scanDeviceButton.setDisable(disabled || deviceCombo.getValue() == null);
+    }
+
+    /** Test hook: show canned results and a canned device, without reading the machine (for the screenshot walk). */
     void showForDemo(List<Row> rows, String summary) {
+        deviceCombo.getItems().setAll(new Drives.Drive("E:", "KINGSTON", Drives.Kind.USB,
+                32_000_000_000L, 30_000_000_000L));
+        deviceCombo.getSelectionModel().select(0);
+        scanDeviceButton.setDisable(false);
         resultsTable.getItems().setAll(rows);
         summaryLabel.setText(summary);
         show(summaryLabel, true);
@@ -231,13 +296,34 @@ public class ScanController implements LockableScreen {
     }
 
     static String summarise(List<SecurityCheck.Finding> posture, List<FileScan.Finding> files, boolean stopped) {
+        return summarise(posture, files, stopped, true, null);
+    }
 
-        SecurityCheck.Summary s = SecurityCheck.summarise(posture);
+    static String summarise(List<SecurityCheck.Finding> posture, List<FileScan.Finding> files,
+                            boolean stopped, boolean includePosture, String what) {
 
         long review = files.stream().filter(f -> f.level() == FileScan.Level.REVIEW).count();
         long note = files.stream().filter(f -> f.level() == FileScan.Level.NOTE).count();
 
+        String head = stopped ? "Scan stopped. " : "";
+
         List<String> parts = new ArrayList<>();
+
+        if (!includePosture) {
+            // a device scan — files only, no Windows settings
+            if (review > 0) {
+                parts.add(review + " file" + plural(review) + " worth a look");
+            }
+            if (note > 0) {
+                parts.add(note + " file" + plural(note) + " to be aware of");
+            }
+            if (parts.isEmpty()) {
+                return head + "Nothing stood out on " + what + " — no files worth a look.";
+            }
+            return head + what + " — found " + String.join(" · ", parts) + ". See below.";
+        }
+
+        SecurityCheck.Summary s = SecurityCheck.summarise(posture);
         if (s.needsAttention() > 0) {
             parts.add(s.needsAttention() + " setting" + plural(s.needsAttention()) + " to look at");
         }
@@ -247,8 +333,6 @@ public class ScanController implements LockableScreen {
         if (note > 0) {
             parts.add(note + " file" + plural(note) + " to be aware of");
         }
-
-        String head = stopped ? "Scan stopped. " : "";
 
         if (parts.isEmpty()) {
             return head + "Good news — nothing stood out. Your security settings are listed below.";

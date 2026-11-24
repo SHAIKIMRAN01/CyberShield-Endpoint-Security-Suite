@@ -70,6 +70,10 @@ public final class FileScan {
                 "A program or installer sitting in Downloads. Fine if you put it there — delete it once used."),
         SCRIPT_FILE(Level.NOTE, "Script file",
                 "Can run commands (.bat, .cmd, .ps1, .vbs, .js and the like). Open only ones you trust."),
+        AUTORUN(Level.REVIEW, "Autorun file",
+                "On a device this can auto-start a program when the drive is opened — a classic way USB malware spreads."),
+        PROGRAM_ON_DEVICE(Level.NOTE, "Program on a device",
+                "A program or installer on a removable or external drive. Drives are a common way malware spreads — open it only if you trust it."),
         LARGE_FILE(Level.INFO, "Large file",
                 "Taking up a lot of space. Not a security problem — shown so you can tidy up.");
 
@@ -101,7 +105,7 @@ public final class FileScan {
 
     /** Which kind of folder a file lives in — some rules only apply in some places. */
     public enum Area {
-        DOWNLOADS, DESKTOP, DOCUMENTS, TEMP, STARTUP, APPDATA, PROFILE, OTHER
+        DOWNLOADS, DESKTOP, DOCUMENTS, TEMP, STARTUP, APPDATA, PROFILE, REMOVABLE, OTHER
     }
 
     /** A folder to look through, and what kind of place it is. */
@@ -305,6 +309,11 @@ public final class FileScan {
 
         String lower = name.toLowerCase(Locale.ROOT);
 
+        // on a device, an autorun file can auto-launch a program when the drive is opened
+        if (area == Area.REMOVABLE && lower.equals("autorun.inf")) {
+            return Reason.AUTORUN;
+        }
+
         String ext = ext(lower);
 
         boolean program = PROGRAM_EXT.contains(ext);
@@ -328,7 +337,11 @@ public final class FileScan {
         if (program && area == Area.DOWNLOADS) {
             return Reason.PROGRAM_IN_DOWNLOADS;
         }
-        if (script && (area == Area.DOWNLOADS || area == Area.DESKTOP || area == Area.DOCUMENTS)) {
+        if (program && area == Area.REMOVABLE) {
+            return Reason.PROGRAM_ON_DEVICE;
+        }
+        if (script && (area == Area.DOWNLOADS || area == Area.DESKTOP
+                || area == Area.DOCUMENTS || area == Area.REMOVABLE)) {
             return Reason.SCRIPT_FILE;
         }
         if (largeThreshold > 0 && bytes >= largeThreshold
