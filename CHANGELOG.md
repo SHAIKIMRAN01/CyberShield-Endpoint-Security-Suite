@@ -1,12 +1,12 @@
 # Changelog
 
-## Unreleased: a vault-opening flourish on File Security
+## Unreleased: a vault-opening flourish
 
 ### Added
-- Opening **File Security** with the vault unlocked now plays a short, skippable flourish over the panel: a steel vault door whose dial spins, then the door swings open and fades to reveal your files. It is purely decorative — the screen is already loaded underneath — drawn from shapes so it stays sharp at any size, and a click skips it. It is turned off together with the sign-in intro by `-Dcybershield.noIntro=true`.
+- **Unlocking the master vault** now plays a short, skippable flourish over the screen you unlocked into — from the Home banner, the Password Vault, Secure Notes, File Security or Reports: a steel vault door whose dial spins, then the door swings open and fades to reveal the screen. It is purely decorative — the screen is already loaded underneath — drawn from shapes so it stays sharp at any size, and a click skips it. It is turned off together with the sign-in intro by `-Dcybershield.noIntro=true`.
 
 ### Changed
-- **Tests:** 289 JUnit tests now.
+- **Tests:** 290 JUnit tests now, including one that unlocks the vault through the UI and checks the flourish appears.
 
 ## Unreleased: Backup
 

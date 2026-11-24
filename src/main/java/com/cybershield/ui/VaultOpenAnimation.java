@@ -90,6 +90,7 @@ public final class VaultOpenAnimation {
     private static Overlay build() {
 
         StackPane root = new StackPane();
+        root.getStyleClass().add("vault-open-overlay");
         root.setStyle("-fx-background-color: #2B1D15;");
         root.setPickOnBounds(true);
 

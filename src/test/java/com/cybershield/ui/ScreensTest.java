@@ -106,6 +106,9 @@ class ScreensTest {
 
         System.setProperty("user.home", realHome);
 
+        // don't let the "no intro" switch leak into other tests
+        System.clearProperty("cybershield.noIntro");
+
         new VaultService().lockVault();
 
         SessionManager.logout();

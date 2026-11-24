@@ -372,11 +372,11 @@ public class DashboardController {
 
         select(filesButton, "File Security");
 
-        openVaultScreen("/fxml/files/file_security.fxml", this::openFileSecurity, this::playVaultOpening);
+        openVaultScreen("/fxml/files/file_security.fxml", this::openFileSecurity);
 
     }
 
-    /** The vault-opening flourish shown over File Security once the vault is unlocked. */
+    /** The vault-opening flourish, shown over the screen the moment the master vault is unlocked. */
     private void playVaultOpening() {
         if ("true".equals(System.getProperty("cybershield.noIntro"))) {
             return;
@@ -560,10 +560,6 @@ public class DashboardController {
      *               locking (which then shows the unlock screen)
      */
     private void openVaultScreen(String fxml, Runnable reopen) {
-        openVaultScreen(fxml, reopen, null);
-    }
-
-    private void openVaultScreen(String fxml, Runnable reopen, Runnable onShown) {
 
         VaultService.Status status;
 
@@ -609,10 +605,6 @@ public class DashboardController {
 
                 }
 
-                if (controller != null && onShown != null) {
-                    onShown.run();
-                }
-
             }
 
         }
@@ -630,6 +622,7 @@ public class DashboardController {
                 com.cybershield.reports.SessionReports.catchUpInBackground();
                 makeMonthlyReportIfDue();
                 afterUnlock.run();
+                playVaultOpening();
             });
 
             // From the take-over screen: start a new, empty vault instead.
@@ -644,6 +637,7 @@ public class DashboardController {
                         com.cybershield.reports.SessionReports.catchUpInBackground();
                         makeMonthlyReportIfDue();
                         afterUnlock.run();
+                        playVaultOpening();
                     });
                 }
 
