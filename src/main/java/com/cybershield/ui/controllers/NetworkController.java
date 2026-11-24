@@ -27,6 +27,8 @@ import javafx.util.Callback;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -136,16 +138,27 @@ public class NetworkController implements LockableScreen {
             return new Report(List.of(), List.of(), "");
         }
 
+        Map<String, String> hosts = snapshot.hostByAddress();
+
         List<ConnRow> rows = new ArrayList<>();
 
+        // grouped by app, so all of a browser's many per-site connections sit together
         snapshot.connections().stream()
                 .sorted(Comparator
-                        .comparingInt((Connection c) -> c.isEstablished() ? 0 : 1)
+                        .comparing((Connection c) -> c.app(), String.CASE_INSENSITIVE_ORDER)
+                        .thenComparingInt(c -> c.isEstablished() ? 0 : 1)
                         .thenComparingInt(c -> scopeRank(effectiveScope(c)))
-                        .thenComparing(Connection::app, String.CASE_INSENSITIVE_ORDER))
-                .forEach(c -> rows.add(connRow(c)));
+                        .thenComparing(Connection::remoteAddress))
+                .forEach(c -> rows.add(connRow(c, hostFor(c, hosts))));
 
         return new Report(rows, snapshot.dnsCache(), summarise(snapshot.connections(), snapshot.dnsCache().size()));
+    }
+
+    private static String hostFor(Connection c, Map<String, String> hosts) {
+        if (!c.isEstablished() || c.remoteAddress() == null) {
+            return null;
+        }
+        return hosts.get(c.remoteAddress().trim().toLowerCase(Locale.ROOT));
     }
 
     private void showReport(Report report) {
@@ -167,13 +180,17 @@ public class NetworkController implements LockableScreen {
     }
 
     static ConnRow connRow(Connection c) {
+        return connRow(c, null);
+    }
+
+    static ConnRow connRow(Connection c, String host) {
         boolean established = c.isEstablished();
         int port = established ? c.remotePort() : c.localPort();
-        String address = established
-                ? c.remoteAddress() + " : " + c.remotePort()
-                : c.localAddress() + " : " + c.localPort();
+        boolean named = host != null && !host.isBlank() && established;
+        String endpoint = named ? host : (established ? c.remoteAddress() : c.localAddress());
         Scope scope = effectiveScope(c);
-        return new ConnRow(c.app(), scope.label(), NetworkAnalysis.serviceLabel(port), address, NetworkAnalysis.explain(c));
+        return new ConnRow(c.app(), scope.label(), NetworkAnalysis.serviceLabel(port),
+                endpoint + " : " + port, NetworkAnalysis.explain(c, host));
     }
 
     static String summarise(List<Connection> connections, int dnsCount) {

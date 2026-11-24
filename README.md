@@ -72,7 +72,8 @@ A Windows desktop app that keeps passwords and files private on a shared PC. Eve
 - Everything is read-only; nothing is opened, moved or changed, and a scan can be stopped at any time.
 
 **Network Analyzer** (works without the vault)
-- Press Refresh for a snapshot of how the network is being used right now: every active connection and listening port tied to the app behind it, with a plain-words explanation for each — for example, "chrome is connected to 142.250.80.46 on port 443 (secure web/HTTPS) — out on the Internet", or "postgres is listening on port 5432 (PostgreSQL) — reachable from your network".
+- Press Refresh for a snapshot of how the network is being used right now: every active connection and listening port tied to the app behind it, with a plain-words explanation for each — for example, "chrome is connected to www.google.com (142.250.80.46) on port 443 (secure web/HTTPS) — out on the Internet", or "postgres is listening on port 5432 (PostgreSQL) — reachable from your network".
+- Each remote address is resolved to its **website name** by cross-referencing the names Windows looked up (the DNS cache), so a browser's many separate per-site connections read as `www.google.com`, `fonts.gstatic.com` and so on instead of bare IP numbers. Rows are grouped by app, so all of one program's connections sit together.
 - The "Where" column is colour-coded so you can see at a glance which connections stay on this computer, which are on your local network, and which go out to the Internet. Well-known ports are named (HTTPS, DNS, email, Remote Desktop, file sharing, and more).
 - It also lists the names Windows has looked up recently (the DNS cache), so you can see which sites and services have been contacted.
 - It reads connection details only — never the contents of any traffic — needs no administrator, and changes nothing. (Full packet capture needs a driver and an administrator, so CyberShield doesn't pretend to do it.)

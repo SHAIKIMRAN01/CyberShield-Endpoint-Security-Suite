@@ -187,10 +187,22 @@ public final class NetworkAnalysis {
 
     /** One plain sentence describing what a connection is doing. */
     public static String explain(Connection c) {
+        return explain(c, null);
+    }
+
+    /**
+     * One plain sentence, naming the website when it is known. {@code host} is the name that
+     * resolved to the remote address (from the DNS cache), or null/blank if it isn't known —
+     * then the address is shown on its own, as before.
+     */
+    public static String explain(Connection c, String host) {
 
         if (c.protocol() == Protocol.TCP && c.isEstablished()) {
             Scope scope = scopeOf(c.remoteAddress());
-            return c.app() + " is connected to " + c.remoteAddress() + " on port " + c.remotePort()
+            String target = host != null && !host.isBlank()
+                    ? host + " (" + c.remoteAddress() + ")"
+                    : c.remoteAddress();
+            return c.app() + " is connected to " + target + " on port " + c.remotePort()
                     + " (" + serviceLabel(c.remotePort()) + ") — " + reachingPhrase(scope) + ".";
         }
 

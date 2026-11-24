@@ -30,6 +30,19 @@ class NetworkDisplayTest {
     }
 
     @Test
+    void aKnownWebsiteNameReplacesTheBareAddress() {
+        Connection c = new Connection(Protocol.TCP, "Established",
+                "a", 5000, "142.250.80.46", 443, 1, "chrome");
+
+        NetworkController.ConnRow named = NetworkController.connRow(c, "www.google.com");
+        assertEquals("www.google.com : 443", named.address());
+        assertTrue(named.explanation().contains("www.google.com"));
+
+        // without a resolved name, the address shows as before
+        assertEquals("142.250.80.46 : 443", NetworkController.connRow(c, null).address());
+    }
+
+    @Test
     void aListeningServerShowsItsLocalPort() {
         Connection c = new Connection(Protocol.TCP, "Listen",
                 "::", 5432, "::", 0, 7232, "postgres");

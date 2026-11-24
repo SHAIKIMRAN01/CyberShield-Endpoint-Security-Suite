@@ -13,6 +13,7 @@
 ### Added
 - **Network Analyzer** (new sidebar entry under Tools; works without the vault). Press Refresh for a read-only snapshot of how the network is being used right now: every active TCP connection and listening port, the UDP endpoints apps are using, and the names Windows has looked up recently (the DNS cache) — each tied to the program behind it, with a plain-words explanation. It names well-known ports (HTTPS, DNS, email, Remote Desktop, file sharing and more), colour-codes where each connection goes (this computer, your local network, or the Internet) for both IPv4 and IPv6, and sorts the outgoing Internet connections to the top. It reads connection details only — never traffic contents — needs no administrator, and changes nothing. Full packet capture needs a driver and admin, so it isn't faked.
 - The reading is one short, read-only PowerShell pass (`Get-NetTCPConnection`, `Get-NetUDPEndpoint`, process names, `Get-DnsClientCache`) behind a tested parser; the service, address-scope and explanation logic is pure.
+- Each remote address is resolved to its website name by cross-referencing the DNS cache that was read, so a browser's many separate per-site connections show as `www.google.com`, `fonts.gstatic.com` and the like instead of bare IP numbers; rows are grouped by app so one program's connections sit together.
 
 ### Changed
 - **Tests:** 264 JUnit tests now, including the port/service and IPv4/IPv6 scope rules, the per-connection explanations, and the new screen opening.

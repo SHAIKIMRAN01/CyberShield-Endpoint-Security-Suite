@@ -317,7 +317,7 @@ class ScreensTest {
         run(dashboard.controller()::openNetworkAnalyzer);
         assertNotNull(scene.lookup("#connectionsTable"), "Network Analyzer opens");
         run(() -> ScreenDriver.network(dashboard.controller(), demoNetworkRows(), demoDnsRows(),
-                "9 connections across 9 apps · 4 to the Internet · 4 listening · 4 names looked up recently."));
+                "9 connections across 7 apps · 5 to the Internet · 3 listening · 4 names looked up recently."));
         snapshot("46-network-analyzer", scene);
 
         // Backup: a made-up set of chosen folders and a previewed plan (never this PC's own files)
@@ -377,7 +377,7 @@ class ScreensTest {
         snapshot("45-dark-security-scan", scene);
         run(dashboard.controller()::openNetworkAnalyzer);
         run(() -> ScreenDriver.network(dashboard.controller(), demoNetworkRows(), demoDnsRows(),
-                "9 connections across 9 apps · 4 to the Internet · 4 listening · 4 names looked up recently."));
+                "9 connections across 7 apps · 5 to the Internet · 3 listening · 4 names looked up recently."));
         snapshot("47-dark-network-analyzer", scene);
         run(dashboard.controller()::openBackup);
         run(() -> ScreenDriver.backup(dashboard.controller(), demoBackupSources(),
@@ -553,23 +553,24 @@ class ScreensTest {
                         "Windows setting"));
     }
 
-    /** A made-up set of connections for the screenshots, so no real connection is shown. */
+    /** A made-up set of connections for the screenshots, so no real connection is shown.
+     *  Grouped by app, with each remote address resolved to its website name. */
     private static List<NetworkController.ConnRow> demoNetworkRows() {
         return List.of(
-                row("chrome", "The Internet", "secure web (HTTPS)", "142.250.80.46 : 443",
-                        "chrome is connected to 142.250.80.46 on port 443 (secure web (HTTPS)) — out on the Internet."),
-                row("Spotify", "The Internet", "secure web (HTTPS)", "35.186.224.25 : 443",
-                        "Spotify is connected to 35.186.224.25 on port 443 (secure web (HTTPS)) — out on the Internet."),
-                row("Outlook", "The Internet", "email (IMAP over TLS)", "52.96.40.10 : 993",
-                        "Outlook is connected to 52.96.40.10 on port 993 (email (IMAP over TLS)) — out on the Internet."),
-                row("OneDrive", "The Internet", "secure web (HTTPS)", "13.107.42.12 : 443",
-                        "OneDrive is connected to 13.107.42.12 on port 443 (secure web (HTTPS)) — out on the Internet."),
+                row("chrome", "The Internet", "secure web (HTTPS)", "www.google.com : 443",
+                        "chrome is connected to www.google.com (142.250.80.46) on port 443 (secure web (HTTPS)) — out on the Internet."),
+                row("chrome", "The Internet", "secure web (HTTPS)", "fonts.gstatic.com : 443",
+                        "chrome is connected to fonts.gstatic.com (142.250.180.3) on port 443 (secure web (HTTPS)) — out on the Internet."),
+                row("chrome", "The Internet", "secure web (HTTPS)", "i.ytimg.com : 443",
+                        "chrome is connected to i.ytimg.com (142.250.80.118) on port 443 (secure web (HTTPS)) — out on the Internet."),
+                row("Spotify", "The Internet", "secure web (HTTPS)", "api.spotify.com : 443",
+                        "Spotify is connected to api.spotify.com (35.186.224.25) on port 443 (secure web (HTTPS)) — out on the Internet."),
+                row("Outlook", "The Internet", "email (IMAP over TLS)", "outlook.office365.com : 993",
+                        "Outlook is connected to outlook.office365.com (52.96.40.10) on port 993 (email (IMAP over TLS)) — out on the Internet."),
                 row("explorer", "Local network", "Windows file sharing (SMB)", "192.168.1.20 : 445",
                         "explorer is connected to 192.168.1.20 on port 445 (Windows file sharing (SMB)) — a device on your local network."),
                 row("postgres", "All interfaces", "PostgreSQL", ":: : 5432",
                         "postgres is listening on port 5432 (PostgreSQL) — reachable from your network."),
-                row("System", "All interfaces", "Windows file sharing (SMB)", ":: : 445",
-                        "System is listening on port 445 (Windows file sharing (SMB)) — reachable from your network."),
                 row("svchost", "Local network", "device discovery (mDNS)", ":: : 5353",
                         "svchost is receiving on UDP port 5353 (device discovery (mDNS)) — on your local network."),
                 row("jhi_service", "This computer", "port 49669", "127.0.0.1 : 49669",

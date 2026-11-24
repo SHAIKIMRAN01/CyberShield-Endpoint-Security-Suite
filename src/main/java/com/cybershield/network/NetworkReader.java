@@ -8,7 +8,10 @@ import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -32,6 +35,48 @@ public final class NetworkReader {
             return connections.isEmpty() && dnsCache.isEmpty();
         }
 
+        /**
+         * Builds a lookup from an address to the website name that resolved to it, from the
+         * DNS cache. This is how a bare IP (like the many Chrome opens, one per site) becomes a
+         * readable name. Only cache entries whose data is an address are used; the first name
+         * seen for an address wins.
+         */
+        public Map<String, String> hostByAddress() {
+            Map<String, String> map = new HashMap<>();
+            for (Dns entry : dnsCache) {
+                if (looksLikeAddress(entry.data())) {
+                    map.putIfAbsent(entry.data().trim().toLowerCase(Locale.ROOT), entry.name());
+                }
+            }
+            return map;
+        }
+
+    }
+
+    /** True when the text is an IP address (so a CNAME's name-to-name row is ignored). */
+    static boolean looksLikeAddress(String text) {
+        if (text == null || text.isBlank()) {
+            return false;
+        }
+        String t = text.trim();
+        if (t.indexOf(':') >= 0) {
+            return t.chars().allMatch(c -> c == ':' || Character.digit(c, 16) >= 0);
+        }
+        String[] parts = t.split("\\.");
+        if (parts.length != 4) {
+            return false;
+        }
+        for (String part : parts) {
+            try {
+                int n = Integer.parseInt(part);
+                if (n < 0 || n > 255) {
+                    return false;
+                }
+            } catch (NumberFormatException e) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /** One recent name look-up from the DNS cache: the name and what it resolved to. */

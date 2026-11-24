@@ -70,6 +70,17 @@ class NetworkAnalysisTest {
     }
 
     @Test
+    void explanationNamesTheWebsiteWhenKnown() {
+        Connection c = new Connection(Protocol.TCP, "Established",
+                "2409:40f0::1", 59868, "142.250.80.46", 443, 2304, "chrome");
+
+        assertTrue(NetworkAnalysis.explain(c, "www.google.com").contains("connected to www.google.com (142.250.80.46)"));
+        // no host, or a blank one, falls back to the address alone
+        assertTrue(NetworkAnalysis.explain(c, null).contains("connected to 142.250.80.46 on port"));
+        assertTrue(NetworkAnalysis.explain(c, "  ").contains("connected to 142.250.80.46 on port"));
+    }
+
+    @Test
     void explainsAListeningServer() {
         Connection c = new Connection(Protocol.TCP, "Listen",
                 "::", 5432, "::", 0, 7232, "postgres");
