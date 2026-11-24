@@ -11,7 +11,9 @@ import com.cybershield.privacy.TraceCleaner;
 import com.cybershield.reports.ReportService;
 import com.cybershield.security.SessionManager;
 import com.cybershield.services.AuthenticationService;
+import com.cybershield.backup.BackupScan;
 import com.cybershield.network.NetworkReader;
+import com.cybershield.ui.controllers.BackupController;
 import com.cybershield.ui.controllers.DashboardController;
 import com.cybershield.ui.controllers.NetworkController;
 import com.cybershield.ui.controllers.ScanController;
@@ -318,6 +320,13 @@ class ScreensTest {
                 "9 connections across 9 apps · 4 to the Internet · 4 listening · 4 names looked up recently."));
         snapshot("46-network-analyzer", scene);
 
+        // Backup: a made-up set of chosen folders and a previewed plan (never this PC's own files)
+        run(dashboard.controller()::openBackup);
+        assertNotNull(scene.lookup("#sourceList"), "Backup opens");
+        run(() -> ScreenDriver.backup(dashboard.controller(), demoBackupSources(),
+                "Ready to back up 1,284 files (3.4 GB) from 5 folders.  Left out: 3 too big, 1,120 older than the limit.  Press Back up now to make the copy."));
+        snapshot("48-backup", scene);
+
         // Settings: backup and restore, with the vault unlocked
         run(dashboard.controller()::openSettings);
         run(() -> ((Button) scene.lookup("#backupTab")).fire());
@@ -370,6 +379,10 @@ class ScreensTest {
         run(() -> ScreenDriver.network(dashboard.controller(), demoNetworkRows(), demoDnsRows(),
                 "9 connections across 9 apps · 4 to the Internet · 4 listening · 4 names looked up recently."));
         snapshot("47-dark-network-analyzer", scene);
+        run(dashboard.controller()::openBackup);
+        run(() -> ScreenDriver.backup(dashboard.controller(), demoBackupSources(),
+                "Ready to back up 1,284 files (3.4 GB) from 5 folders.  Left out: 3 too big, 1,120 older than the limit.  Press Back up now to make the copy."));
+        snapshot("49-dark-backup", scene);
         snapshot("40-dark-sign-in", onFx(() -> Theme.style(new Scene(Ui.load("/fxml/login.fxml").root(), 960, 600))));
         run(dashboard.controller()::openSettings);
         run(() -> ((Button) scene.lookup("#appearanceTab")).fire());
@@ -573,6 +586,16 @@ class ScreensTest {
                 new NetworkReader.Dns("api.spotify.com", "35.186.224.25"),
                 new NetworkReader.Dns("outlook.office365.com", "52.96.40.10"),
                 new NetworkReader.Dns("graph.microsoft.com", "13.107.42.12"));
+    }
+
+    /** A made-up set of chosen folders for the screenshots, so no real path is shown. */
+    private static List<BackupScan.Source> demoBackupSources() {
+        return List.of(
+                new BackupScan.Source(Path.of("C:\\Users\\sam\\Pictures"), "Pictures"),
+                new BackupScan.Source(Path.of("C:\\Users\\sam\\Documents"), "Documents"),
+                new BackupScan.Source(Path.of("C:\\Users\\sam\\Downloads"), "Downloads"),
+                new BackupScan.Source(Path.of("C:\\Users\\sam\\Videos"), "Videos"),
+                new BackupScan.Source(Path.of("C:\\Users\\sam\\Contacts"), "Contacts"));
     }
 
     private static byte[] sampleImage() throws Exception {

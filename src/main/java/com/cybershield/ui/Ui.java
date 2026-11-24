@@ -69,6 +69,10 @@ public final class Ui {
             "M12 2.5 A9.5 9.5 0 1 0 12.01 2.5 Z M12 4.4 A7.6 7.6 0 1 0 12.01 4.4 Z "
                     + "M3.5 11 H20.5 V13 H3.5 Z M11 3 H13 V21 H11 Z";
 
+    // An archive box with a lid and a label slot: the usual sign for a backup.
+    public static final String ICON_BACKUP =
+            "M3 5 H21 V9 H3 Z M4.5 9 H19.5 V20.5 H4.5 Z M9.5 12 H14.5 V14 H9.5 Z";
+
     // Three bars: the usual sign for a menu or sidebar.
     public static final String ICON_MENU =
             "M4.2 4.8 H19.8 A1.3 1.3 0 0 1 19.8 7.4 H4.2 A1.3 1.3 0 0 1 4.2 4.8 Z "

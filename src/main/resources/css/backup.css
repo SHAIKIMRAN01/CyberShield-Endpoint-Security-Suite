@@ -1,0 +1,20 @@
+/*
+  Backup. Reuses the Home card look (application.css); this only adds the progress
+  strip and a label style for the destination field.
+*/
+
+.backup .progress-strip {
+    -fx-padding: 12 16 12 16;
+}
+
+.backup .field-label {
+    -fx-font-weight: bold;
+    -fx-text-fill: -cs-heading-soft;
+}
+
+.backup .list-view {
+    -fx-background-radius: 10;
+    -fx-border-radius: 10;
+    -fx-border-color: -cs-line;
+    -fx-border-width: 1;
+}

@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!--
+  Backup. Top to bottom: a heading, two cards (the folders you chose, and what to
+  include plus where to save), a row of actions, a one-line summary, and a progress
+  strip shown only while it runs. It previews and asks before it copies anything, and
+  works without the vault.
+-->
+
+<?import java.net.URL?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.ListView?>
+<?import javafx.scene.control.ProgressBar?>
+<?import javafx.scene.control.Separator?>
+<?import javafx.scene.control.Spinner?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Region?>
+<?import javafx.scene.layout.VBox?>
+
+<VBox xmlns="http://javafx.com/javafx/21"
+      xmlns:fx="http://javafx.com/fxml"
+      fx:controller="com.cybershield.ui.controllers.BackupController"
+      styleClass="home,backup"
+      spacing="16">
+
+    <stylesheets>
+        <URL value="@../../css/backup.css"/>
+    </stylesheets>
+
+    <VBox spacing="4">
+        <Label text="Backup" styleClass="greeting"/>
+        <Label text="Make one compressed copy of the folders you choose, saved where you choose. It shows exactly what it will copy and asks before it runs — only the folders you pick are read, and nothing is changed. Works without the vault."
+               styleClass="subtitle" wrapText="true"/>
+    </VBox>
+
+    <GridPane hgap="18">
+
+        <columnConstraints>
+            <ColumnConstraints percentWidth="55"/>
+            <ColumnConstraints percentWidth="45"/>
+        </columnConstraints>
+
+        <!-- FOLDERS -->
+        <VBox styleClass="card,home-card" spacing="8" GridPane.columnIndex="0">
+            <Label text="Folders to back up" styleClass="card-title"/>
+            <ListView fx:id="sourceList" prefHeight="190" VBox.vgrow="ALWAYS"/>
+            <HBox spacing="8">
+                <Button fx:id="addFolderButton" text="Add folder…" onAction="#addFolder"/>
+                <Button fx:id="removeFolderButton" text="Remove" onAction="#removeFolder"/>
+            </HBox>
+        </VBox>
+
+        <!-- WHAT TO INCLUDE + WHERE -->
+        <VBox styleClass="card,home-card" spacing="10" GridPane.columnIndex="1">
+            <Label text="What to include" styleClass="card-title"/>
+
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <CheckBox fx:id="recentCheck" text="Only files changed in the last"/>
+                <Spinner fx:id="recentDaysSpinner" prefWidth="74"/>
+                <Label text="days"/>
+            </HBox>
+
+            <HBox spacing="8" alignment="CENTER_LEFT">
+                <CheckBox fx:id="sizeCheck" text="Skip files bigger than"/>
+                <Spinner fx:id="sizeMbSpinner" prefWidth="86"/>
+                <Label text="MB"/>
+            </HBox>
+
+            <CheckBox fx:id="appsCheck" text="Include a list of installed programs"/>
+
+            <Separator/>
+
+            <Label text="Save the backup in:" styleClass="field-label"/>
+            <Label fx:id="destLabel" styleClass="hint" wrapText="true"/>
+            <Button fx:id="changeDestButton" text="Change…" onAction="#changeDestination"/>
+        </VBox>
+
+    </GridPane>
+
+    <!-- ACTIONS -->
+    <HBox spacing="10" alignment="CENTER_LEFT">
+        <Button fx:id="previewButton" text="Preview" styleClass="primary-button" onAction="#preview"/>
+        <Button fx:id="backupButton" text="Back up now" onAction="#startBackup" disable="true"/>
+        <Button fx:id="stopButton" text="Stop" onAction="#stop" managed="false" visible="false"/>
+        <Region HBox.hgrow="ALWAYS"/>
+        <Button fx:id="openFolderButton" text="Open folder" onAction="#openFolder" managed="false" visible="false"/>
+    </HBox>
+
+    <!-- SUMMARY -->
+    <Label fx:id="summaryLabel" styleClass="section-heading" wrapText="true" managed="false" visible="false"/>
+
+    <!-- PROGRESS -->
+    <HBox fx:id="progressBox" styleClass="card,progress-strip" spacing="12" alignment="CENTER_LEFT"
+          managed="false" visible="false">
+        <ProgressBar fx:id="progressBar" progress="-1" prefWidth="240"/>
+        <Label fx:id="statusLabel" styleClass="hint" HBox.hgrow="ALWAYS" maxWidth="Infinity"/>
+    </HBox>
+
+</VBox>

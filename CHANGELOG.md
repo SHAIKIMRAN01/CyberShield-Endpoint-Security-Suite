@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased: Backup
+
+### Added
+- **Backup** (new sidebar entry under Tools; works without the vault). Makes one compressed `.zip` copy of the folders you choose, saved where you choose. It starts with the usual folders (Pictures, Documents, Downloads, Desktop, Videos and the Windows Contacts folder) and you can add or remove any. Filters: only files changed in the last so-many days (7 by default) and skip anything over a set size (500 MB by default); it can also include a text list of installed programs. It **previews first** — count, total size, and what the filters left out — and copies nothing until you press Back up now; progress is shown, it can be stopped (removing the half-written file), and it opens the folder when done. Only the chosen folders are read and nothing is changed. It does **not** reach into other apps' private data (WhatsApp, text messages) — it copies your own files, not another app's store.
+
+### Changed
+- **Tests:** 277 JUnit tests now, including the date/size filters, the folder walk and archive round-trip on temp files, stopping, de-duplicating clashing names, and the installed-apps parser.
+
 ## Unreleased: Network Analyzer
 
 ### Added

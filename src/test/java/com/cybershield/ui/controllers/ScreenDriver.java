@@ -46,4 +46,9 @@ public final class ScreenDriver {
         ((NetworkController) dashboard.currentScreen()).showForDemo(rows, dns, summary);
     }
 
+    public static void backup(DashboardController dashboard,
+                              List<com.cybershield.backup.BackupScan.Source> sources, String summary) {
+        ((BackupController) dashboard.currentScreen()).showForDemo(sources, summary);
+    }
+
 }

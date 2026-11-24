@@ -68,6 +68,8 @@
 
             <Button fx:id="networkButton" text="Network" styleClass="nav-button" onAction="#openNetworkAnalyzer"/>
 
+            <Button fx:id="backupButton" text="Backup" styleClass="nav-button" onAction="#openBackup"/>
+
             <Button fx:id="reportsButton" text="Reports" styleClass="nav-button" onAction="#openReports"/>
 
             <Label text="ACCOUNT" styleClass="nav-group"/>

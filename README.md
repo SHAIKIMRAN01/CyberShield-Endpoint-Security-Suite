@@ -77,6 +77,12 @@ A Windows desktop app that keeps passwords and files private on a shared PC. Eve
 - It also lists the names Windows has looked up recently (the DNS cache), so you can see which sites and services have been contacted.
 - It reads connection details only — never the contents of any traffic — needs no administrator, and changes nothing. (Full packet capture needs a driver and an administrator, so CyberShield doesn't pretend to do it.)
 
+**Backup** (works without the vault)
+- Make one compressed `.zip` copy of the folders you choose, saved where you choose. It starts with the usual folders (Pictures, Documents, Downloads, Desktop, Videos, and your Windows Contacts), and you can add or remove any folder.
+- Filter by what you want: only files changed in the last so-many days (7 by default), and skip anything over a size you set (500 MB by default) — handy for leaving out big videos. You can also include a text list of the programs installed on the PC.
+- It **previews first** — showing how many files, how big, and what the filters left out — and copies nothing until you press **Back up now**. Progress is shown, it can be stopped (which removes the half‑written file), and it opens the folder when it's done.
+- Only the folders you pick are read, and nothing is changed. It does **not** reach into other apps' private data (such as WhatsApp or text messages) — it copies your own files, not another program's store.
+
 **Settings**
 - Light or dark theme, per account. It changes at once, and the sign-in screen shows the theme the last account used.
 - Auto-lock minutes and clipboard clear time, per account.
@@ -99,6 +105,8 @@ A Windows desktop app that keeps passwords and files private on a shared PC. Eve
 | ![Security Scan](docs/screenshots/security-scan.png) | ![Security Scan dark](docs/screenshots/dark-security-scan.png) |
 | **Network Analyzer** | **Network Analyzer (dark)** |
 | ![Network Analyzer](docs/screenshots/network-analyzer.png) | ![Network Analyzer dark](docs/screenshots/dark-network-analyzer.png) |
+| **Backup** | **Backup (dark)** |
+| ![Backup](docs/screenshots/backup.png) | ![Backup dark](docs/screenshots/dark-backup.png) |
 | **Settings** | **Dark theme** |
 | ![Settings](docs/screenshots/settings.png) | ![Dark theme](docs/screenshots/dark-home.png) |
 
@@ -168,6 +176,7 @@ The tests cover:
 - Privacy Tools, on made-up files and folders only: shredding (refused places, junctions, open files, stopping), photo details in JPEG and PNG, the traces cleaner, the on-screen keyboard;
 - Security Scan: the risky-file rules (disguises, hidden programs, by place, scripts, large files) on made-up names and a temp folder, the posture judgement on made-up settings (good, risky, and "couldn't read" without a guess), the reading of Windows' output, and how findings become rows and advice;
 - Network Analyzer: which service a port is, where an IPv4 or IPv6 address sits (this computer, local network, the Internet), the one-line explanation of each connection, and the reading of the snapshot output into connections and look-ups;
+- Backup: the date and size filters, the walk of chosen folders on made-up temp files, writing the archive and reading it back, stopping (which leaves nothing behind), de-duplicating clashing names, and the installed-apps list;
 - settings, backups from Settings, and every screen opening.
 
 Each test uses its own database and file store in a temp folder, so the real data is never touched. `ScreensTest` opens the screens with JavaFX (in windows that are never shown), so it needs a desktop session.
