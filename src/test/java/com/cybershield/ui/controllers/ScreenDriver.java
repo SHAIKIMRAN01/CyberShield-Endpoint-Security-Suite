@@ -51,4 +51,12 @@ public final class ScreenDriver {
         ((BackupController) dashboard.currentScreen()).showForDemo(sources, summary);
     }
 
+    public static javafx.scene.Node vaultOpeningStill(DashboardController dashboard) {
+        return dashboard.showVaultOpeningStill();
+    }
+
+    public static void removeOverlay(DashboardController dashboard, javafx.scene.Node overlay) {
+        dashboard.removeOverlay(overlay);
+    }
+
 }

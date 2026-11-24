@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased: a vault-opening flourish on File Security
+
+### Added
+- Opening **File Security** with the vault unlocked now plays a short, skippable flourish over the panel: a steel vault door whose dial spins, then the door swings open and fades to reveal your files. It is purely decorative — the screen is already loaded underneath — drawn from shapes so it stays sharp at any size, and a click skips it. It is turned off together with the sign-in intro by `-Dcybershield.noIntro=true`.
+
+### Changed
+- **Tests:** 289 JUnit tests now.
+
 ## Unreleased: Backup
 
 ### Added

@@ -7,6 +7,7 @@ import com.cybershield.security.SessionManager;
 import com.cybershield.services.AuthenticationService;
 import com.cybershield.ui.Theme;
 import com.cybershield.ui.Ui;
+import com.cybershield.ui.VaultOpenAnimation;
 import com.cybershield.vault.AutoLock;
 import com.cybershield.vault.VaultService;
 
@@ -371,8 +372,26 @@ public class DashboardController {
 
         select(filesButton, "File Security");
 
-        openVaultScreen("/fxml/files/file_security.fxml", this::openFileSecurity);
+        openVaultScreen("/fxml/files/file_security.fxml", this::openFileSecurity, this::playVaultOpening);
 
+    }
+
+    /** The vault-opening flourish shown over File Security once the vault is unlocked. */
+    private void playVaultOpening() {
+        if ("true".equals(System.getProperty("cybershield.noIntro"))) {
+            return;
+        }
+        VaultOpenAnimation.playOver(contentPane);
+    }
+
+    /** Test hook: pose the vault-opening flourish over the current screen for a screenshot. */
+    javafx.scene.Node showVaultOpeningStill() {
+        return VaultOpenAnimation.addStill(contentPane);
+    }
+
+    /** Test hook: remove an overlay added over the current screen. */
+    void removeOverlay(javafx.scene.Node overlay) {
+        contentPane.getChildren().remove(overlay);
     }
 
     @FXML
@@ -541,6 +560,10 @@ public class DashboardController {
      *               locking (which then shows the unlock screen)
      */
     private void openVaultScreen(String fxml, Runnable reopen) {
+        openVaultScreen(fxml, reopen, null);
+    }
+
+    private void openVaultScreen(String fxml, Runnable reopen, Runnable onShown) {
 
         VaultService.Status status;
 
@@ -584,6 +607,10 @@ public class DashboardController {
 
                     currentReopen = reopen;
 
+                }
+
+                if (controller != null && onShown != null) {
+                    onShown.run();
                 }
 
             }

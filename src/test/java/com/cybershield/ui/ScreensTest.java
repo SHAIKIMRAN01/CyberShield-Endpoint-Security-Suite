@@ -93,6 +93,10 @@ class ScreensTest {
 
         Platform.setImplicitExit(false);
 
+        // the File Security vault-opening flourish plays live in the app; off here so the screens
+        // are captured as they rest, with one posed shot taken on purpose below
+        System.setProperty("cybershield.noIntro", "true");
+
         realHome = System.getProperty("user.home");
 
     }
@@ -175,6 +179,11 @@ class ScreensTest {
         }
         Thread.sleep(600);
         snapshot("07-file-security", scene);
+
+        // the vault-opening flourish, posed half-open over File Security
+        javafx.scene.Node vaultStill = onFx(() -> ScreenDriver.vaultOpeningStill(dashboard.controller()));
+        snapshot("50-vault-opening", scene);
+        run(() -> ScreenDriver.removeOverlay(dashboard.controller(), vaultStill));
 
         run(() -> ((TabPane) scene.lookup(".tab-pane")).getSelectionModel().select(1));
         Thread.sleep(600);
