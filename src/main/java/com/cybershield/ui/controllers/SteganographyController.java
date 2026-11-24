@@ -553,6 +553,8 @@ public class SteganographyController implements LockableScreen {
 
             ActivityLog.record(ActivityLog.Action.STEGO_REVEALED, file.getFileName().toString());
 
+            playWolfReveal();
+
         }, error -> {
 
             revealButton.setDisable(false);
@@ -565,6 +567,22 @@ public class SteganographyController implements LockableScreen {
 
         });
 
+    }
+
+    /** The wolf-in-sheep's-clothing flourish over the whole screen when a reveal succeeds. */
+    private void playWolfReveal() {
+
+        if ("true".equals(System.getProperty("cybershield.noIntro"))) {
+            return;
+        }
+
+        javafx.scene.Node node = revealPanel;
+        while (node != null && !(node.getParent() instanceof javafx.scene.layout.StackPane)) {
+            node = node.getParent();
+        }
+        if (node != null && node.getParent() instanceof javafx.scene.layout.StackPane host) {
+            com.cybershield.ui.WolfRevealAnimation.playOver(host);
+        }
     }
 
     @FXML

@@ -390,6 +390,11 @@ public class DashboardController {
         return VaultOpenAnimation.addStill(contentPane);
     }
 
+    /** Test hook: pose the wolf-in-sheep's-clothing reveal over the current screen for a screenshot. */
+    javafx.scene.Node showWolfRevealStill() {
+        return com.cybershield.ui.WolfRevealAnimation.addStill(contentPane);
+    }
+
     /** Test hook: remove an overlay added over the current screen. */
     void removeOverlay(javafx.scene.Node overlay) {
         contentPane.getChildren().remove(overlay);

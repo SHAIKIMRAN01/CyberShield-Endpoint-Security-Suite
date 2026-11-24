@@ -285,6 +285,11 @@ class ScreensTest {
         waitFor(() -> scene.lookup("#previewGrid").isVisible(), "before and after are shown");
         snapshot("25-steganography-preview", scene);
 
+        // the wolf-in-sheep's-clothing reveal, posed mid-lift over Steganography
+        javafx.scene.Node wolfStill = onFx(() -> ScreenDriver.wolfRevealStill(dashboard.controller()));
+        snapshot("52-wolf-reveal", scene);
+        run(() -> ScreenDriver.removeOverlay(dashboard.controller(), wolfStill));
+
         // Privacy Tools, on made-up photos and made-up Windows folders: never this PC's own
         run(() -> ((Button) scene.lookup("#privacyButton")).fire());
         assertNotNull(scene.lookup("#shredPanel"), "Privacy Tools opens");

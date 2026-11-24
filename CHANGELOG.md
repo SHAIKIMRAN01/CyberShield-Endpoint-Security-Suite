@@ -1,14 +1,15 @@
 # Changelog
 
-## Unreleased: vault-opening and drawer animations
+## Unreleased: reveal animations
 
 ### Added
 - **Unlocking the master vault** now plays a slow, skippable flourish over the screen you unlocked into — from the Home banner, the Password Vault, Secure Notes, File Security or Reports: a steel vault door whose dial spins, then the door swings open and fades to reveal the screen. It is purely decorative — the screen is already loaded underneath — drawn from shapes so it stays sharp at any size, and a click skips it.
 - **Opening File Security** now slides the screen open downward like a drawer, slowly, as its files appear.
-- Both are gentle and unhurried by design, and both are turned off together with the sign-in intro by `-Dcybershield.noIntro=true`.
+- **Revealing a hidden message in Steganography** now plays a "wolf in sheep's clothing" flourish: a sheep covers a wolf (the app's own logo art), then a hand lifts the sheep away from its corner, slowly, to show the wolf underneath — the innocent-looking cover had something hidden beneath it.
+- All three are gentle and unhurried by design, skippable with a click, and turned off together with the sign-in intro by `-Dcybershield.noIntro=true`.
 
 ### Changed
-- **Tests:** 292 JUnit tests now, including one that unlocks the vault through the UI and checks the flourish appears.
+- **Tests:** 294 JUnit tests now, including one that unlocks the vault through the UI and checks the flourish appears.
 
 ## Unreleased: Backup
 

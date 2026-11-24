@@ -55,6 +55,10 @@ public final class ScreenDriver {
         return dashboard.showVaultOpeningStill();
     }
 
+    public static javafx.scene.Node wolfRevealStill(DashboardController dashboard) {
+        return dashboard.showWolfRevealStill();
+    }
+
     public static void removeOverlay(DashboardController dashboard, javafx.scene.Node overlay) {
         dashboard.removeOverlay(overlay);
     }
