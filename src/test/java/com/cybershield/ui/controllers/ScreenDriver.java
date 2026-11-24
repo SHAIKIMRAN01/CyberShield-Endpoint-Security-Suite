@@ -63,6 +63,26 @@ public final class ScreenDriver {
         return dashboard.showGrimReaperStill();
     }
 
+    public static javafx.scene.Node chestLockStill(DashboardController dashboard) {
+        return dashboard.showChestLockStill();
+    }
+
+    public static javafx.scene.Node cursedTomeStill(DashboardController dashboard) {
+        return dashboard.showCursedTomeStill();
+    }
+
+    public static javafx.scene.Node mazeStill(DashboardController dashboard) {
+        return dashboard.showMazeStill();
+    }
+
+    public static javafx.scene.Node ratStill(DashboardController dashboard) {
+        return dashboard.showRatStill();
+    }
+
+    public static javafx.scene.Node catStill(DashboardController dashboard) {
+        return dashboard.showCatStill();
+    }
+
     public static void removeOverlay(DashboardController dashboard, javafx.scene.Node overlay) {
         dashboard.removeOverlay(overlay);
     }

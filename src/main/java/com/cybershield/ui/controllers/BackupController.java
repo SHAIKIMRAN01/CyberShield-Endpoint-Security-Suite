@@ -272,6 +272,21 @@ public class BackupController implements LockableScreen {
         show(summaryLabel, true);
         show(openFolderButton, true);
         AppLogger.info("Backup finished: " + result.files() + " files.");
+        playChestLock();
+    }
+
+    /** The treasure-chest-locking flourish over the whole screen when a backup finishes. */
+    private void playChestLock() {
+        if ("true".equals(System.getProperty("cybershield.noIntro"))) {
+            return;
+        }
+        javafx.scene.Node node = summaryLabel;
+        while (node != null && !(node.getParent() instanceof javafx.scene.layout.StackPane)) {
+            node = node.getParent();
+        }
+        if (node != null && node.getParent() instanceof javafx.scene.layout.StackPane host) {
+            com.cybershield.ui.ChestLockAnimation.playOver(host);
+        }
     }
 
     private void showFailure(Throwable error) {

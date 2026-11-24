@@ -344,6 +344,31 @@ class ScreensTest {
                 "Ready to back up 1,284 files (3.4 GB) from 5 folders.  Left out: 3 too big, 1,120 older than the limit.  Press Back up now to make the copy."));
         snapshot("48-backup", scene);
 
+        // the per-screen flourishes, each posed over its screen (never seen live here: the intro switch is off)
+        javafx.scene.Node chestStill = onFx(() -> ScreenDriver.chestLockStill(dashboard.controller()));
+        snapshot("54-backup-chest", scene);
+        run(() -> ScreenDriver.removeOverlay(dashboard.controller(), chestStill));
+
+        run(() -> ((Button) scene.lookup("#notesButton")).fire());
+        javafx.scene.Node tomeStill = onFx(() -> ScreenDriver.cursedTomeStill(dashboard.controller()));
+        snapshot("55-secure-notes-tome", scene);
+        run(() -> ScreenDriver.removeOverlay(dashboard.controller(), tomeStill));
+
+        run(dashboard.controller()::openEncryptionCenter);
+        javafx.scene.Node mazeStill = onFx(() -> ScreenDriver.mazeStill(dashboard.controller()));
+        snapshot("56-encryption-maze", scene);
+        run(() -> ScreenDriver.removeOverlay(dashboard.controller(), mazeStill));
+
+        run(dashboard.controller()::openSecurityScan);
+        javafx.scene.Node ratStill = onFx(() -> ScreenDriver.ratStill(dashboard.controller()));
+        snapshot("57-security-scan-rat", scene);
+        run(() -> ScreenDriver.removeOverlay(dashboard.controller(), ratStill));
+
+        run(dashboard.controller()::openPrivacyTools);
+        javafx.scene.Node catStill = onFx(() -> ScreenDriver.catStill(dashboard.controller()));
+        snapshot("58-privacy-cat", scene);
+        run(() -> ScreenDriver.removeOverlay(dashboard.controller(), catStill));
+
         // Settings: backup and restore, with the vault unlocked
         run(dashboard.controller()::openSettings);
         run(() -> ((Button) scene.lookup("#backupTab")).fire());

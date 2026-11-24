@@ -401,6 +401,27 @@ public class DashboardController {
         return GrimReaperAnimation.addStill(contentPane);
     }
 
+    /** Test hooks: pose each screen's flourish for a screenshot. */
+    javafx.scene.Node showChestLockStill() {
+        return com.cybershield.ui.ChestLockAnimation.addStill(contentPane);
+    }
+
+    javafx.scene.Node showCursedTomeStill() {
+        return com.cybershield.ui.CursedTomeAnimation.addStill(contentPane);
+    }
+
+    javafx.scene.Node showMazeStill() {
+        return com.cybershield.ui.MazeAnimation.addStill(contentPane);
+    }
+
+    javafx.scene.Node showRatStill() {
+        return com.cybershield.ui.RatDetectiveAnimation.addStill(contentPane);
+    }
+
+    javafx.scene.Node showCatStill() {
+        return com.cybershield.ui.CatAnimation.addStill(contentPane);
+    }
+
     /** Test hook: remove an overlay added over the current screen. */
     void removeOverlay(javafx.scene.Node overlay) {
         contentPane.getChildren().remove(overlay);
@@ -766,12 +787,28 @@ public class DashboardController {
 
         currentReopen = null;
 
-        // File Security slides open like a drawer when it shows its files
-        if (controller instanceof FileSecurityController
-                && !"true".equals(System.getProperty("cybershield.noIntro"))) {
-            DrawerAnimation.openDownward(view);
+        playEntranceFor(controller, view);
+
+    }
+
+    /** The little flourish some screens play as they appear. Off when the intro is turned off. */
+    private void playEntranceFor(Object controller, Node view) {
+
+        if ("true".equals(System.getProperty("cybershield.noIntro"))) {
+            return;
         }
 
+        if (controller instanceof FileSecurityController) {
+            DrawerAnimation.openDownward(view);
+        } else if (controller instanceof SecureNotesController) {
+            com.cybershield.ui.CursedTomeAnimation.playOver(contentPane);
+        } else if (controller instanceof EncryptionController) {
+            com.cybershield.ui.MazeAnimation.playOver(contentPane);
+        } else if (controller instanceof ScanController) {
+            com.cybershield.ui.RatDetectiveAnimation.playOver(contentPane);
+        } else if (controller instanceof PrivacyController) {
+            com.cybershield.ui.CatAnimation.playOver(contentPane);
+        }
     }
 
     private void disposeCurrentScreen() {

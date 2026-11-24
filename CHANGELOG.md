@@ -1,6 +1,17 @@
 # Changelog
 
-## Unreleased: reveal animations
+## Unreleased: per-screen mascot flourishes
+
+### Added
+- A playful, skippable flourish now plays for several screens (all drawn from shapes, all off under `-Dcybershield.noIntro=true`):
+  - **Privacy Tools:** a cat strolls in slowly, pauses to look around, reaches a bowl of milk, takes a few sips, then wanders off (unhurried — about fifteen seconds).
+  - **Security Scan:** a rat in a dark detective suit searches the screen, hops between spots, then rushes at you with a "Gotcha!".
+  - **Encryption Center:** a little maze of puzzles breaks apart and is thrown away — the puzzle is solved.
+  - **Secure Notes:** an original "cursed tome" creaks open and two hooded spirit-wisps rise from its pages (original art — no copyrighted characters, fonts or designs).
+  - **A finished backup:** the wolf's treasure chest (the logo art) swings shut and the lock snaps on — your copy is safely stored.
+
+### Changed
+- **Tests:** 298 JUnit tests now.
 
 ### Added
 - **Unlocking the master vault** now plays a slow, skippable flourish over the screen you unlocked into — from the Home banner, the Password Vault, Secure Notes, File Security or Reports: a steel vault door whose dial spins, then the door swings open and fades to reveal the screen. It is purely decorative — the screen is already loaded underneath — drawn from shapes so it stays sharp at any size, and a click skips it.
