@@ -286,18 +286,6 @@ scripts/        build-installer.ps1
 .github/workflows/  automatic builds
 ```
 
-## Roadmap
-
-| Phase | Weeks | Work | State |
-|---|---|---|---|
-| 0 · Stabilise | 1–2 | Tests, README, SessionManager fix, header contrast | Done |
-| 1 · Accounts & Settings | 2–6 | Registration, sign-in history and waits, one vault per account, Settings, master password change | Done |
-| 2 · Core modules | 6–11 | Secure Notes, every Password Vault field encrypted, home screen score | Done |
-| 3 · Tools & reports | 11–15 | Encryption Center, PDF reports, File Security backup and recovery | Done |
-| 4 · Extras | 16–20 | Steganography, Privacy Tools, sign-ins by date, the monthly report, backups from Settings | Done |
-| 5 · Polish & release | 20–21 | Dark theme, logging clean-up, automatic builds, Windows installer | Done |
-| Backlog | after 1.0 | The Advanced tasks: charts in reports, importing and exporting logins, password history, start-up options and languages | |
-
 ## License
 
 All rights reserved. See [LICENSE](LICENSE).
