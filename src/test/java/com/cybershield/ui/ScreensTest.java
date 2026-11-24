@@ -424,6 +424,12 @@ class ScreensTest {
             return new Scene(takeover, WIDTH - 236, HEIGHT - 90);
         }));
 
+        // the sign-out grim reaper, posed mid-swing over the current screen
+        run(dashboard.controller()::openDashboard);
+        javafx.scene.Node reaperStill = onFx(() -> ScreenDriver.grimReaperStill(dashboard.controller()));
+        snapshot("53-sign-out", scene);
+        run(() -> ScreenDriver.removeOverlay(dashboard.controller(), reaperStill));
+
         run(() -> ((Button) scene.lookup("#signOutButton")).fire());
         assertTrue(!SessionManager.isLoggedIn(), "signing out ends the session");
 

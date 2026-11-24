@@ -6,6 +6,7 @@ import com.cybershield.models.User;
 import com.cybershield.security.SessionManager;
 import com.cybershield.services.AuthenticationService;
 import com.cybershield.ui.DrawerAnimation;
+import com.cybershield.ui.GrimReaperAnimation;
 import com.cybershield.ui.Theme;
 import com.cybershield.ui.Ui;
 import com.cybershield.ui.VaultOpenAnimation;
@@ -393,6 +394,11 @@ public class DashboardController {
     /** Test hook: pose the wolf-in-sheep's-clothing reveal over the current screen for a screenshot. */
     javafx.scene.Node showWolfRevealStill() {
         return com.cybershield.ui.WolfRevealAnimation.addStill(contentPane);
+    }
+
+    /** Test hook: pose the sign-out grim reaper over the current screen for a screenshot. */
+    javafx.scene.Node showGrimReaperStill() {
+        return GrimReaperAnimation.addStill(contentPane);
     }
 
     /** Test hook: remove an overlay added over the current screen. */
@@ -784,6 +790,14 @@ public class DashboardController {
 
     @FXML
     private void logout() {
+        if ("true".equals(System.getProperty("cybershield.noIntro"))) {
+            doLogout();
+            return;
+        }
+        GrimReaperAnimation.playOver(contentPane, this::doLogout);
+    }
+
+    private void doLogout() {
 
         disposeCurrentScreen();
 

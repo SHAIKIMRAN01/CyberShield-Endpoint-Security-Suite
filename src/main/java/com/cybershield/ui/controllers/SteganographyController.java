@@ -414,6 +414,8 @@ public class SteganographyController implements LockableScreen {
 
             ActivityLog.record(ActivityLog.Action.STEGO_HIDDEN, target.getFileName().toString());
 
+            playWolfHide();
+
         }, error -> {
 
             hideButton.setDisable(false);
@@ -571,18 +573,30 @@ public class SteganographyController implements LockableScreen {
 
     /** The wolf-in-sheep's-clothing flourish over the whole screen when a reveal succeeds. */
     private void playWolfReveal() {
-
-        if ("true".equals(System.getProperty("cybershield.noIntro"))) {
-            return;
+        javafx.scene.layout.StackPane host = contentHost();
+        if (host != null) {
+            com.cybershield.ui.WolfRevealAnimation.playOver(host);
         }
+    }
 
-        javafx.scene.Node node = revealPanel;
+    /** The reverse flourish — the sheep laid back over the wolf — when a message is hidden. */
+    private void playWolfHide() {
+        javafx.scene.layout.StackPane host = contentHost();
+        if (host != null) {
+            com.cybershield.ui.WolfRevealAnimation.playHideOver(host);
+        }
+    }
+
+    /** The StackPane the screen sits in (the dashboard content area), or null if the intro is off. */
+    private javafx.scene.layout.StackPane contentHost() {
+        if ("true".equals(System.getProperty("cybershield.noIntro"))) {
+            return null;
+        }
+        javafx.scene.Node node = hidePanel;
         while (node != null && !(node.getParent() instanceof javafx.scene.layout.StackPane)) {
             node = node.getParent();
         }
-        if (node != null && node.getParent() instanceof javafx.scene.layout.StackPane host) {
-            com.cybershield.ui.WolfRevealAnimation.playOver(host);
-        }
+        return node == null ? null : (javafx.scene.layout.StackPane) node.getParent();
     }
 
     @FXML

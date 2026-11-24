@@ -59,6 +59,10 @@ public final class ScreenDriver {
         return dashboard.showWolfRevealStill();
     }
 
+    public static javafx.scene.Node grimReaperStill(DashboardController dashboard) {
+        return dashboard.showGrimReaperStill();
+    }
+
     public static void removeOverlay(DashboardController dashboard, javafx.scene.Node overlay) {
         dashboard.removeOverlay(overlay);
     }

@@ -54,7 +54,7 @@ public final class WolfRevealAnimation {
     /** Plays the reveal over {@code host} and removes it when done. */
     public static void playOver(StackPane host) {
 
-        Overlay overlay = build();
+        Overlay overlay = build("A wolf in sheep's clothing — the hidden message is out.");
         host.getChildren().add(overlay.root);
         overlay.root.setOnMouseClicked(e -> skip(host, overlay.root));
 
@@ -87,9 +87,50 @@ public final class WolfRevealAnimation {
         sequence.play();
     }
 
+    /**
+     * Plays the hide (the reverse): the sheep is lowered back over the wolf to cover it, like
+     * laying a sheet down, then held in place — the message is now hidden under an innocent cover.
+     */
+    public static void playHideOver(StackPane host) {
+
+        Overlay overlay = build("Hidden under an innocent cover — a wolf in sheep's clothing.");
+        host.getChildren().add(overlay.root);
+        overlay.root.setOnMouseClicked(e -> skip(host, overlay.root));
+
+        Rotate lower = new Rotate(-46, 44, 46);
+        overlay.sheep.getTransforms().add(lower);
+        overlay.sheep.setTranslateX(70);
+        overlay.sheep.setTranslateY(-36);
+        overlay.sheep.setOpacity(0.08);
+
+        Timeline rotate = new Timeline(
+                new KeyFrame(Duration.ZERO, new KeyValue(lower.angleProperty(), -46)),
+                new KeyFrame(Duration.millis(2200), new KeyValue(lower.angleProperty(), 0, Interpolator.EASE_OUT)));
+
+        TranslateTransition slide = new TranslateTransition(Duration.millis(2200), overlay.sheep);
+        slide.setToX(0);
+        slide.setToY(0);
+
+        FadeTransition sheepFade = new FadeTransition(Duration.millis(2200), overlay.sheep);
+        sheepFade.setFromValue(0.08);
+        sheepFade.setToValue(1);
+
+        ParallelTransition covering = new ParallelTransition(rotate, slide, sheepFade);
+        PauseTransition hold = new PauseTransition(Duration.millis(1000));
+
+        FadeTransition out = new FadeTransition(Duration.millis(900), overlay.root);
+        out.setFromValue(1);
+        out.setToValue(0);
+
+        SequentialTransition sequence = new SequentialTransition(covering, hold, out);
+        sequence.setOnFinished(e -> host.getChildren().remove(overlay.root));
+        overlay.root.getProperties().put(SEQ_KEY, sequence);
+        sequence.play();
+    }
+
     /** Adds the reveal posed mid-lift (no animation) and returns it, for a screenshot or a test. */
     public static Node addStill(StackPane host) {
-        Overlay overlay = build();
+        Overlay overlay = build("A wolf in sheep's clothing — the hidden message is out.");
         overlay.sheep.getTransforms().add(new Rotate(-28, 44, 46));
         overlay.sheep.setTranslateX(44);
         overlay.sheep.setTranslateY(-22);
@@ -108,7 +149,7 @@ public final class WolfRevealAnimation {
     private record Overlay(StackPane root, Group sheep) {
     }
 
-    private static Overlay build() {
+    private static Overlay build(String captionText) {
 
         StackPane root = new StackPane();
         root.getStyleClass().add("wolf-reveal-overlay");
@@ -134,7 +175,7 @@ public final class WolfRevealAnimation {
 
         stage.getChildren().addAll(wolf, sheep);
 
-        Label caption = new Label("A wolf in sheep's clothing — the hidden message is out.");
+        Label caption = new Label(captionText);
         caption.setStyle("-fx-text-fill: #F6EEE4; -fx-font-size: 16px;");
         StackPane.setAlignment(caption, Pos.BOTTOM_CENTER);
         StackPane.setMargin(caption, new Insets(0, 0, 54, 0));
