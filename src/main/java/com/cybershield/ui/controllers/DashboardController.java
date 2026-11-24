@@ -98,6 +98,9 @@ public class DashboardController {
     private Button scanButton;
 
     @FXML
+    private Button networkButton;
+
+    @FXML
     private Button reportsButton;
 
     @FXML
@@ -152,7 +155,7 @@ public class DashboardController {
     public void initialize() {
 
         navButtons = List.of(homeButton, passwordButton, notesButton, filesButton, encryptionButton,
-                stegoButton, privacyButton, scanButton, reportsButton, settingsButton);
+                stegoButton, privacyButton, scanButton, networkButton, reportsButton, settingsButton);
 
         setIcon(homeButton, Ui.ICON_HOME);
         setIcon(passwordButton, Ui.ICON_KEY);
@@ -162,6 +165,7 @@ public class DashboardController {
         setIcon(stegoButton, Ui.ICON_IMAGE);
         setIcon(privacyButton, Ui.ICON_EYE);
         setIcon(scanButton, Ui.ICON_SCAN);
+        setIcon(networkButton, Ui.ICON_NETWORK);
         setIcon(reportsButton, Ui.ICON_CHART);
         setIcon(settingsButton, Ui.ICON_SLIDERS);
         setIcon(signOutButton, Ui.ICON_SIGN_OUT);
@@ -457,6 +461,15 @@ public class DashboardController {
         select(scanButton, "Security Scan");
 
         showView("/fxml/scan/security_scan.fxml");
+
+    }
+
+    @FXML
+    public void openNetworkAnalyzer() {
+
+        select(networkButton, "Network Analyzer");
+
+        showView("/fxml/network/network.fxml");
 
     }
 

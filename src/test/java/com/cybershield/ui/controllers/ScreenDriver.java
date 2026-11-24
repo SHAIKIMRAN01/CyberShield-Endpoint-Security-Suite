@@ -41,4 +41,9 @@ public final class ScreenDriver {
         ((ScanController) dashboard.currentScreen()).showForDemo(rows, summary);
     }
 
+    public static void network(DashboardController dashboard, List<NetworkController.ConnRow> rows,
+                               List<com.cybershield.network.NetworkReader.Dns> dns, String summary) {
+        ((NetworkController) dashboard.currentScreen()).showForDemo(rows, dns, summary);
+    }
+
 }

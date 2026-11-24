@@ -11,7 +11,9 @@ import com.cybershield.privacy.TraceCleaner;
 import com.cybershield.reports.ReportService;
 import com.cybershield.security.SessionManager;
 import com.cybershield.services.AuthenticationService;
+import com.cybershield.network.NetworkReader;
 import com.cybershield.ui.controllers.DashboardController;
+import com.cybershield.ui.controllers.NetworkController;
 import com.cybershield.ui.controllers.ScanController;
 import com.cybershield.ui.controllers.ScreenDriver;
 import com.cybershield.vault.VaultService;
@@ -309,6 +311,13 @@ class ScreensTest {
                 "Found 1 setting to look at · 1 file worth a look · 1 file to be aware of. See below."));
         snapshot("44-security-scan-results", scene);
 
+        // Network Analyzer: a made-up snapshot of connections and look-ups (never this PC's own)
+        run(dashboard.controller()::openNetworkAnalyzer);
+        assertNotNull(scene.lookup("#connectionsTable"), "Network Analyzer opens");
+        run(() -> ScreenDriver.network(dashboard.controller(), demoNetworkRows(), demoDnsRows(),
+                "9 connections across 9 apps · 4 to the Internet · 4 listening · 4 names looked up recently."));
+        snapshot("46-network-analyzer", scene);
+
         // Settings: backup and restore, with the vault unlocked
         run(dashboard.controller()::openSettings);
         run(() -> ((Button) scene.lookup("#backupTab")).fire());
@@ -357,6 +366,10 @@ class ScreensTest {
         run(() -> ScreenDriver.securityScan(dashboard.controller(), demoScanRows(),
                 "Found 1 setting to look at · 1 file worth a look · 1 file to be aware of. See below."));
         snapshot("45-dark-security-scan", scene);
+        run(dashboard.controller()::openNetworkAnalyzer);
+        run(() -> ScreenDriver.network(dashboard.controller(), demoNetworkRows(), demoDnsRows(),
+                "9 connections across 9 apps · 4 to the Internet · 4 listening · 4 names looked up recently."));
+        snapshot("47-dark-network-analyzer", scene);
         snapshot("40-dark-sign-in", onFx(() -> Theme.style(new Scene(Ui.load("/fxml/login.fxml").root(), 960, 600))));
         run(dashboard.controller()::openSettings);
         run(() -> ((Button) scene.lookup("#appearanceTab")).fire());
@@ -525,6 +538,41 @@ class ScreensTest {
                         "3 programs run at sign-in: OneDrive, Spotify, Updater."
                                 + "    \u2192  Disable any you don't recognise in Task Manager \u203A Start-up apps.",
                         "Windows setting"));
+    }
+
+    /** A made-up set of connections for the screenshots, so no real connection is shown. */
+    private static List<NetworkController.ConnRow> demoNetworkRows() {
+        return List.of(
+                row("chrome", "The Internet", "secure web (HTTPS)", "142.250.80.46 : 443",
+                        "chrome is connected to 142.250.80.46 on port 443 (secure web (HTTPS)) — out on the Internet."),
+                row("Spotify", "The Internet", "secure web (HTTPS)", "35.186.224.25 : 443",
+                        "Spotify is connected to 35.186.224.25 on port 443 (secure web (HTTPS)) — out on the Internet."),
+                row("Outlook", "The Internet", "email (IMAP over TLS)", "52.96.40.10 : 993",
+                        "Outlook is connected to 52.96.40.10 on port 993 (email (IMAP over TLS)) — out on the Internet."),
+                row("OneDrive", "The Internet", "secure web (HTTPS)", "13.107.42.12 : 443",
+                        "OneDrive is connected to 13.107.42.12 on port 443 (secure web (HTTPS)) — out on the Internet."),
+                row("explorer", "Local network", "Windows file sharing (SMB)", "192.168.1.20 : 445",
+                        "explorer is connected to 192.168.1.20 on port 445 (Windows file sharing (SMB)) — a device on your local network."),
+                row("postgres", "All interfaces", "PostgreSQL", ":: : 5432",
+                        "postgres is listening on port 5432 (PostgreSQL) — reachable from your network."),
+                row("System", "All interfaces", "Windows file sharing (SMB)", ":: : 445",
+                        "System is listening on port 445 (Windows file sharing (SMB)) — reachable from your network."),
+                row("svchost", "Local network", "device discovery (mDNS)", ":: : 5353",
+                        "svchost is receiving on UDP port 5353 (device discovery (mDNS)) — on your local network."),
+                row("jhi_service", "This computer", "port 49669", "127.0.0.1 : 49669",
+                        "jhi_service is listening on port 49669 (port 49669) — only this computer can reach it."));
+    }
+
+    private static NetworkController.ConnRow row(String app, String scope, String service, String address, String explanation) {
+        return new NetworkController.ConnRow(app, scope, service, address, explanation);
+    }
+
+    private static List<NetworkReader.Dns> demoDnsRows() {
+        return List.of(
+                new NetworkReader.Dns("www.google.com", "142.250.80.46"),
+                new NetworkReader.Dns("api.spotify.com", "35.186.224.25"),
+                new NetworkReader.Dns("outlook.office365.com", "52.96.40.10"),
+                new NetworkReader.Dns("graph.microsoft.com", "13.107.42.12"));
     }
 
     private static byte[] sampleImage() throws Exception {

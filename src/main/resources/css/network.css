@@ -1,0 +1,42 @@
+/*
+  Network Analyzer. Reuses the Home card look (application.css); this only adds the
+  progress strip, the colours that show at a glance where each connection goes, and
+  the ink colour for the wrapped Text in the table.
+*/
+
+.network .progress-strip {
+    -fx-padding: 12 16 12 16;
+}
+
+.network .table-view {
+    -fx-background-radius: 12;
+    -fx-border-radius: 12;
+    -fx-border-color: -cs-line;
+    -fx-border-width: 1;
+}
+
+/* The "Where" column: a coloured word for how far the other end is. */
+.scope-tag {
+    -fx-font-weight: bold;
+}
+
+.scope-internet {
+    -fx-text-fill: -cs-caramel;
+}
+
+.scope-local {
+    -fx-text-fill: -cs-good;
+}
+
+.scope-computer {
+    -fx-text-fill: -cs-muted;
+}
+
+.scope-unknown {
+    -fx-text-fill: -cs-bad;
+}
+
+/* Wrapped Text in the Address and explanation columns follows the theme's ink colour. */
+.network .cell-text {
+    -fx-fill: -cs-ink;
+}

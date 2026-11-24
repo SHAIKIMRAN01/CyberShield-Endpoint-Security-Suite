@@ -71,6 +71,12 @@ A Windows desktop app that keeps passwords and files private on a shared PC. Eve
 - A deep scan also walks your whole user folder and points out files worth a second look: a program dressed up as a document (photo.jpg.exe), a hidden program, an installer left in Downloads or a temp folder, a loose script, or something set to run at start-up — each with a SHA-256 fingerprint you can check yourself. These are honest heuristics, not virus detection: CyberShield is not an antivirus and never claims a file is malware.
 - Everything is read-only; nothing is opened, moved or changed, and a scan can be stopped at any time.
 
+**Network Analyzer** (works without the vault)
+- Press Refresh for a snapshot of how the network is being used right now: every active connection and listening port tied to the app behind it, with a plain-words explanation for each — for example, "chrome is connected to 142.250.80.46 on port 443 (secure web/HTTPS) — out on the Internet", or "postgres is listening on port 5432 (PostgreSQL) — reachable from your network".
+- The "Where" column is colour-coded so you can see at a glance which connections stay on this computer, which are on your local network, and which go out to the Internet. Well-known ports are named (HTTPS, DNS, email, Remote Desktop, file sharing, and more).
+- It also lists the names Windows has looked up recently (the DNS cache), so you can see which sites and services have been contacted.
+- It reads connection details only — never the contents of any traffic — needs no administrator, and changes nothing. (Full packet capture needs a driver and an administrator, so CyberShield doesn't pretend to do it.)
+
 **Settings**
 - Light or dark theme, per account. It changes at once, and the sign-in screen shows the theme the last account used.
 - Auto-lock minutes and clipboard clear time, per account.
@@ -91,6 +97,8 @@ A Windows desktop app that keeps passwords and files private on a shared PC. Eve
 | ![Steganography](docs/screenshots/steganography.png) | ![Privacy Tools](docs/screenshots/privacy-tools.png) |
 | **Security Scan** | **Security Scan (dark)** |
 | ![Security Scan](docs/screenshots/security-scan.png) | ![Security Scan dark](docs/screenshots/dark-security-scan.png) |
+| **Network Analyzer** | **Network Analyzer (dark)** |
+| ![Network Analyzer](docs/screenshots/network-analyzer.png) | ![Network Analyzer dark](docs/screenshots/dark-network-analyzer.png) |
 | **Settings** | **Dark theme** |
 | ![Settings](docs/screenshots/settings.png) | ![Dark theme](docs/screenshots/dark-home.png) |
 
@@ -159,6 +167,7 @@ The tests cover:
 - steganography: messages and files in and out of pictures, wrong passwords, too-big messages, and JPEG wiping the bits;
 - Privacy Tools, on made-up files and folders only: shredding (refused places, junctions, open files, stopping), photo details in JPEG and PNG, the traces cleaner, the on-screen keyboard;
 - Security Scan: the risky-file rules (disguises, hidden programs, by place, scripts, large files) on made-up names and a temp folder, the posture judgement on made-up settings (good, risky, and "couldn't read" without a guess), the reading of Windows' output, and how findings become rows and advice;
+- Network Analyzer: which service a port is, where an IPv4 or IPv6 address sits (this computer, local network, the Internet), the one-line explanation of each connection, and the reading of the snapshot output into connections and look-ups;
 - settings, backups from Settings, and every screen opening.
 
 Each test uses its own database and file store in a temp folder, so the real data is never touched. `ScreensTest` opens the screens with JavaFX (in windows that are never shown), so it needs a desktop session.
