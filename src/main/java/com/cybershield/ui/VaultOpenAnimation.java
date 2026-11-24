@@ -42,21 +42,21 @@ public final class VaultOpenAnimation {
         host.getChildren().add(overlay.root);
         overlay.root.setOnMouseClicked(e -> skip(host, overlay.root));
 
-        RotateTransition spin = new RotateTransition(Duration.millis(850), overlay.dial);
-        spin.setByAngle(720);
+        RotateTransition spin = new RotateTransition(Duration.millis(1700), overlay.dial);
+        spin.setByAngle(900);
         spin.setInterpolator(Interpolator.EASE_BOTH);
 
-        RotateTransition open = new RotateTransition(Duration.millis(650), overlay.door);
+        RotateTransition open = new RotateTransition(Duration.millis(1300), overlay.door);
         open.setAxis(Rotate.Y_AXIS);
         open.setFromAngle(0);
         open.setToAngle(78);
         open.setInterpolator(Interpolator.EASE_IN);
 
-        ScaleTransition grow = new ScaleTransition(Duration.millis(650), overlay.door);
+        ScaleTransition grow = new ScaleTransition(Duration.millis(1300), overlay.door);
         grow.setToX(1.25);
         grow.setToY(1.25);
 
-        FadeTransition fade = new FadeTransition(Duration.millis(650), overlay.root);
+        FadeTransition fade = new FadeTransition(Duration.millis(1300), overlay.root);
         fade.setFromValue(1);
         fade.setToValue(0);
 

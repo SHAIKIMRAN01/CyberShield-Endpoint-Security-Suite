@@ -5,6 +5,7 @@ import com.cybershield.logger.AppLogger;
 import com.cybershield.models.User;
 import com.cybershield.security.SessionManager;
 import com.cybershield.services.AuthenticationService;
+import com.cybershield.ui.DrawerAnimation;
 import com.cybershield.ui.Theme;
 import com.cybershield.ui.Ui;
 import com.cybershield.ui.VaultOpenAnimation;
@@ -753,6 +754,12 @@ public class DashboardController {
         currentScreen = controller;
 
         currentReopen = null;
+
+        // File Security slides open like a drawer when it shows its files
+        if (controller instanceof FileSecurityController
+                && !"true".equals(System.getProperty("cybershield.noIntro"))) {
+            DrawerAnimation.openDownward(view);
+        }
 
     }
 
